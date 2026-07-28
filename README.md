@@ -41,6 +41,9 @@ Replace `index.html` and commit. Everything lives in that one file:
   is *computed* from the stat blocks, not written by hand, so it can't drift
   out of step with the data.
 - Tier scaling lines are `TIER_SCALING`.
+- Class briefings are `LORE`, keyed by contact name. A contact with no entry
+  just doesn't show the section. Archetypes that appear twice under different
+  loadouts (Witch, Hornet) share one string rather than duplicating it.
 - Visual contact stills are `VISUALS` at the foot of the script, one keyed
   line each, as data URIs.
 

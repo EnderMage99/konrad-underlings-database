@@ -509,6 +509,42 @@
   details.feat[open] > summary::before { content: "\25BE"; }
   details.feat > summary:hover { color: var(--accent); }
 
+  /* ---------- class briefing ---------- */
+
+  details.lore { border-top: 1px solid var(--rule); }
+
+  details.lore > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: .58rem 1.05rem .58rem 1.3rem;
+    font-family: var(--mono);
+    font-size: var(--fs-xs);
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+  }
+
+  details.lore > summary::-webkit-details-marker { display: none; }
+  details.lore > summary::before { content: "\25B8"; color: var(--accent-dim); }
+  details.lore[open] > summary::before { content: "\25BE"; }
+  details.lore > summary:hover { color: var(--accent); }
+
+  .lorebody { padding: 0 1.05rem 1rem 1.3rem; }
+
+  .lorebody p {
+    margin: 0;
+    max-width: 68ch;
+    font-size: var(--fs-sm);
+    font-style: italic;
+    line-height: 1.65;
+    color: var(--ink-soft);
+    border-left: 2px solid var(--accent-dim);
+    padding-left: .9rem;
+  }
+
   .feat-body {
     padding: 0 1.05rem 1.05rem 1.3rem;
     display: grid;
@@ -2055,6 +2091,86 @@
       { f: "Raptor Plasma Rifle", t: "At T2 it makes two attacks at a time; at T3, three." }]
   };
 
+  // ---- class briefings --------------------------------------------------
+  // Background on the chassis pattern rather than the individual unit, keyed
+  // by full contact name. A contact with no entry here simply doesn't show
+  // the section. Add one line to give it one.
+
+  // Two archetypes appear twice in the index under different loadouts, so
+  // their briefing is shared rather than duplicated.
+  var WITCH_BRIEF =
+    "Witch-archetype chassis can always be found in the eye of a systemic " +
+    "storm, where they are adept at generating realspace and legionspace " +
+    "terrors to blanket battlefields. At any given time, they are likely to " +
+    "be operating in both the physical battlefield and the tempest of the " +
+    "omninet. To handle the chaotic swirl of inputs and outputs that results " +
+    "from this split perception, Witches often pair with personality-clone " +
+    "NHPs, splitting tasks along parallel tracks to increase combat efficacy.";
+
+  var HORNET_BRIEF =
+    "SatriaBarong's Espada range of half-frame mechs has long been a popular " +
+    "choice in the chassis racing circuit; notably, Espadas are the mechs of " +
+    "choice for the vaunted SatriaBarong-ShimanoLUX chassis racing team. " +
+    "Recently, SatriaBarong - with the blessing of SSC - has moved to create " +
+    "a mil-spec, de-licensed variant of the Espada without the ShimanoLUX " +
+    "branding, giving rise to the Hornet archetype, a platform open for other " +
+    "companies to adapt and improve. The most notable of these competitors is " +
+    "Chandrasekhar & Herschel, the primary sponsor of the new Blueshift Grand " +
+    "Prix racing circuit.";
+
+  var LORE = {
+    "Gongsi Witch": WITCH_BRIEF,
+    "Gongsi Witch 2": WITCH_BRIEF,
+    "Gongsi Hornet": HORNET_BRIEF,
+    "Stormrider Hornet": HORNET_BRIEF,
+
+    "Gongsi Assault":
+      "Assault mechs are the most common primary battle frames found " +
+      "throughout the galaxy. Fitted with a heavy rifle, a sidearm, and a " +
+      "suite of systems that enhance movement, targeting, and defensibility, " +
+      "they are straightforward, reliable, and hardy combatants. The pilots " +
+      "of Assault mechs are also the cheapest to train and outfit, but that " +
+      "doesn't make them any less dangerous.",
+
+    "Gongsi Sniper":
+      "The reason some pilots haven't seen a Sniper on the battlefield is " +
+      "that those pilots are dead. These mechs are built for stability, " +
+      "targeting, and extremely long-range kinetic damage weapons at the cost " +
+      "of mobility, and they tend to operate in small, self-sufficient teams " +
+      "far removed from direct combat. Sniper pilots are a proud breed, " +
+      "emphasizing economy and elegance over destructive power.",
+
+    "Gongsi Ace":
+      "The first person to embody the \"Ace\" archetype was Aisling Jensen, " +
+      "an auxiliary pilot active during the liberation of Verdana. Knights of " +
+      "the chassis and sky, Aces like Aisling throw their mechs into battle " +
+      "with high-speed strafing runs, agile maneuvers, and reckless feats of " +
+      "daring. Cocky and self-assured, Aces relish a good duel.",
+
+    "Gongsi Scourer":
+      "Scourer-class mechs are distinctive for carrying deadly Energy damage " +
+      "weapons powered by massive-output recursive power plants. These mechs " +
+      "are found across the galaxy in specialist roles, supporting " +
+      "conventional ground troops with powerful beam attacks that stop " +
+      "electronic threats as easily as they stop enemy soldiers.",
+
+    "Gongsi Specter":
+      "The principle behind the development of Specter-archetype mechs is a " +
+      "simple one: not being hit is better than the strongest armor. Specters " +
+      "employ cutting-edge optical-electronic camouflage to vanish from the " +
+      "battlefield and enemy scans. They flicker in and out of vision, " +
+      "confusing the eye and the radar. That's what makes them so deadly, " +
+      "though their weapons certainly help.",
+
+    "Security Unit 'Scout'":
+      "The most devastating mechanized-warfare strategies call for the " +
+      "active, close, and aggressive application of orbital, atmospheric, and " +
+      "terrestrial fire-support. Enter Scout-class mechs and their pilots. " +
+      "Using advanced targeting systems, Scouts are equal parts tactical " +
+      "coordinator and artillery commander, working with allies to map the " +
+      "battlescape and accurately place direct-targeted and autonomous fire."
+  };
+
   // ---- comparison engine -----------------------------------------------
   // The shared / changed / unique split is derived from the entries
   // themselves rather than written out by hand, so it can never drift out of
@@ -2209,6 +2325,7 @@
       (d._only || []).forEach(function (o) { bits.push(o); });
     }
     (d._scaling || []).forEach(function (s) { bits.push("tier scaling", s.f, s.t); });
+    if (LORE[d.name]) bits.push("briefing", LORE[d.name]);
     return bits.join(" ").toLowerCase();
   }
 
@@ -2318,6 +2435,18 @@
     st.appendChild(statCell("Eng", (k.eng > 0 ? "+" : "") + k.eng, "skill"));
     sw.appendChild(st);
     card.appendChild(sw);
+
+    var brief = LORE[d.name];
+    if (brief) {
+      var ld = el("details", "lore");
+      var ls = el("summary", null, "Class briefing");
+      ls.setAttribute("tabindex", "0");
+      ld.appendChild(ls);
+      var lb = el("div", "lorebody");
+      lb.appendChild(el("p", null, brief));
+      ld.appendChild(lb);
+      card.appendChild(ld);
+    }
 
     var n = (d.weapons || []).length + (d.systems || []).length
           + (d.traits || []).length + (d.reactions || []).length;
