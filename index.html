@@ -1026,7 +1026,7 @@
       faction, tier and battlefield role. Stat lines, weapons, systems, traits
       and reactions are recorded verbatim from the COMP/CON readouts.</p>
     <div class="tally">
-      <div><span class="n" id="t-unique">28</span><span class="k">Contacts</span></div>
+      <div><span class="n" id="t-unique">29</span><span class="k">Contacts</span></div>
       <div><span class="n">6</span><span class="k">Variant families</span></div>
       <div><span class="n">4</span><span class="k">Factions</span></div>
     </div>
@@ -1925,6 +1925,30 @@
       ],
       reactions: [],
       note: "Stat line identical to the Sand Worm, down to every number. It carries the Tigris's ambush pair - Natural Camouflage and Grasping Claws - and is the only Monstrosity of the three without Corrosive Bite, so it has no way to inflict Burn or Shredded. All of its pressure comes from closing, grabbing and holding."
+    },
+    {
+      slide: 31, name: "Gongsi Scourer", faction: "gongsi",
+      cls: "Enemy T2 Scourer Mech",
+      tier: "T2", role: "Striker", size: "1", tmpl: [],
+      stats: { hp: 13, armor: 2, heat: 8, speed: 4, act: 1,
+               save: 12, evade: 9, edef: 8, sensor: 10 },
+      skills: { hull: 2, agi: 1, sys: 0, eng: 2 },
+      weapons: [
+        { n: "Thermal Lance", mount: "Heavy Cannon",
+          line: "Range 8 | 8 Energy | +2 attack | +1 accuracy",
+          meta: "Heat 4 (self)" }
+      ],
+      systems: [
+        { n: "Cooling Module", txt: "At the start of their turn, the Scourer clears all heat if they haven't moved - including involuntary movement - since the end of their previous turn." },
+        { n: "Ablative Shielding", txt: "The Scourer has Resistance to Energy damage." },
+        { n: "Melt", txt: "The Scourer makes a ranged attack against an object, deployable or Drone within Range 10, dealing 20 AP Energy damage on a success.",
+          meta: "Recharge 5+ / Quick action" }
+      ],
+      traits: [
+        { n: "Focus Down", txt: "When the Scourer hits with the Thermal Lance, targets take 7 Burn if they were also successfully hit with the Thermal Lance in the previous round." }
+      ],
+      reactions: [],
+      note: "Every shot costs it 4 self-heat against a cap of 8, so it can fire twice before overheating - and Cooling Module only wipes that clean if it has not moved, including being pushed or pulled. Shoving it one space is worth more than damage. Focus Down needs consecutive rounds of hits to reach 7 Burn, so a single round out of line of sight resets the clock. Melt is the anti-deployable answer: 20 AP energy deletes a turret, razor swarm, printed cover cube or Hound Missile outright."
     }
   ];
 
