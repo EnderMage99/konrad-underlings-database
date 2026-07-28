@@ -41,7 +41,6 @@
     --fac-gongsi:     #F2555A;
     --fac-stormrider: #5B8DFF;
     --fac-wildlife:   #45E0A0;
-    --fac-unaligned:  #8298A6;
 
     --diffbg:      rgba(245, 179, 60, .11);
     --glow:        0 0 22px -6px rgba(63, 216, 240, .45);
@@ -1219,7 +1218,7 @@
     <div class="tally">
       <div><span class="n" id="t-unique">31</span><span class="k">Contacts</span></div>
       <div><span class="n">6</span><span class="k">Variant families</span></div>
-      <div><span class="n">4</span><span class="k">Factions</span></div>
+      <div><span class="n">3</span><span class="k">Factions</span></div>
     </div>
   </div>
 </header>
@@ -1338,14 +1337,12 @@
     stormrider: { name: "Stormrider", color: "var(--fac-stormrider)",
                   blurb: "Pirate outfit. All three contacts run the Pirate template." },
     wildlife:   { name: "Wildlife", color: "var(--fac-wildlife)",
-                  blurb: "Non-mech biologicals. Monstrosity class, no heat track." },
-    unaligned:  { name: "Unaligned", color: "var(--fac-unaligned)",
-                  blurb: "No faction markings on the scan." }
+                  blurb: "Non-mech biologicals. Monstrosity class, no heat track." }
   };
 
   var DATA = [
     {
-      slide: 2, name: "Rainmaker", faction: "unaligned", cls: "Enemy T1 Rainmaker Mech",
+      slide: 2, name: "Rainmaker", faction: "gongsi", cls: "Enemy T1 Rainmaker Mech",
       tier: "T1", role: "Artillery", size: "1", tmpl: [],
       stats: { hp: 10, armor: 1, heat: 8, speed: 3, act: 1,
                save: 10, evade: 8, edef: 8, sensor: 15 },
@@ -2632,7 +2629,7 @@
 
   // ---- derived filter vocabularies -------------------------------------
 
-  var FACTION_ORDER = ["gongsi", "stormrider", "wildlife", "unaligned"];
+  var FACTION_ORDER = ["gongsi", "stormrider", "wildlife"];
   var ROLES = [];
   var TIERS = [];
   DATA.forEach(function (d) {
