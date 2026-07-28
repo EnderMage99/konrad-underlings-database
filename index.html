@@ -1153,7 +1153,7 @@
 <div class="controls">
   <div class="wrap controls-inner">
     <div class="searchrow">
-      <input id="search" type="search" placeholder="Search name, weapon, system, trait..."
+      <input id="search" type="search" placeholder="Search everything..."
              aria-label="Search contacts" />
       <button class="btn" id="expand" type="button" aria-pressed="false">Expand all</button>
       <span class="seg" role="group" aria-label="View">
@@ -1163,6 +1163,7 @@
       </span>
       <button class="btn" id="reset" type="button">Reset</button>
     </div>
+    <div class="filterset" id="f-scope"><span class="setlabel">Search in</span></div>
     <div class="filterset" id="f-faction"><span class="setlabel">Faction</span></div>
     <div class="filterset" id="f-tier"><span class="setlabel">Tier</span></div>
     <div class="filterset" id="f-role"><span class="setlabel">Role</span></div>
@@ -2527,7 +2528,7 @@
   TIERS.sort();
 
   var state = { q: "", faction: null, tier: null, role: null, only: null,
-                expand: false };
+                scope: null, expand: false };
   var currentView = "cards";
 
   // ---- helpers ---------------------------------------------------------
@@ -2621,7 +2622,24 @@
     return bits.join(" ").toLowerCase();
   }
 
-  DATA.forEach(function (d) { d._hay = haystack(d); });
+  // Scoped haystacks, so a search can be narrowed to one kind of feature.
+  // Each covers the feature's name, damage line, rules text and tags.
+  function featureHay(d, key) {
+    return (d[key] || []).map(function (f) {
+      return [f.n, f.line || "", f.txt || "", f.meta || "", f.mount || ""].join(" ");
+    }).join(" ").toLowerCase();
+  }
+
+  DATA.forEach(function (d) {
+    d._hay = haystack(d);
+    d._hayScope = {
+      name: [d.name, d.short, d.cls].join(" ").toLowerCase(),
+      weapon: featureHay(d, "weapons"),
+      system: featureHay(d, "systems"),
+      trait: featureHay(d, "traits"),
+      reaction: featureHay(d, "reactions")
+    };
+  });
 
   function matches(d) {
     if (state.faction && d.faction !== state.faction) return false;
@@ -2629,7 +2647,10 @@
     if (state.role && d.role !== state.role) return false;
     if (state.only === "variants" && !d._group) return false;
     if (state.only === "scaling" && !d._scaling) return false;
-    if (state.q && d._hay.indexOf(state.q) === -1) return false;
+    if (state.q) {
+      var hay = state.scope ? d._hayScope[state.scope] : d._hay;
+      if (hay.indexOf(state.q) === -1) return false;
+    }
     return true;
   }
 
@@ -2806,12 +2827,19 @@
   var emptyMsg = document.getElementById("empty");
 
   function render() {
+    searchEl.placeholder = state.scope
+      ? SCOPE_HINT[state.scope] : "Search everything...";
     cardview.textContent = "";
     tbody.textContent = "";
     var shown = 0;
 
     FACTION_ORDER.forEach(function (fk) {
-      var list = DATA.filter(function (d) { return d.faction === fk && matches(d); });
+      // Alphabetical within the faction, on the displayed name.
+      var list = DATA
+        .filter(function (d) { return d.faction === fk && matches(d); })
+        .sort(function (a, b) {
+          return a.short.localeCompare(b.short, "en", { sensitivity: "base" });
+        });
       if (!list.length) return;
       shown += list.length;
 
@@ -3072,6 +3100,23 @@
   buildChips("f-faction", "faction", FACTION_ORDER, function (f) {
     return FACTIONS[f].name;
   });
+  // Reactions get their own scope too: without it, "Rebound" or "Barrel Roll"
+  // would be unreachable once a scope is picked.
+  var SCOPES = {
+    name: "Name", weapon: "Weapon", system: "System",
+    trait: "Trait", reaction: "Reaction"
+  };
+  var SCOPE_HINT = {
+    name: "Search contact names...",
+    weapon: "Search weapons...",
+    system: "Search systems...",
+    trait: "Search traits...",
+    reaction: "Search reactions..."
+  };
+
+  buildChips("f-scope", "scope", Object.keys(SCOPES), function (v) {
+    return SCOPES[v];
+  });
   buildChips("f-tier", "tier", TIERS);
   buildChips("f-role", "role", ROLES);
   buildChips("f-only", "only", ["variants", "scaling"], function (v) {
@@ -3124,7 +3169,7 @@
 
   document.getElementById("reset").addEventListener("click", function () {
     state = { q: "", faction: null, tier: null, role: null, only: null,
-              expand: false };
+              scope: null, expand: false };
     searchEl.value = "";
     expandBtn.setAttribute("aria-pressed", "false");
     expandBtn.textContent = "Expand all";
