@@ -72,13 +72,62 @@
     line-height: 1.55;
     -webkit-font-smoothing: antialiased;
     background:
-      repeating-linear-gradient(0deg, transparent 0 43px,
-        rgba(63, 216, 240, .035) 43px 44px),
-      repeating-linear-gradient(90deg, transparent 0 43px,
-        rgba(63, 216, 240, .035) 43px 44px),
       radial-gradient(130% 90% at 50% -10%, var(--ground-2) 0%, var(--ground) 68%);
     background-attachment: fixed;
   }
+
+  /* ---------- ambient motion ----------
+     Two fixed layers behind the content. The grid drifts by exactly one cell
+     so the loop is seamless, and a faint band sweeps down every 15s. Both are
+     transform-animated (compositor only, no repaint) and both are switched
+     off wholesale under prefers-reduced-motion. */
+
+  body::before,
+  body::after {
+    content: "";
+    position: fixed;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  body::before {
+    inset: -60px;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 43px,
+        rgba(63, 216, 240, .035) 43px 44px),
+      repeating-linear-gradient(90deg, transparent 0 43px,
+        rgba(63, 216, 240, .035) 43px 44px);
+    animation: drift 52s linear infinite;
+  }
+
+  @keyframes drift {
+    from { transform: translate3d(0, 0, 0); }
+    to   { transform: translate3d(44px, 44px, 0); }
+  }
+
+  body::after {
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 220px;
+    background: linear-gradient(180deg,
+      transparent 0%,
+      rgba(63, 216, 240, .028) 60%,
+      rgba(63, 216, 240, .055) 82%,
+      rgba(150, 240, 255, .07) 96%,
+      transparent 100%);
+    animation: sweep 15s linear infinite;
+  }
+
+  @keyframes sweep {
+    0%   { transform: translate3d(0, -240px, 0); opacity: 0; }
+    6%   { opacity: 1; }
+    94%  { opacity: 1; }
+    100% { transform: translate3d(0, 100vh, 0); opacity: 0; }
+  }
+
+  /* content rides above the ambient layers */
+  .masthead, main, .audit { position: relative; z-index: 1; }
 
   .wrap {
     max-width: 1180px;
@@ -132,7 +181,6 @@
   .masthead {
     border-bottom: 1px solid var(--rule);
     padding: clamp(2rem, 5vw, 3.25rem) 0 1.5rem;
-    position: relative;
   }
 
   .masthead::after {
@@ -143,6 +191,12 @@
     background: linear-gradient(90deg,
       var(--accent) 0%, var(--accent) 18%, transparent 46%);
     box-shadow: 0 0 10px rgba(63, 216, 240, .7);
+    animation: breathe 7s ease-in-out infinite;
+  }
+
+  @keyframes breathe {
+    0%, 100% { opacity: .7; }
+    50%      { opacity: 1; }
   }
 
   .eyebrow {
@@ -369,9 +423,21 @@
 
   .cards { display: flex; flex-direction: column; gap: 1.1rem; }
 
+  .boot-in { animation: bootin .45s cubic-bezier(.2, .7, .3, 1) both; }
+
+  @keyframes bootin {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: none; }
+  }
+
   /* ---------- dossier card ---------- */
 
-  .card { --edge: var(--rule); }
+  .card {
+    --edge: var(--rule);
+    transition: box-shadow .28s ease;
+  }
+
+  .card:hover { box-shadow: 0 0 30px -5px rgba(63, 216, 240, .5); }
 
   /* faction-coloured spine, clipped by the chamfer */
   .card::after {
@@ -559,6 +625,12 @@
   }
 
   .stip[hidden] { display: none; }
+  .stip { animation: tipin .13s ease-out; }
+
+  @keyframes tipin {
+    from { opacity: 0; transform: translateY(5px); }
+    to   { opacity: 1; transform: none; }
+  }
   .stip.bad  { border-color: var(--alert); }
   .stip.good { border-color: var(--brass); }
 
@@ -1131,6 +1203,7 @@
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; }
+    body::after { display: none; }
     .vgroup.flash { box-shadow: 0 0 0 2px var(--accent), var(--glow); }
   }
 </style>
@@ -1521,8 +1594,8 @@
     },
     {
       slide: 12, name: "Erimou Tigris", faction: "wildlife",
-      cls: "Enemy Custom Monstrosity Elite Biological",
-      tier: "Custom", role: "Bruiser", size: "2", tmpl: ["Elite", "Biological"],
+      cls: "Enemy T2 Monstrosity Elite Biological",
+      tier: "T2", role: "Bruiser", size: "2", tmpl: ["Elite", "Biological"],
       flags: ["Two turns/round"],
       stats: { hp: 30, structure: 2, armor: 1, stress: 2, speed: 6, act: 2,
                save: 10, evade: 10, edef: 10, sensor: 10 },
@@ -2530,6 +2603,7 @@
   var state = { q: "", faction: null, tier: null, role: null, only: null,
                 scope: null, expand: false };
   var currentView = "cards";
+  var booted = false;
 
   // ---- helpers ---------------------------------------------------------
 
@@ -2833,7 +2907,7 @@
     tbody.textContent = "";
     var shown = 0;
 
-    FACTION_ORDER.forEach(function (fk) {
+    FACTION_ORDER.forEach(function (fk, fi) {
       // Alphabetical within the faction, on the displayed name.
       var list = DATA
         .filter(function (d) { return d.faction === fk && matches(d); })
@@ -2844,6 +2918,11 @@
       shown += list.length;
 
       var sec = el("section", "faction");
+      // reveal only on the very first paint, never on filter changes
+      if (!booted) {
+        sec.className += " boot-in";
+        sec.style.animationDelay = (fi * 70) + "ms";
+      }
       var fh = el("div", "faction-head");
       var h2 = el("h2", null, FACTIONS[fk].name);
       h2.style.setProperty("--fc", FACTIONS[fk].color);
@@ -2891,6 +2970,7 @@
 
     emptyMsg.hidden = shown > 0 || currentView !== "cards";
     document.getElementById("t-unique").textContent = String(shown);
+    booted = true;
   }
 
   // ---- variants view ---------------------------------------------------
