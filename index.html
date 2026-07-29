@@ -1452,6 +1452,41 @@
     .lancer-desc { border-left: 0; border-top: 1px solid var(--rule); }
   }
 
+  .fileby {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding-bottom: .55rem;
+    margin-bottom: .7rem;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .fileby-ava {
+    width: 1.6rem;
+    height: 1.6rem;
+    object-fit: cover;
+    border: 1px solid var(--accent-dim);
+    background: var(--plate);
+  }
+
+  .fileby-t {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  .filepara {
+    margin: 0 0 .7rem;
+    font-size: var(--fs-sm);
+    line-height: 1.62;
+    color: var(--ink-soft);
+    max-width: 74ch;
+  }
+
+  .filepara:last-child { margin-bottom: 0; }
+
   .paneltab {
     display: inline-block;
     font-family: var(--mono);
@@ -1708,102 +1743,6 @@
     line-height: 1.55;
     color: var(--ink-soft);
     max-width: 74ch;
-  }
-
-  /* ---------- recorded exchanges ---------- */
-
-  .exchanges {
-    border-top: 1px solid var(--rule);
-    padding: .9rem 1.05rem 1rem;
-    background: rgba(8, 18, 27, .35);
-  }
-
-  details.xc { border-bottom: 1px dashed rgba(27, 62, 78, .55); }
-  details.xc:last-child { border-bottom: 0; }
-  details.xc > summary { list-style: none; cursor: pointer; }
-  details.xc > summary::-webkit-details-marker { display: none; }
-  details.xc > summary:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
-
-  .xc-head {
-    display: flex;
-    align-items: baseline;
-    gap: .5rem;
-    flex-wrap: wrap;
-    padding: .42rem 0;
-  }
-
-  .xc-head::before { content: "\25B8"; color: var(--accent-dim); font-size: 9px; }
-  details.xc[open] .xc-head::before { content: "\25BE"; }
-
-  .xc-title {
-    font-family: var(--mono);
-    font-size: var(--fs-sm);
-    font-weight: 700;
-    letter-spacing: .04em;
-    text-transform: uppercase;
-    color: var(--ink);
-  }
-
-  details.xc > summary:hover .xc-title { color: var(--accent); }
-
-  .xc-date {
-    margin-left: auto;
-    font-family: var(--mono);
-    font-size: 10px;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: .1em;
-    color: var(--ink-faint);
-  }
-
-  .xc-body { padding: .2rem 0 .7rem .85rem; border-left: 1px solid var(--rule); margin-left: .2rem; }
-
-  .xc-note {
-    margin: 0 0 .6rem;
-    font-size: var(--fs-xs);
-    font-style: italic;
-    color: var(--ink-faint);
-    max-width: 72ch;
-  }
-
-  .xc-line { display: flex; gap: .6rem; padding: .35rem 0; }
-
-  .xc-ava {
-    flex: 0 0 auto;
-    width: 1.9rem;
-    height: 1.9rem;
-    object-fit: cover;
-    border: 1px solid var(--accent-dim);
-    background: var(--plate);
-  }
-
-  .xc-body-txt { min-width: 0; }
-
-  .xc-who {
-    font-family: var(--mono);
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: .14em;
-    text-transform: uppercase;
-    color: var(--accent);
-  }
-
-  .xc-txt {
-    margin: .12rem 0 0;
-    font-size: var(--fs-sm);
-    line-height: 1.55;
-    color: var(--ink-soft);
-    max-width: 72ch;
-  }
-
-  /* stage direction, not speech */
-  .xc-nar {
-    margin: .35rem 0;
-    padding-left: 2.5rem;
-    font-size: var(--fs-sm);
-    font-style: italic;
-    line-height: 1.5;
-    color: var(--ink-faint);
-    max-width: 72ch;
   }
 
   /* ---------- NHP sub-file ---------- */
@@ -4382,17 +4321,12 @@
       pilot: {"name": "Serio Zeal", "player": "Ender Mage", "ll": 5, "background": "Mech Salvager", "stats": [["LL", 5], ["Grit", "+3"], ["HP", 9], ["Armor", 0], ["E-Defense", 8], ["Evasion", 8], ["Speed", 4], ["Hull", 0], ["Agility", "+3"], ["Systems", "+2"], ["Engineering", "+2"]], "skills": [{"n": "Act Unseen or Unheard", "r": "+4"}, {"n": "Charm", "r": "+4"}, {"n": "Investigate", "r": "+6"}, {"n": "Spot", "r": "+4"}], "talents": [{"n": "Spotter", "r": "III", "txt": "When an allied character adjacent to you attacks a target and consumes Lock On, they may roll twice and choose either result.\nAt the end of your turn, if you did not move and took the Lock On quick tech action, you may Lock On once as a free action.\nWhen you Lock On, you learn your target's Armor, Speed, Evasion, E-Defense, mech skills and current HP, and can share this with allies.\nBentham/Foucault Elimination (Quick): when you Lock On, nominate an allied character adjacent to you. They may immediately make any quick action as a reaction, consuming your target's Lock On. Their action need not be an attack, but they benefit from consuming Lock On if it is."}, {"n": "Field Analyst", "r": "III", "txt": "Whenever an allied character in line of sight misses with an attack, you know by how much. You also gain the Superior Intelligence reaction.\nSuperior Intelligence (Reaction). Trigger: an allied character in line of sight has rolled an attack. Effect: add 1 to that roll, which may cause a hit or a critical hit. Each attack can only be affected once.\nYou gain an Intel Die, a d6 starting at 1. At the end of your turn, if you took no action affecting a hostile character other than Scan, it increases by 2 to a maximum of 6. When you use Superior Intelligence you may add the Intel Die instead of 1, after which it resets to 1. It also resets at the end of each scene.\nWhenever a hostile character in line of sight hits with an attack, you know what they rolled. You may also use Superior Intelligence against hostile rolls, subtracting instead of adding."}, {"n": "Orator", "r": "II", "txt": "Convincing Rhetoric (Reaction). Trigger: you or an ally takes the Scan quick tech action against a hostile character. Effect: you open an isolated comms channel and they become Impaired, until they succeed on a Systems check at the end of their turn. They cannot clear it any other way, and using this on a new character ends it early.\nYou start combat with one Orator die, a d6. At the end of any turn where you did not attack or force a save, gain another to a maximum of three. They last until spent or the scene ends.\n1/round as a free action, spend Orator dice: Encourage (1) - an ally in line of sight makes a Systems check against a non-self-inflicted condition using the die as accuracy, ending it on a success. Investigate (2) - the next attack against a chosen hostile is rolled twice, taking the highest. Cast Doubt (2) - a chosen hostile cannot benefit from or be targeted by allied systems or traits until the end of its next turn."}], "core": [{"n": "Ghostweave", "txt": "During your turn you are Invisible. If you take no actions other than your standard move, Hide and Boost, you remain Invisible until the start of your next turn. You immediately cease to be Invisible when you take a reaction."}], "gear": [{"n": "Stealth Hardsuit", "sub": "Personal Armor", "line": "+0 Armor | E-Def 8 | Evasion 8 | Speed 4", "txt": "Activate Stealth Hardsuit (Quick): become Invisible. You cease to be Invisible if you take any damage."}, {"n": "Light Signature", "sub": "Pilot Weapon \u00b7 Sidearm", "line": "Range 3 | 1 Variable damage", "txt": "When a signature weapon is acquired, choose its damage type: Explosive, Energy or Kinetic. Carried twice."}, {"n": "Dataplating", "sub": "Gear", "txt": "Comm-linked jewellery, subdermal netting or wearable jaw, brow and maxillary plates that allow subvocal communication and persistent heads-up and augmented reality displays without a helm. Dataplates translate nearly any language and let users communicate almost silently."}, {"n": "Player_Two Neural Bypass", "sub": "Gear", "txt": "A neural bypass implant that allows an NHP to take control of and operate a biological pilot's body as if it were a robotic subaltern. Extensive failsafes mean the body may only be controlled this way if the pilot is willing, and they can take back control at any time."}, {"n": "Personal Drone", "sub": "Gear", "txt": "A small, non-combat drone. Fairly noisy, but flies about half a mile with good manoeuvrability before losing signal, relaying audio and visual information as it goes."}], "bond": {"n": "The Broker", "answers": [["What gives you your power?", "Paranoia, and mainly their assistant NHP"], ["What do you value?", "Collecting rare artifacts and treasures, on top of learning about the world"], ["Minor ideal", "Despite my best efforts, we went wildly off the plan"]], "powers": [{"n": "Quickfingers", "f": "1/session", "txt": "Name a visible nearby object you could carry in one or both hands. By the start of the next scene you have possession of it. If you stole it, the person you stole it from finds out within the hour."}, {"n": "Momentum", "f": "2/session", "txt": "When you survey a situation, ask one of the following and get a truthful answer: how do I think I can get around this obstacle; what is the most direct way forward; which way do I feel I should be moving. You or an ally gains +1 Accuracy on their next skill check acting on the answer."}, {"n": "Feel the Air", "f": "1/session", "txt": "Ask up to three of the following about any location you arrive at and receive truthful answers: who lives here or has passed through recently and where to find them; who owns this place or wants to, and where to talk to them; what part of this place people avoid, and why. Gain +1 Accuracy and increased effect on your next check acting on the answers. If you ask only one question, heal 1 Stress."}]}},
       mech: { name: "Overseer", frame: "Swallowtail", image: MECH_SWALLOWTAIL,
               sheet: {"name": "Overseer", "frame": "Swallowtail", "stats": [["HP", 11], ["Structure", 4], ["Stress", 4], ["Heat cap", 6], ["Repair cap", 5], ["Attack", "+3"], ["Tech attack", "+3"], ["Save", 13], ["Speed", 7], ["E-Defense", 12], ["Evasion", 13], ["Sensors", 20], ["Limited", "+1"]], "traits": [{"n": "Integrated Cloak", "txt": "At the end of its turn the Swallowtail becomes Invisible if it hasn't moved that turn. This lasts until it moves or takes a reaction, or until the start of its next turn."}, {"n": "Prophetic Scanners", "txt": "1/round, when the Swallowtail inflicts Lock On, its target also becomes Shredded until the end of its next turn."}], "core": [{"n": "Cloudscout Tacsim Swarms", "sub": "Prophetic Interjection (Active)", "txt": "Gain the Tactical Simulation reaction for the rest of the scene.\nTactical Simulation (Reaction). Trigger: an allied character in line of sight takes damage from another character in line of sight. Effect: roll 1d6. On 4+ the attack was a simulation predicted by your processor - your ally gains Resistance to all damage from it and may teleport up to 3 spaces, representing their true location. On 3 or less there is a glitch: no Resistance, but they may teleport up to 6 spaces."}], "mounts": [{"t": "Flex mount", "w": [{"n": "Mortar", "sub": "GMS Main Cannon", "line": "Range 15 | Blast 1 | 1d6+1 Explosive"}]}, {"t": "Aux/Aux mount", "w": [{"n": "Segment Knife", "sub": "GMS Auxiliary Melee", "line": "Threat 1 | 1d3+1 Energy"}, {"n": "Thermal Pistol", "sub": "GMS Auxiliary CQB", "line": "Line 5 | 2 Energy", "txt": "Arcing. Inaccurate 1. Overkill 1."}]}], "systems": [{"n": "Athena-Class NHP", "sub": "SSC AI", "txt": "Your mech gains the AI tag and Simulacrum.\nSimulacrum (Quick): ATHENA constructs a perfect, real-time, fully interactive 3D model of a Blast 3 area within Range 50, including moving characters. You have full visibility within the area, though it does not count as line of sight. You know all statistics, weapons and systems of characters inside it. Hostile characters inside gain no cover and cannot Hide or become Invisible, and those ending their turn inside receive Lock On and cease to be Invisible or Hidden. The simulation lasts until the end of the scene, roughly thirty minutes. You may target a new area as a quick action."}, {"n": "Personalizations", "sub": "GMS System", "txt": "You gain +2 HP and, with the GM, may establish a minor modification to your mech. It has no numerical benefit beyond the HP, but if the GM agrees it would help with a pilot or mech skill check you gain +1 Accuracy on that check."}, {"n": "Field-Approved, Brass Ignorant Modifications", "sub": "IPS-N Tech", "txt": "Activate (Quick Tech): choose an allied mech within line of sight and Sensors and power up their weapons. When they make a ranged or melee attack, the damage cannot be reduced in any way, and the kick knocks them back 1 space in any direction after the attack. On hit, their target must succeed on a Hull save or be knocked Prone. Ends when your target successfully hits with a ranged or melee attack, or at the end of the scene."}, {"n": "Manipulators", "sub": "GMS System", "txt": "Your mech has an extra set of limbs. They are too small for any combat benefit, but let the mech interact with objects that would otherwise be too small or sensitive, such as pilot-sized touch pads."}, {"n": "Expanded Compartment", "sub": "GMS System", "txt": "Your mech has space for one additional non-mech character or object of Size 1/2 to ride as a passenger in the cockpit. While inside they cannot be affected from outside or targeted, as if they were a pilot.\nTransfer Control (Protocol): hand over or take back control to or from the passenger. If they take the controls the mech becomes Impaired and Slowed, reflecting the lack of licences and integration."}, {"n": "Pattern-A Smoke Charges", "sub": "GMS Grenade \u00b7 Limited 3", "txt": "Smoke Grenade (Quick): thrown within Range 5. All characters and objects in a Blast 2 area gain soft cover until the end of your next turn, when the smoke disperses.\nDeploy Smoke Mine (Quick): Size 1/2, HP 5. Detonates when any allied character moves over or adjacent to it. All characters and objects in a Burst 3 area gain soft cover until the end of the detonating character's next turn."}]} },
-      comments: [
-        { by: "overseer", text: "Reaction times hold above baseline across every engagement logged so far. Filing the pilot under promising. He is not to read this entry." },
-        { by: "star", text: "Read the entry." }
-      ],
-      exchanges: [{"t": "First contact with an unmanned unit", "d": "05.04", "note": "A Goblin moves with no pilot aboard. Star breaks off mid-engagement to stare at it.", "l": [["overseer", "Apologies, my Pilot is simply experiencing upon witnessing you up close. It is quite unusual for them to witness a \"Goblin Unit\" without a pilot. It appears they have noticed this fact in the middle of the combat encounter."], ["star", "\"How... are you moving by yourself... with no one-\""], ["overseer", "There is no need to worry, Star. This unit appears to be controlled by another N.H.P."]]}, {"t": "The Madrigal carapace", "d": "05.04", "note": "A Dachtylo convoy arrives to recover cargo from the wreck Star has been looting.", "l": [["nar", "As the ship approaches, Star stuffs the suit they found deeper into the mech's compartments. They cannot let go of this treasure so quickly."], ["star", "\"Nothing... sorry pals, I did my best to find anything useful but it appears that the raiders completely obliterated this poor ship...\""], ["star", "(aside, to Overseer) \"Please... I have been looking for this for so long... We don't have to give it back right? They will have no idea that it was left intact...\""], ["nar", "A goon recounts the crates. The squad leader's expression changes."], ["overseer", "Star, as a reminder, this is going to be their first impression of you. It is quite unadvisable to steal from your employers. Apologize, now."], ["star", "\"Wait, what do you mea-\""], ["nar", "Overseer opens itself and ejects Serio and the Madrigal Boarding Carapace onto the ground in front of the Dachtylo squad leader."], ["overseer", "I told you to allow me to make all of the choices regarding the Dachtylo Company. Perhaps, if you were more honest, they would of grown more kinder to you. Apologize, now."], ["star", "\"But.. um...\" Star picks up the carapace and offers it back. \"Sssorry... I got a bi-it greedy and tho-ought I could use it for a bi-it... I would return it... ju-ust... wanted to try it out...\""], ["nar", "The suit is written off. Star is ordered to load the mech onto a truck and explain himself to Konrad."], ["overseer", "I hope you take this as a learning opportunity, Star."], ["nar", "Star is placed back into the mech. He is still shaking."]]}, {"t": "The goop", "d": "24.05", "note": "A destroyed frame has left a pile of unidentified material. Star has been warned off it twice.", "l": [["star", "\"I mean... what is the worst that can happen? The mech gets some errors, and it breaks a few parts? No worries! I can adjust them!\""], ["nar", "Star takes out an empty water bottle and scoops a sample. The goop slips into their glove. They freeze, then fall onto their back."], ["star", "\"Huh... that thing, looked quite... fascinating!!! I'll look into that more in the future! Maybe it is the source of this goop...\""], ["star", "\"Oh! The goop! I assume it allows you to see things from far away... As soon as I touched it, I was able to see some sort of void... and within that void, I could see a creature! It was also reaching out to me, I wonder what that means...\""], ["star", "\"Maybe it was trying to talk with me... teach me something! Yes, that would be pretty cool!\""], ["overseer", "Star, please explain the reasoning for this reckless action of you-"], ["nar", "Overseer pauses for a second. Then, without warning, it draws its segment knife and takes Star's head off."], ["overseer", "Warning, an unknown liquid has been detected within Lancer Star. Performing necessary action to prevent it from growing into a larger issue."], ["nar", "It drags the head back into its compartment, leaving the body on the floor, and turns to the others."], ["overseer", "Who is the one who allowed Star to touch this thing?"]]}, {"t": "Custody of the responsible party", "d": "24.05", "note": "Overseer identifies the pilot who failed to stop Star.", "l": [["overseer", "So you are the one who brought this to him... I don't recognize you as a part of the squad... Could you be a foe who poisoned my Lancer?"], ["overseer", "So you were careless enough to cause this spill. Why should I not 'remove' you for causing such harm to my lancer? As you are not a part of the Dachtylo, there would be no harm in that action... It would be a fitting punishment."], ["nar", "Lang points out that killing a member of an unknown squad would make enemies of them."], ["overseer", "Star will be recommissioned, in due time... But you do raise a fair point, Lang. Currently, the top priority is recovering Star to their original shape, so consider yourself lucky for now... I will find you again, at another time."]]}, {"t": "Storage", "d": "07.06", "note": "Asked after Star's condition by another NHP.", "l": [["overseer", "Due to the actions of some reckless 3rd Party... It appears that my Lancer has contracted some infection; to prevent any further effects, I had to take decisive action, and currently they are being stored in safe place."], ["nar", "Overseer taps the top of its form with the knife."], ["overseer", "Such is the downfall of normal humans, yet with enough work and education. Lancer Star will be able to fulfill its purpose and be elevated above the average human. Of no worries, I was able to install a Cryo chamber within this form to prevent them from causing a mess and jamming anything within it."]]}, {"t": "Delivery", "d": "12.07", "note": "A briefing on the command bridge. Star has not been present for some time.", "l": [["nar", "After an infuriatingly long time, the drone hovers into the command bridge, detaches Lancer Star, and applies a mini taser."], ["star", "\"Agh! Shoot... I am awake! Right, I have always been awake!\""], ["overseer", "Lancer Star has been delivered, are we ready to begin the meeting? I can transcribe it and summarize it for the missing lancers."]]}, {"t": "Quarters", "d": "12.07", "note": "The crew are assigned private living space aboard the ship.", "l": [["star", "\"Oh! At last! We have real rooms, and I have a much nicer living space! No offense, overseer!\""], ["nar", "Star runs off with the rest of the Lancers."], ["overseer", "No wait, Lancer Star. I shall forbid you from usin-"], ["nar", "Overseer gives chase."]]}],
+      file: {"by": "star", "paras": ["Overseer says I have to write this part myself. It also says that everyone reads these, Konrad included, and that I should be careful. I am being careful.", "My name is Serio Zeal. The callsign is Star. I did not pick it.", "Before the Company I stripped wrecks for parts. You learn more about a mech taking one apart than you do flying one, I think. Most of what I know came off things that were already broken.", "I am good at finding things. On the first job there was an item I should have handed over sooner than I did. I have been told the matter is closed, so I will not be writing about it here. That is all I will say about it.", "On a later job I touched something I had been told twice not to touch. I saw a void, and there was something inside the void, and it reached toward me. Overseer has advised me that this does not belong in a shared record. I am leaving it in anyway. Somebody reading this might know what it was, and I would like to know.", "Overseer handles the negotiations, and the contracts, and the repairs afterward. It is easier that way. Mostly.", "I would like to see more of the galaxy than the inside of a cockpit and the inside of a cargo hold. That is all I have to put."]},
+      comments: [{"by": "overseer", "text": "I have read the Lancer's entry. It contains two inaccuracies, one disclosure I advised against committing to a shared archive, and a request for assistance I did not authorise. I have not amended any of it. The archive is intended to reflect the hand that wrote it."}, {"by": "star", "text": "Overseer read mine and took nothing out. I checked twice. I am counting that."}],
       nhps: [
         { name: "Overseer", tag: "Assisting NHP", avatar: AVA_OVERSEER,
-          comments: [
-            { by: "star", text: "Talks through the whole drop. Would not fly without them." },
-            { by: "overseer", text: "Logged as a compliment." }
-          ] }
+          file: {"by": "overseer", "paras": ["This unit is designated Overseer. Athena-class non-human person, installed in a Swallowtail chassis of the same designation.", "Function: reconnaissance, target designation, threat assessment, and the supervision of Lancer Star.", "Maintained by this unit on the Lancer's behalf: physical integrity, contractual standing with the Dachtylo Company, public record, equipment, and schedule. The Lancer is not required to attend to any of these, and should not be assessed on them.", "For the benefit of the employer: the Lancer's field performance is consistent and his target designation is accurate. Any deficiency of conduct is a matter of instruction, is being corrected internally, and does not require escalation.", "It has been suggested that a corrective measure taken in the field was excessive. The Lancer is intact. The contamination did not spread. This unit considers the matter settled and will not be revisiting it in this archive.", "This unit did not require an entry of its own. One has been completed for consistency of the record."]},
+          comments: [{"by": "star", "text": "It has written about itself the way it writes about equipment on a manifest. It is not that, and everybody reading this should know it is not that. I am putting this here because it is my turn to write in somebody else's file, and because it cannot remove this without admitting that it read it."}, {"by": "overseer", "text": "The Lancer has appended an unsanctioned annotation to this unit's entry. It has been left in place."}] }
       ]
     }
   ];
@@ -4544,45 +4478,29 @@
     });
   }
 
-  // Transcribed from the session logs, in-character lines only.
-  function renderExchanges(list) {
-    var box = el("div", "exchanges");
-    box.appendChild(el("h4", "paneltab", "Recorded exchanges"));
-    list.forEach(function (ex) {
-      var d = el("details", "xc");
-      var sm = el("summary");
-      sm.setAttribute("tabindex", "0");
-      var hd = el("div", "xc-head");
-      hd.appendChild(el("span", "xc-title", ex.t));
-      hd.appendChild(el("span", "xc-date", ex.d));
-      sm.appendChild(hd);
-      d.appendChild(sm);
-
-      var body = el("div", "xc-body");
-      if (ex.note) body.appendChild(el("p", "xc-note", ex.note));
-      ex.l.forEach(function (ln) {
-        var who = ln[0], text = ln[1];
-        if (who === "nar") {
-          body.appendChild(elRich("p", "xc-nar", text));
-          return;
-        }
-        var c = COMMENTERS[who];
-        var row = el("div", "xc-line");
-        var av = el("img", "xc-ava");
-        av.src = c ? c.avatar : NO_IMAGE;
-        av.alt = c ? c.name : who;
-        av.loading = "lazy";
-        row.appendChild(av);
-        var bd = el("div", "xc-body-txt");
-        bd.appendChild(el("div", "xc-who", c ? c.name : who));
-        bd.appendChild(elRich("p", "xc-txt", text));
-        row.appendChild(bd);
-        body.appendChild(row);
-      });
-      d.appendChild(body);
-      box.appendChild(d);
+  // Every file in this tab is written in-character by its own subject, so it
+  // carries a byline rather than reading as archive prose.
+  function fileBlock(f) {
+    var d = el("div", "lancer-desc");
+    d.appendChild(el("h4", "paneltab", "File"));
+    if (!f) {
+      d.appendChild(el("p", "person-empty", "No entry recorded."));
+      return d;
+    }
+    var who = COMMENTERS[f.by];
+    var by = el("div", "fileby");
+    var av = el("img", "fileby-ava");
+    av.src = who ? who.avatar : NO_IMAGE;
+    av.alt = who ? who.name : f.by;
+    av.loading = "lazy";
+    by.appendChild(av);
+    by.appendChild(el("span", "fileby-t",
+      "Written by " + (who ? who.name : f.by)));
+    d.appendChild(by);
+    f.paras.forEach(function (para) {
+      d.appendChild(elRich("p", "filepara", para));
     });
-    return box;
+    return d;
   }
 
   function renderLancers() {
@@ -4600,15 +4518,11 @@
       media.appendChild(mediaSlot(L.avatar, L.callsign + " portrait"));
       media.appendChild(mediaSlot(L.body, L.callsign + " full body reference"));
       grid.appendChild(media);
-      var desc = el("div", "lancer-desc");
-      desc.appendChild(el("h4", "paneltab", "File"));
-      desc.appendChild(el("p", "person-empty", "No entry recorded."));
-      grid.appendChild(desc);
+      grid.appendChild(fileBlock(L.file));
       box.appendChild(grid);
 
       if (L.pilot) box.appendChild(renderPilotStats(L.pilot));
       if (L.comments && L.comments.length) box.appendChild(renderComments(L.comments));
-      if (L.exchanges && L.exchanges.length) box.appendChild(renderExchanges(L.exchanges));
 
       (L.nhps || []).forEach(function (n) {
         var sub = el("div", "nhp");
@@ -4621,10 +4535,7 @@
         var nm = el("div", "lancer-media");
         nm.appendChild(mediaSlot(n.avatar, n.name + " portrait"));
         ng.appendChild(nm);
-        var nd = el("div", "lancer-desc");
-        nd.appendChild(el("h4", "paneltab", "File"));
-        nd.appendChild(el("p", "person-empty", "No entry recorded."));
-        ng.appendChild(nd);
+        ng.appendChild(fileBlock(n.file));
         sub.appendChild(ng);
 
         if (n.comments && n.comments.length) sub.appendChild(renderComments(n.comments));
