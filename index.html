@@ -4326,7 +4326,7 @@
       nhps: [
         { name: "Overseer", tag: "Assisting NHP", avatar: AVA_OVERSEER,
           file: {"by": "overseer", "paras": ["This unit is designated Overseer. Athena-class non-human person, installed in a Swallowtail chassis of the same designation.", "Function: reconnaissance, target designation, threat assessment, and the supervision of Lancer Star.", "Maintained by this unit on the Lancer's behalf: physical integrity, contractual standing with the Dachtylo Company, public record, equipment, and schedule. The Lancer is not required to attend to any of these, and should not be assessed on them.", "For the benefit of the employer: the Lancer's field performance is consistent and his target designation is accurate. Any deficiency of conduct is a matter of instruction, is being corrected internally, and does not require escalation.", "It has been suggested that a corrective measure taken in the field was excessive. The Lancer is intact. The contamination did not spread. This unit considers the matter settled and will not be revisiting it in this archive.", "This unit did not require an entry of its own. One has been completed for consistency of the record."]},
-          comments: [{"by": "star", "text": "It has written about itself the way it writes about equipment on a manifest. It is not that, and everybody reading this should know it is not that. I am putting this here because it is my turn to write in somebody else's file, and because it cannot remove this without admitting that it read it."}, {"by": "overseer", "text": "The Lancer has appended an unsanctioned annotation to this unit's entry. It has been left in place."}] }
+          comments: [{"by": "star", "text": "Some of you have seen what it does and think there is nothing in there. There is, it just does not talk like it. It has never been wrong about what I needed, and I would rather have that than someone kind."}, {"by": "overseer", "text": "Correction for the record: this unit has been incorrect regarding the Lancer on four occasions. Three were resolved without consequence.\nThis unit's decisions are the output of assessment and are not evidence of regard. The Lancer's confidence is operationally useful and has been noted."}] }
       ]
     }
   ];
@@ -4349,7 +4349,9 @@
       head.appendChild(el("span", null, who ? who.name : c.by));
       if (who) head.appendChild(el("span", "comment-kind", who.kind));
       body.appendChild(head);
-      body.appendChild(el("p", "comment-text", c.text));
+      c.text.split("\n").forEach(function (para) {
+        body.appendChild(elRich("p", "comment-text", para));
+      });
       row.appendChild(body);
       box.appendChild(row);
     });
