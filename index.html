@@ -4247,8 +4247,6 @@
     indexbar.appendChild(grp);
   });
 
-  indexbar.appendChild(accountEl);
-
   function setView(v) {
     currentView = v;
     Object.keys(VIEW_INDEX).forEach(function (id) {
@@ -5068,6 +5066,7 @@
   var accountEl = el("div", "account");
   var panelEl = el("div", "acct-panel");
   panelEl.hidden = true;
+  indexbar.appendChild(accountEl);
 
   function field(label, type, ph) {
     var w = el("label", "acct-field");
