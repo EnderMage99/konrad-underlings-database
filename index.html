@@ -1480,6 +1480,114 @@
     margin-bottom: .6rem;
   }
 
+  /* ---------- stat sheets ---------- */
+
+  details.sheet { border-top: 1px solid var(--rule); }
+
+  details.sheet > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: .6rem 1.05rem;
+    font-family: var(--mono);
+    font-size: var(--fs-xs);
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    display: flex;
+    align-items: baseline;
+    gap: .55rem;
+    flex-wrap: wrap;
+  }
+
+  details.sheet > summary::-webkit-details-marker { display: none; }
+  details.sheet > summary::before { content: "\25B8"; color: var(--accent); }
+  details.sheet[open] > summary::before { content: "\25BE"; }
+  details.sheet > summary:hover { color: var(--accent); }
+
+  .sheethint {
+    font-size: var(--fs-xs);
+    letter-spacing: .06em;
+    text-transform: none;
+    color: var(--ink-faint);
+  }
+
+  .sheetbody { padding: 0 1.05rem 1.05rem; }
+
+  .sheetwrap { overflow-x: auto; margin-bottom: .95rem; }
+
+  .sheetstats {
+    display: flex;
+    min-width: max-content;
+    background: var(--surface-alt);
+    border: 1px solid var(--rule);
+  }
+
+  .sheetstats .stat { border-right: 1px solid var(--rule); }
+  .sheetstats .stat:last-child { border-right: 0; }
+  .sheetstats .stat .v { color: var(--accent); }
+
+  .sheetcols {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    gap: .9rem 1.2rem;
+  }
+
+  .sheetgroup h5 {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 .35rem;
+    padding-bottom: .25rem;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .sheetgroup ul { list-style: none; margin: 0; padding: 0; }
+
+  .sheetgroup li {
+    display: flex;
+    align-items: baseline;
+    gap: .45rem;
+    padding: .15rem 0;
+    font-family: var(--mono);
+    font-size: var(--fs-sm);
+    color: var(--ink-soft);
+  }
+
+  .sheetgroup .nm { min-width: 0; }
+
+  .sheetgroup .rk {
+    margin-left: auto;
+    font-size: 10px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  .sheetnote {
+    margin: .9rem 0 0;
+    font-size: var(--fs-xs);
+    font-style: italic;
+    color: var(--ink-faint);
+    border-left: 2px solid var(--brass);
+    padding-left: .7rem;
+    max-width: 70ch;
+  }
+
+  .mechframe {
+    font-family: var(--mono);
+    font-size: var(--fs-xs);
+    font-weight: 400;
+    letter-spacing: .12em;
+    color: var(--ink-faint);
+    margin-left: .6rem;
+  }
+
+  /* the mech portrait is the centrepiece of the file, so centre it */
+  .mechshot { margin-left: auto; margin-right: auto; }
+
   /* ---------- comments ---------- */
 
   .comments {
@@ -4110,7 +4218,9 @@
     {
       callsign: "Star", role: "Lancer",
       avatar: AVA_STAR, body: null,
-      mech: { name: "Swallowtail", image: MECH_SWALLOWTAIL },
+      pilot: {"name": "Serio Zeal", "player": "Ender Mage", "ll": 5, "background": "Mech Salvager", "hp": 9, "stress": 0, "maxStress": 8, "mechSkills": {"hull": 0, "agi": 3, "sys": 2, "eng": 2}, "skills": [{"n": "Act Unseen or Unheard", "r": 2}, {"n": "Charm", "r": 2}, {"n": "Investigate", "r": 3}, {"n": "Spot", "r": 2}], "talents": [{"n": "Spotter", "r": 3}, {"n": "Field Analyst", "r": 3}, {"n": "Orator", "r": 2}], "licenses": [{"n": "Swallowtail", "r": 3}, {"n": "Kidd", "r": 2}], "coreBonuses": ["Ghostweave"], "gear": {"armor": ["Stealth Hardsuit"], "weapons": ["Light Signature", "Light Signature"], "gear": ["Dataplating", "Player Two Neural Bypass", "Personal Drone"]}, "bond": {"name": "Broker", "powers": [{"n": "Quickfingers", "f": "1/session"}, {"n": "Momentum", "f": "2/session"}, {"n": "Feel the Air", "f": "1/session"}]}},
+      mech: { name: "Overseer", frame: "Swallowtail", image: MECH_SWALLOWTAIL,
+              stats: {"hp": 11, "structure": 4, "stress": 4, "repairs": 5, "core": 1, "heat": 0}, mounts: [{"t": "Flex", "w": ["Mortar"]}, {"t": "Aux/Aux", "w": ["Segment Knife", "Thermal Pistol"]}], systems: ["Athena-Class NHP", "Personalizations", "Field-Approved \"Brass Ignorant\" Modifications", "Manipulators", "Expanded Compartment", "Pattern-A Smoke Charges"] },
       comments: [
         { by: "overseer", text: "Reaction times hold above baseline across every engagement logged so far. Filing the pilot under promising. He is not to read this entry." },
         { by: "star", text: "Read the entry." }
@@ -4160,6 +4270,89 @@
     return wrap;
   }
 
+  function statGrid(pairs) {
+    var wrap = el("div", "sheetwrap");
+    var row = el("div", "sheetstats");
+    pairs.forEach(function (pr) {
+      var c = el("div", "stat");
+      c.appendChild(el("span", "k", pr[0]));
+      c.appendChild(el("span", "v", String(pr[1])));
+      row.appendChild(c);
+    });
+    wrap.appendChild(row);
+    return wrap;
+  }
+
+  function sheetList(title, items) {
+    var g = el("div", "sheetgroup");
+    g.appendChild(el("h5", null, title));
+    var ul = el("ul");
+    items.forEach(function (it) {
+      var li = el("li");
+      li.appendChild(el("span", "nm", it.n !== undefined ? it.n : it));
+      if (it && it.r !== undefined) li.appendChild(el("span", "rk", "+" + it.r));
+      if (it && it.f) li.appendChild(el("span", "rk", it.f));
+      ul.appendChild(li);
+    });
+    g.appendChild(ul);
+    return g;
+  }
+
+  function sheet(label, hint, build) {
+    var d = el("details", "sheet");
+    var sm = el("summary", null, label);
+    sm.setAttribute("tabindex", "0");
+    if (hint) sm.appendChild(el("span", "sheethint", hint));
+    d.appendChild(sm);
+    var body = el("div", "sheetbody");
+    build(body);
+    d.appendChild(body);
+    return d;
+  }
+
+  function renderPilotStats(P) {
+    return sheet("Pilot stats", P.name + " · LL" + P.ll, function (body) {
+      var k = P.mechSkills;
+      body.appendChild(statGrid([
+        ["LL", P.ll], ["HP", P.hp], ["Stress", P.stress + "/" + P.maxStress],
+        ["Hull", (k.hull > 0 ? "+" : "") + k.hull],
+        ["Agility", (k.agi > 0 ? "+" : "") + k.agi],
+        ["Systems", (k.sys > 0 ? "+" : "") + k.sys],
+        ["Engineering", (k.eng > 0 ? "+" : "") + k.eng]
+      ]));
+      var cols = el("div", "sheetcols");
+      cols.appendChild(sheetList("Background", [P.background]));
+      cols.appendChild(sheetList("Skill triggers", P.skills));
+      cols.appendChild(sheetList("Talents", P.talents));
+      cols.appendChild(sheetList("Licenses", P.licenses));
+      cols.appendChild(sheetList("Core bonuses", P.coreBonuses));
+      cols.appendChild(sheetList("Armor", P.gear.armor));
+      cols.appendChild(sheetList("Pilot weapons", P.gear.weapons));
+      cols.appendChild(sheetList("Pilot gear", P.gear.gear));
+      cols.appendChild(sheetList("Bond: " + P.bond.name, P.bond.powers));
+      body.appendChild(cols);
+    });
+  }
+
+  function renderMechStats(M) {
+    return sheet("Mech stats", M.name + " · " + M.frame, function (body) {
+      var t = M.stats;
+      body.appendChild(statGrid([
+        ["HP", t.hp], ["Structure", t.structure], ["Stress", t.stress],
+        ["Repair cap", t.repairs], ["Core energy", t.core], ["Heat", t.heat]
+      ]));
+      var cols = el("div", "sheetcols");
+      M.mounts.forEach(function (mt) {
+        cols.appendChild(sheetList(mt.t + " mount", mt.w));
+      });
+      cols.appendChild(sheetList("Systems", M.systems));
+      body.appendChild(cols);
+      body.appendChild(el("p", "sheetnote",
+        "Frame-derived values - Evasion, E-Defense, Speed, Sensors, Armor and " +
+        "Size - are not carried in the COMP/CON export and are not shown."));
+    });
+  }
+
   function renderLancers() {
     lancerlist.textContent = "";
     LANCERS.forEach(function (L) {
@@ -4181,21 +4374,8 @@
       grid.appendChild(desc);
       box.appendChild(grid);
 
+      if (L.pilot) box.appendChild(renderPilotStats(L.pilot));
       if (L.comments && L.comments.length) box.appendChild(renderComments(L.comments));
-
-      if (L.mech) {
-        var mp = el("div", "mechpanel");
-        mp.appendChild(el("h4", "paneltab", "Mech"));
-        mp.appendChild(el("div", "mechname", L.mech.name));
-        var fig = el("div", "shot");
-        var mi = el("img");
-        mi.src = L.mech.image || NO_IMAGE;
-        mi.alt = L.mech.name;
-        mi.loading = "lazy";
-        fig.appendChild(mi);
-        mp.appendChild(fig);
-        box.appendChild(mp);
-      }
 
       (L.nhps || []).forEach(function (n) {
         var sub = el("div", "nhp");
@@ -4217,6 +4397,23 @@
         if (n.comments && n.comments.length) sub.appendChild(renderComments(n.comments));
         box.appendChild(sub);
       });
+
+      if (L.mech) {
+        var mp = el("div", "mechpanel");
+        mp.appendChild(el("h4", "paneltab", "Mech"));
+        var nm = el("div", "mechname", L.mech.name);
+        if (L.mech.frame) nm.appendChild(el("span", "mechframe", L.mech.frame));
+        mp.appendChild(nm);
+        var fig = el("div", "shot mechshot");
+        var mi = el("img");
+        mi.src = L.mech.image || NO_IMAGE;
+        mi.alt = L.mech.name;
+        mi.loading = "lazy";
+        fig.appendChild(mi);
+        mp.appendChild(fig);
+        box.appendChild(mp);
+        box.appendChild(renderMechStats(L.mech));
+      }
 
       lancerlist.appendChild(box);
     });
