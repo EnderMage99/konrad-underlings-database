@@ -1880,6 +1880,18 @@
 
   .charedit { flex-direction: column; align-items: stretch; gap: .5rem; }
 
+  /* Discord blurple, the one place the HUD palette gives way to a brand. */
+  .discord-btn {
+    border-color: #5865F2;
+    color: #C7CCFB;
+  }
+
+  .discord-btn:hover:not(:disabled) {
+    border-color: #7A85F6;
+    color: #EDEFFE;
+    background: rgba(88, 101, 242, .16);
+  }
+
   .charrow.is-active {
     border-color: var(--accent-dim);
     background: rgba(90, 200, 245, .07);
@@ -4924,6 +4936,13 @@
   var SB_KEY = "sb_publishable_dfQX7xZJSfR5xLPUWda2Cg_tzwXfxuC";
   var SB_STORE = "overseer.session";
   var SB_ACTIVE = "overseer.active";
+  var SB_VERIFIER = "overseer.pkce";
+
+  // Which sign-in routes the project actually offers. Read from the server so
+  // a provider enabled in the dashboard lights up here with no code change.
+  var AUTH = { email: true, discord: false };
+  var authErr = "";     // carried over from a failed OAuth round trip
+  var oauthHint = null; // display name Discord handed back, to prefill callsign
 
   var session = null;     // {access_token, refresh_token, expires_at, user_id}
   var me = null;          // own account row, once one exists
@@ -5014,6 +5033,101 @@
                   expires_at: r.expires_at, user_id: r.user.id });
     await loadMe();
     if (me) await loadChars();
+  }
+
+  // ---- Discord sign-in ----------------------------------------------------
+  // A static page cannot hold a client secret, so this is the PKCE flow: we
+  // send a hash of a one-time secret, Discord bounces the reader back here
+  // with a code, and the code is only redeemable with the original secret.
+  // Some projects answer with tokens in the fragment instead, so both the
+  // "?code=" and "#access_token=" returns are handled.
+
+  function b64url(bytes) {
+    var s = "";
+    for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+    return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+
+  function pageUrl() { return location.origin + location.pathname; }
+
+  function cleanUrl() {
+    try { history.replaceState(null, "", pageUrl()); } catch (e) {}
+  }
+
+  async function startDiscord() {
+    var verifier = b64url(crypto.getRandomValues(new Uint8Array(48)));
+    try { localStorage.setItem(SB_VERIFIER, verifier); } catch (e) {}
+    var digest = await crypto.subtle.digest("SHA-256",
+      new TextEncoder().encode(verifier));
+    location.href = SB_URL + "/auth/v1/authorize?provider=discord"
+      + "&redirect_to=" + encodeURIComponent(pageUrl())
+      + "&code_challenge=" + b64url(new Uint8Array(digest))
+      + "&code_challenge_method=s256";
+  }
+
+  // Discord is a way in and nothing more: we take the display name as a
+  // starting point for the callsign field and ignore the rest of the profile.
+  function hintFrom(user) {
+    var m = (user && user.user_metadata) || {};
+    var name = m.global_name || m.full_name || m.name
+               || m.user_name || m.preferred_username || "";
+    oauthHint = { callsign: String(name).slice(0, 24) };
+  }
+
+  async function completeOAuth() {
+    var h = new URLSearchParams((location.hash || "").replace(/^#/, ""));
+    var q = new URLSearchParams(location.search || "");
+
+    if (h.get("error") || q.get("error")) {
+      authErr = h.get("error_description") || q.get("error_description")
+                || "Discord sign-in did not complete.";
+      cleanUrl();
+      return false;
+    }
+
+    if (h.get("access_token")) {
+      saveSession({ access_token: h.get("access_token"),
+                    refresh_token: h.get("refresh_token"),
+                    expires_at: Number(h.get("expires_at")) || 0,
+                    user_id: null });
+      cleanUrl();
+      // The fragment carries no user id, so ask for it before anything else.
+      var u = await api("/auth/v1/user", { token: session.access_token });
+      session.user_id = u.id;
+      saveSession(session);
+      hintFrom(u);
+      return true;
+    }
+
+    var code = q.get("code");
+    if (!code) return false;
+
+    var verifier = null;
+    try { verifier = localStorage.getItem(SB_VERIFIER); } catch (e) {}
+    cleanUrl();
+    if (!verifier) {
+      authErr = "That sign-in link was already used. Try again.";
+      return false;
+    }
+    try {
+      var r = await api("/auth/v1/token?grant_type=pkce", { method: "POST",
+        body: { auth_code: code, code_verifier: verifier } });
+      saveSession({ access_token: r.access_token, refresh_token: r.refresh_token,
+                    expires_at: r.expires_at, user_id: r.user.id });
+      hintFrom(r.user);
+      return true;
+    } catch (e) {
+      authErr = e.message;
+      return false;
+    } finally {
+      try { localStorage.removeItem(SB_VERIFIER); } catch (e) {}
+    }
+  }
+
+  async function loadAuthSettings() {
+    var s = await api("/auth/v1/settings");
+    AUTH.email = !!(s && s.external && s.external.email);
+    AUTH.discord = !!(s && s.external && s.external.discord);
   }
 
   async function signUp(email, password) {
@@ -5129,7 +5243,8 @@
   }
 
   // Avatars are squeezed to 64px in-browser and stored as a data URI on the
-  // profile row, so no object storage or upload pipeline is needed.
+  // row, so no object storage or upload pipeline is needed. Pictures are
+  // always uploaded by hand - nothing is pulled in from Discord.
   function shrinkImage(file, size) {
     return new Promise(function (resolve, reject) {
       var fr = new FileReader();
@@ -5493,7 +5608,7 @@
       panelEl.appendChild(el("h5", "acct-h", "Set up your first character"));
       panelEl.appendChild(el("p", "acct-fine",
         "You can add more later and switch between them at will."));
-      var first = charFields(panelEl);
+      var first = charFields(panelEl, oauthHint || {});
       var save = el("button", "btn", "Save");
       save.type = "button";
       save.addEventListener("click", async function () {
@@ -5520,6 +5635,35 @@
 
     // auth: sign in, with sign-up available
     panelEl.appendChild(el("h5", "acct-h", "Log in"));
+
+    if (authErr) {
+      var ae = el("p", "acct-msg", authErr);
+      ae.style.color = "var(--alert)";
+      panelEl.appendChild(ae);
+      authErr = "";
+    }
+
+    if (AUTH.discord) {
+      var dbtn = el("button", "btn discord-btn", "Continue with Discord");
+      dbtn.type = "button";
+      dbtn.addEventListener("click", function () {
+        dbtn.disabled = true;
+        startDiscord();
+      });
+      panelEl.appendChild(dbtn);
+      if (AUTH.email) {
+        panelEl.appendChild(el("p", "acct-fine", "or use an email address"));
+      }
+    }
+
+    if (!AUTH.email) {
+      if (!AUTH.discord) {
+        panelEl.appendChild(el("p", "acct-msg",
+          "No sign-in method is enabled. Ask the archivist."));
+      }
+      return;
+    }
+
     var em = field("Email", "email", "");
     var pw = field("Password", "password", "");
     panelEl.appendChild(em.wrap);
@@ -5606,11 +5750,18 @@
   async function initAccounts() {
     loadSession();
     try {
+      var arrived = await completeOAuth();
+      // Only decides which buttons to offer, so a failure here must not cost
+      // us the rest of the account system - fall back to email only.
+      try { await loadAuthSettings(); } catch (e) {}
       await loadNotes();
       if (session) {
         await loadMe();
         if (me) await loadChars();
       }
+      // Straight off a Discord round trip with no character yet: open the
+      // setup form rather than making them hunt for the button.
+      if (arrived && !me) panelMode = "profile";
     } catch (e) {
       sbOnline = false;
     }
