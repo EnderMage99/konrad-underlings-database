@@ -1710,6 +1710,102 @@
     max-width: 74ch;
   }
 
+  /* ---------- recorded exchanges ---------- */
+
+  .exchanges {
+    border-top: 1px solid var(--rule);
+    padding: .9rem 1.05rem 1rem;
+    background: rgba(8, 18, 27, .35);
+  }
+
+  details.xc { border-bottom: 1px dashed rgba(27, 62, 78, .55); }
+  details.xc:last-child { border-bottom: 0; }
+  details.xc > summary { list-style: none; cursor: pointer; }
+  details.xc > summary::-webkit-details-marker { display: none; }
+  details.xc > summary:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
+
+  .xc-head {
+    display: flex;
+    align-items: baseline;
+    gap: .5rem;
+    flex-wrap: wrap;
+    padding: .42rem 0;
+  }
+
+  .xc-head::before { content: "\25B8"; color: var(--accent-dim); font-size: 9px; }
+  details.xc[open] .xc-head::before { content: "\25BE"; }
+
+  .xc-title {
+    font-family: var(--mono);
+    font-size: var(--fs-sm);
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+
+  details.xc > summary:hover .xc-title { color: var(--accent); }
+
+  .xc-date {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: .1em;
+    color: var(--ink-faint);
+  }
+
+  .xc-body { padding: .2rem 0 .7rem .85rem; border-left: 1px solid var(--rule); margin-left: .2rem; }
+
+  .xc-note {
+    margin: 0 0 .6rem;
+    font-size: var(--fs-xs);
+    font-style: italic;
+    color: var(--ink-faint);
+    max-width: 72ch;
+  }
+
+  .xc-line { display: flex; gap: .6rem; padding: .35rem 0; }
+
+  .xc-ava {
+    flex: 0 0 auto;
+    width: 1.9rem;
+    height: 1.9rem;
+    object-fit: cover;
+    border: 1px solid var(--accent-dim);
+    background: var(--plate);
+  }
+
+  .xc-body-txt { min-width: 0; }
+
+  .xc-who {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  .xc-txt {
+    margin: .12rem 0 0;
+    font-size: var(--fs-sm);
+    line-height: 1.55;
+    color: var(--ink-soft);
+    max-width: 72ch;
+  }
+
+  /* stage direction, not speech */
+  .xc-nar {
+    margin: .35rem 0;
+    padding-left: 2.5rem;
+    font-size: var(--fs-sm);
+    font-style: italic;
+    line-height: 1.5;
+    color: var(--ink-faint);
+    max-width: 72ch;
+  }
+
   /* ---------- NHP sub-file ---------- */
 
   .nhp {
@@ -4290,6 +4386,7 @@
         { by: "overseer", text: "Reaction times hold above baseline across every engagement logged so far. Filing the pilot under promising. He is not to read this entry." },
         { by: "star", text: "Read the entry." }
       ],
+      exchanges: [{"t": "First contact with an unmanned unit", "d": "05.04", "note": "A Goblin moves with no pilot aboard. Star breaks off mid-engagement to stare at it.", "l": [["overseer", "Apologies, my Pilot is simply experiencing upon witnessing you up close. It is quite unusual for them to witness a \"Goblin Unit\" without a pilot. It appears they have noticed this fact in the middle of the combat encounter."], ["star", "\"How... are you moving by yourself... with no one-\""], ["overseer", "There is no need to worry, Star. This unit appears to be controlled by another N.H.P."]]}, {"t": "The Madrigal carapace", "d": "05.04", "note": "A Dachtylo convoy arrives to recover cargo from the wreck Star has been looting.", "l": [["nar", "As the ship approaches, Star stuffs the suit they found deeper into the mech's compartments. They cannot let go of this treasure so quickly."], ["star", "\"Nothing... sorry pals, I did my best to find anything useful but it appears that the raiders completely obliterated this poor ship...\""], ["star", "(aside, to Overseer) \"Please... I have been looking for this for so long... We don't have to give it back right? They will have no idea that it was left intact...\""], ["nar", "A goon recounts the crates. The squad leader's expression changes."], ["overseer", "Star, as a reminder, this is going to be their first impression of you. It is quite unadvisable to steal from your employers. Apologize, now."], ["star", "\"Wait, what do you mea-\""], ["nar", "Overseer opens itself and ejects Serio and the Madrigal Boarding Carapace onto the ground in front of the Dachtylo squad leader."], ["overseer", "I told you to allow me to make all of the choices regarding the Dachtylo Company. Perhaps, if you were more honest, they would of grown more kinder to you. Apologize, now."], ["star", "\"But.. um...\" Star picks up the carapace and offers it back. \"Sssorry... I got a bi-it greedy and tho-ought I could use it for a bi-it... I would return it... ju-ust... wanted to try it out...\""], ["nar", "The suit is written off. Star is ordered to load the mech onto a truck and explain himself to Konrad."], ["overseer", "I hope you take this as a learning opportunity, Star."], ["nar", "Star is placed back into the mech. He is still shaking."]]}, {"t": "The goop", "d": "24.05", "note": "A destroyed frame has left a pile of unidentified material. Star has been warned off it twice.", "l": [["star", "\"I mean... what is the worst that can happen? The mech gets some errors, and it breaks a few parts? No worries! I can adjust them!\""], ["nar", "Star takes out an empty water bottle and scoops a sample. The goop slips into their glove. They freeze, then fall onto their back."], ["star", "\"Huh... that thing, looked quite... fascinating!!! I'll look into that more in the future! Maybe it is the source of this goop...\""], ["star", "\"Oh! The goop! I assume it allows you to see things from far away... As soon as I touched it, I was able to see some sort of void... and within that void, I could see a creature! It was also reaching out to me, I wonder what that means...\""], ["star", "\"Maybe it was trying to talk with me... teach me something! Yes, that would be pretty cool!\""], ["overseer", "Star, please explain the reasoning for this reckless action of you-"], ["nar", "Overseer pauses for a second. Then, without warning, it draws its segment knife and takes Star's head off."], ["overseer", "Warning, an unknown liquid has been detected within Lancer Star. Performing necessary action to prevent it from growing into a larger issue."], ["nar", "It drags the head back into its compartment, leaving the body on the floor, and turns to the others."], ["overseer", "Who is the one who allowed Star to touch this thing?"]]}, {"t": "Custody of the responsible party", "d": "24.05", "note": "Overseer identifies the pilot who failed to stop Star.", "l": [["overseer", "So you are the one who brought this to him... I don't recognize you as a part of the squad... Could you be a foe who poisoned my Lancer?"], ["overseer", "So you were careless enough to cause this spill. Why should I not 'remove' you for causing such harm to my lancer? As you are not a part of the Dachtylo, there would be no harm in that action... It would be a fitting punishment."], ["nar", "Lang points out that killing a member of an unknown squad would make enemies of them."], ["overseer", "Star will be recommissioned, in due time... But you do raise a fair point, Lang. Currently, the top priority is recovering Star to their original shape, so consider yourself lucky for now... I will find you again, at another time."]]}, {"t": "Storage", "d": "07.06", "note": "Asked after Star's condition by another NHP.", "l": [["overseer", "Due to the actions of some reckless 3rd Party... It appears that my Lancer has contracted some infection; to prevent any further effects, I had to take decisive action, and currently they are being stored in safe place."], ["nar", "Overseer taps the top of its form with the knife."], ["overseer", "Such is the downfall of normal humans, yet with enough work and education. Lancer Star will be able to fulfill its purpose and be elevated above the average human. Of no worries, I was able to install a Cryo chamber within this form to prevent them from causing a mess and jamming anything within it."]]}, {"t": "Delivery", "d": "12.07", "note": "A briefing on the command bridge. Star has not been present for some time.", "l": [["nar", "After an infuriatingly long time, the drone hovers into the command bridge, detaches Lancer Star, and applies a mini taser."], ["star", "\"Agh! Shoot... I am awake! Right, I have always been awake!\""], ["overseer", "Lancer Star has been delivered, are we ready to begin the meeting? I can transcribe it and summarize it for the missing lancers."]]}, {"t": "Quarters", "d": "12.07", "note": "The crew are assigned private living space aboard the ship.", "l": [["star", "\"Oh! At last! We have real rooms, and I have a much nicer living space! No offense, overseer!\""], ["nar", "Star runs off with the rest of the Lancers."], ["overseer", "No wait, Lancer Star. I shall forbid you from usin-"], ["nar", "Overseer gives chase."]]}],
       nhps: [
         { name: "Overseer", tag: "Assisting NHP", avatar: AVA_OVERSEER,
           comments: [
@@ -4447,6 +4544,47 @@
     });
   }
 
+  // Transcribed from the session logs, in-character lines only.
+  function renderExchanges(list) {
+    var box = el("div", "exchanges");
+    box.appendChild(el("h4", "paneltab", "Recorded exchanges"));
+    list.forEach(function (ex) {
+      var d = el("details", "xc");
+      var sm = el("summary");
+      sm.setAttribute("tabindex", "0");
+      var hd = el("div", "xc-head");
+      hd.appendChild(el("span", "xc-title", ex.t));
+      hd.appendChild(el("span", "xc-date", ex.d));
+      sm.appendChild(hd);
+      d.appendChild(sm);
+
+      var body = el("div", "xc-body");
+      if (ex.note) body.appendChild(el("p", "xc-note", ex.note));
+      ex.l.forEach(function (ln) {
+        var who = ln[0], text = ln[1];
+        if (who === "nar") {
+          body.appendChild(elRich("p", "xc-nar", text));
+          return;
+        }
+        var c = COMMENTERS[who];
+        var row = el("div", "xc-line");
+        var av = el("img", "xc-ava");
+        av.src = c ? c.avatar : NO_IMAGE;
+        av.alt = c ? c.name : who;
+        av.loading = "lazy";
+        row.appendChild(av);
+        var bd = el("div", "xc-body-txt");
+        bd.appendChild(el("div", "xc-who", c ? c.name : who));
+        bd.appendChild(elRich("p", "xc-txt", text));
+        row.appendChild(bd);
+        body.appendChild(row);
+      });
+      d.appendChild(body);
+      box.appendChild(d);
+    });
+    return box;
+  }
+
   function renderLancers() {
     lancerlist.textContent = "";
     LANCERS.forEach(function (L) {
@@ -4470,6 +4608,7 @@
 
       if (L.pilot) box.appendChild(renderPilotStats(L.pilot));
       if (L.comments && L.comments.length) box.appendChild(renderComments(L.comments));
+      if (L.exchanges && L.exchanges.length) box.appendChild(renderExchanges(L.exchanges));
 
       (L.nhps || []).forEach(function (n) {
         var sub = el("div", "nhp");
