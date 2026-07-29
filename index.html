@@ -1149,14 +1149,15 @@
       "head head"
       "ava  desc"
       "body desc"
-      "mech mech";
+      "mech mech"
+      "notes notes";
     margin-bottom: 1.6rem;
   }
 
   @media (max-width: 680px) {
     .person {
       grid-template-columns: minmax(0, 1fr);
-      grid-template-areas: "head" "ava" "body" "desc" "mech";
+      grid-template-areas: "head" "ava" "body" "desc" "mech" "notes";
     }
   }
 
@@ -1744,6 +1745,167 @@
     color: var(--ink-soft);
     max-width: 74ch;
   }
+
+  /* ---------- account control ---------- */
+
+  .account { position: relative; margin-left: auto; }
+
+  .acct-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    font-family: var(--mono);
+    font-size: var(--fs-xs);
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    padding: .38rem .7rem;
+    background: var(--surface);
+    color: var(--ink-soft);
+    border: 1px solid var(--accent-dim);
+    cursor: pointer;
+  }
+
+  .acct-btn:hover { color: var(--accent); border-color: var(--accent); }
+  .acct-btn:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+
+  .acct-ava {
+    width: 1.35rem;
+    height: 1.35rem;
+    object-fit: cover;
+    border: 1px solid var(--accent-dim);
+    background: var(--plate);
+  }
+
+  .acct-name { color: var(--accent); font-weight: 700; }
+  .acct-off { font-family: var(--mono); font-size: 10px; letter-spacing: .12em;
+              text-transform: uppercase; color: var(--ink-faint); }
+
+  .acct-panel {
+    position: absolute;
+    right: 0;
+    top: calc(100% + .5rem);
+    z-index: 40;
+    width: min(20rem, calc(100vw - 2rem));
+    display: flex;
+    flex-direction: column;
+    gap: .55rem;
+    padding: .85rem;
+    background: var(--surface);
+    border: 1px solid var(--accent-dim);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .7), var(--glow);
+  }
+
+  .acct-panel[hidden] { display: none; }
+
+  .acct-h {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  .acct-field { display: flex; flex-direction: column; gap: .22rem; }
+
+  .acct-field > span {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  .acct-field input {
+    font-family: var(--mono);
+    font-size: var(--fs-sm);
+    padding: .4rem .5rem;
+    background: var(--ground-2);
+    color: var(--ink);
+    border: 1px solid var(--rule);
+  }
+
+  .acct-field input:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
+  .acct-row { display: flex; gap: .4rem; }
+  .acct-row .btn { flex: 1 1 auto; }
+
+  .acct-msg {
+    margin: 0;
+    font-size: var(--fs-xs);
+    line-height: 1.5;
+    color: var(--ink-soft);
+  }
+
+  /* ---------- annotations ---------- */
+
+  .notes {
+    grid-column: 1 / -1;
+    border-top: 1px solid var(--rule);
+    margin-top: .35rem;
+    padding: .85rem 0 .2rem;
+  }
+
+  .person-notes, .notes { grid-area: notes; }
+
+  .notes-msg {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: var(--fs-xs);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  .notes-date {
+    font-family: var(--mono);
+    font-size: 9px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: .08em;
+    color: var(--ink-faint);
+    font-weight: 400;
+  }
+
+  .notes-del {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    padding: 0 .3rem;
+    background: transparent;
+    color: var(--ink-faint);
+    border: 1px solid var(--rule);
+    cursor: pointer;
+    font-weight: 400;
+  }
+
+  .notes-del:hover { color: var(--alert); border-color: var(--alert); }
+
+  .notes-form { display: flex; gap: .45rem; align-items: flex-start; margin-top: .6rem; }
+
+  .notes-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    resize: vertical;
+    font-family: var(--sans);
+    font-size: var(--fs-sm);
+    line-height: 1.5;
+    padding: .45rem .55rem;
+    background: var(--ground-2);
+    color: var(--ink);
+    border: 1px solid var(--rule);
+  }
+
+  .notes-input:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
+
+  .notes-err {
+    margin: .4rem 0 0;
+    font-size: var(--fs-xs);
+    color: var(--alert);
+  }
+
+  .notes-err:empty { display: none; }
 
   /* ---------- NHP sub-file ---------- */
 
@@ -3694,6 +3856,7 @@
     }
 
     if (d.note) body.appendChild(elRich("p", "note", d.note));
+    body.appendChild(noteBlock("contact", d.name));
 
     if (d._group) {
       var vn = el("p", "note vari");
@@ -4084,6 +4247,8 @@
     indexbar.appendChild(grp);
   });
 
+  indexbar.appendChild(accountEl);
+
   function setView(v) {
     currentView = v;
     Object.keys(VIEW_INDEX).forEach(function (id) {
@@ -4296,6 +4461,7 @@
       mech.appendChild(el("span", "v none", "Not on record"));
     }
     box.appendChild(mech);
+    box.appendChild(noteBlock("personnel", p.name));
     return box;
   }
 
@@ -4567,6 +4733,7 @@
         sub.appendChild(ng);
 
         if (n.comments && n.comments.length) sub.appendChild(renderComments(n.comments));
+        sub.appendChild(noteBlock("nhp", n.name));
         box.appendChild(sub);
       });
 
@@ -4587,6 +4754,7 @@
         box.appendChild(renderMechStats(L.mech));
       }
 
+      box.appendChild(noteBlock("lancer", L.callsign));
       lancerlist.appendChild(box);
     });
   }
@@ -4652,6 +4820,426 @@
   });
   window.addEventListener("scroll", hideTip, true);
 
+  // ---- accounts and annotations -----------------------------------------
+  // Talks to Supabase over plain fetch rather than the SDK, so the page stays
+  // a single dependency-free file. The publishable key is meant to sit in
+  // public source; every write is gated by row-level security server-side.
+  var SB_URL = "https://pbvfrdmpieniedgxpogb.supabase.co";
+  var SB_KEY = "sb_publishable_dfQX7xZJSfR5xLPUWda2Cg_tzwXfxuC";
+  var SB_STORE = "overseer.session";
+
+  var session = null;   // {access_token, refresh_token, expires_at, user_id}
+  var me = null;        // own profile row, once one exists
+  var NOTES = {};       // "kind::id" -> annotations
+  var sbOnline = true;  // false when the host is unreachable (artifact CSP)
+  var panelMode = null;
+
+  function noteKey(kind, id) { return kind + "::" + id; }
+
+  function loadSession() {
+    try { session = JSON.parse(localStorage.getItem(SB_STORE) || "null"); }
+    catch (e) { session = null; }
+  }
+
+  function saveSession(v) {
+    session = v;
+    try {
+      if (v) localStorage.setItem(SB_STORE, JSON.stringify(v));
+      else localStorage.removeItem(SB_STORE);
+    } catch (e) {}
+  }
+
+  async function api(path, opts) {
+    opts = opts || {};
+    var headers = { apikey: SB_KEY, "Content-Type": "application/json" };
+    headers.Authorization = "Bearer " + (opts.token || SB_KEY);
+    Object.keys(opts.headers || {}).forEach(function (k) {
+      headers[k] = opts.headers[k];
+    });
+    var res = await fetch(SB_URL + path, {
+      method: opts.method || "GET",
+      headers: headers,
+      body: opts.body ? JSON.stringify(opts.body) : undefined
+    });
+    var txt = await res.text();
+    var data = null;
+    try { data = txt ? JSON.parse(txt) : null; } catch (e) { data = txt; }
+    if (!res.ok) {
+      var m = (data && (data.message || data.error_description || data.msg || data.error))
+              || ("HTTP " + res.status);
+      var err = new Error(m);
+      err.status = res.status;
+      throw err;
+    }
+    return data;
+  }
+
+  // refreshes shortly before expiry so a long session does not 401 mid-post
+  async function token() {
+    if (!session) return null;
+    if (session.expires_at && session.expires_at * 1000 < Date.now() + 30000) {
+      try {
+        var r = await api("/auth/v1/token?grant_type=refresh_token",
+          { method: "POST", body: { refresh_token: session.refresh_token } });
+        saveSession({ access_token: r.access_token, refresh_token: r.refresh_token,
+                      expires_at: r.expires_at, user_id: r.user.id });
+      } catch (e) { saveSession(null); me = null; return null; }
+    }
+    return session ? session.access_token : null;
+  }
+
+  async function signIn(email, password) {
+    var r = await api("/auth/v1/token?grant_type=password",
+      { method: "POST", body: { email: email, password: password } });
+    saveSession({ access_token: r.access_token, refresh_token: r.refresh_token,
+                  expires_at: r.expires_at, user_id: r.user.id });
+    await loadMe();
+  }
+
+  async function signUp(email, password) {
+    return api("/auth/v1/signup",
+      { method: "POST", body: { email: email, password: password } });
+  }
+
+  async function signOut() {
+    var t = await token();
+    if (t) { try { await api("/auth/v1/logout", { method: "POST", token: t }); } catch (e) {} }
+    saveSession(null);
+    me = null;
+  }
+
+  async function loadMe() {
+    var t = await token();
+    if (!t) { me = null; return; }
+    var rows = await api("/rest/v1/profiles?select=*&id=eq." + session.user_id, { token: t });
+    me = (rows && rows[0]) || null;
+  }
+
+  async function createProfile(callsign, avatar) {
+    var t = await token();
+    var rows = await api("/rest/v1/profiles", {
+      method: "POST", token: t, headers: { Prefer: "return=representation" },
+      body: { id: session.user_id, callsign: callsign, avatar: avatar || null }
+    });
+    me = rows[0];
+  }
+
+  async function loadNotes() {
+    var rows = await api("/rest/v1/annotations?select=id,body,created_at,target_kind," +
+      "target_id,author,profiles(callsign,avatar)&order=created_at.asc");
+    NOTES = {};
+    (rows || []).forEach(function (r) {
+      var k = noteKey(r.target_kind, r.target_id);
+      (NOTES[k] = NOTES[k] || []).push(r);
+    });
+  }
+
+  async function postNote(kind, id, body) {
+    var t = await token();
+    if (!t) throw new Error("Your session has expired. Sign in again.");
+    await api("/rest/v1/annotations", { method: "POST", token: t,
+      body: { target_kind: kind, target_id: id, author: session.user_id, body: body } });
+  }
+
+  async function deleteNote(id) {
+    var t = await token();
+    await api("/rest/v1/annotations?id=eq." + id, { method: "DELETE", token: t });
+  }
+
+  // Avatars are squeezed to 64px in-browser and stored as a data URI on the
+  // profile row, so no object storage or upload pipeline is needed.
+  function shrinkImage(file, size) {
+    return new Promise(function (resolve, reject) {
+      var fr = new FileReader();
+      fr.onload = function () {
+        var img = new Image();
+        img.onload = function () {
+          var c = document.createElement("canvas");
+          c.width = c.height = size;
+          var g = c.getContext("2d");
+          var side = Math.min(img.width, img.height);
+          g.drawImage(img, (img.width - side) / 2, (img.height - side) / 2,
+                      side, side, 0, 0, size, size);
+          resolve(c.toDataURL("image/webp", 0.82));
+        };
+        img.onerror = function () { reject(new Error("That file is not an image.")); };
+        img.src = fr.result;
+      };
+      fr.onerror = function () { reject(new Error("Could not read that file.")); };
+      fr.readAsDataURL(file);
+    });
+  }
+
+  async function refreshAll() {
+    render();
+    renderPersonnel();
+    renderLancers();
+    renderAccount();
+  }
+
+  // ---- annotation block ---------------------------------------------------
+
+  function noteBlock(kind, id) {
+    var box = el("div", "notes");
+    box.appendChild(el("h4", "paneltab", "Annotations"));
+
+    if (!sbOnline) {
+      box.appendChild(el("p", "notes-msg",
+        "Annotations are unavailable in this preview."));
+      return box;
+    }
+
+    var list = NOTES[noteKey(kind, id)] || [];
+    if (!list.length) box.appendChild(el("p", "notes-msg", "Nothing filed yet."));
+
+    list.forEach(function (r) {
+      var who = r.profiles || {};
+      var row = el("div", "comment");
+      var av = el("img", "comment-ava");
+      av.src = who.avatar || NO_IMAGE;
+      av.alt = who.callsign || "Unknown";
+      av.loading = "lazy";
+      row.appendChild(av);
+
+      var bd = el("div", "comment-body");
+      var head = el("div", "comment-who");
+      head.appendChild(el("span", null, who.callsign || "Unknown"));
+      head.appendChild(el("span", "notes-date", (r.created_at || "").slice(0, 10)));
+      if (me && (me.id === r.author || me.is_moderator)) {
+        var del = el("button", "notes-del", "Delete");
+        del.type = "button";
+        del.addEventListener("click", async function () {
+          del.disabled = true;
+          try {
+            await deleteNote(r.id);
+            await loadNotes();
+            await refreshAll();
+          } catch (e) {
+            del.disabled = false;
+            del.textContent = "Failed";
+          }
+        });
+        head.appendChild(del);
+      }
+      bd.appendChild(head);
+      bd.appendChild(el("p", "comment-text", r.body));
+      row.appendChild(bd);
+      box.appendChild(row);
+    });
+
+    if (!me) {
+      box.appendChild(el("p", "notes-msg", session
+        ? "Finish setting up your profile to file annotations."
+        : "Log in to file an annotation."));
+      return box;
+    }
+
+    var form = el("div", "notes-form");
+    var ta = el("textarea", "notes-input");
+    ta.rows = 2;
+    ta.placeholder = "File an annotation as " + me.callsign + "...";
+    var err = el("p", "notes-err");
+    var btn = el("button", "btn", "File");
+    btn.type = "button";
+    btn.addEventListener("click", async function () {
+      var v = (ta.value || "").trim();
+      err.textContent = "";
+      if (!v) return;
+      btn.disabled = true;
+      try {
+        await postNote(kind, id, v);
+        ta.value = "";
+        await loadNotes();
+        await refreshAll();
+      } catch (e) {
+        err.textContent = e.message;
+        btn.disabled = false;
+      }
+    });
+    form.appendChild(ta);
+    form.appendChild(btn);
+    box.appendChild(form);
+    box.appendChild(err);
+    return box;
+  }
+
+  // ---- account control ----------------------------------------------------
+
+  var accountEl = el("div", "account");
+  var panelEl = el("div", "acct-panel");
+  panelEl.hidden = true;
+
+  function field(label, type, ph) {
+    var w = el("label", "acct-field");
+    w.appendChild(el("span", null, label));
+    var i = el("input");
+    i.type = type;
+    if (ph) i.placeholder = ph;
+    w.appendChild(i);
+    return { wrap: w, input: i };
+  }
+
+  function openPanel(mode) {
+    panelMode = panelMode === mode ? null : mode;
+    renderAccount();
+  }
+
+  function buildPanel() {
+    panelEl.textContent = "";
+    panelEl.hidden = !panelMode;
+    if (!panelMode) return;
+
+    var msg = el("p", "acct-msg");
+
+    if (panelMode === "signedin") {
+      panelEl.appendChild(el("p", "acct-msg",
+        "Signed in as " + me.callsign + (me.is_moderator ? " (archivist)" : "") + "."));
+      var out = el("button", "btn", "Sign out");
+      out.type = "button";
+      out.addEventListener("click", async function () {
+        await signOut();
+        panelMode = null;
+        await refreshAll();
+      });
+      panelEl.appendChild(out);
+      return;
+    }
+
+    if (panelMode === "profile") {
+      panelEl.appendChild(el("h5", "acct-h", "Set up your profile"));
+      var cs = field("Callsign", "text", "2 to 24 characters");
+      var pic = el("label", "acct-field");
+      pic.appendChild(el("span", null, "Profile picture"));
+      var fileIn = el("input");
+      fileIn.type = "file";
+      fileIn.accept = "image/*";
+      pic.appendChild(fileIn);
+      panelEl.appendChild(cs.wrap);
+      panelEl.appendChild(pic);
+      var save = el("button", "btn", "Save profile");
+      save.type = "button";
+      save.addEventListener("click", async function () {
+        msg.textContent = "";
+        var name = (cs.input.value || "").trim();
+        if (name.length < 2 || name.length > 24) {
+          msg.textContent = "Callsign must be 2 to 24 characters.";
+          return;
+        }
+        save.disabled = true;
+        try {
+          var avatar = null;
+          if (fileIn.files && fileIn.files[0]) {
+            avatar = await shrinkImage(fileIn.files[0], 64);
+          }
+          await createProfile(name, avatar);
+          panelMode = null;
+          await loadNotes();
+          await refreshAll();
+        } catch (e) {
+          msg.textContent = /duplicate|unique/i.test(e.message)
+            ? "That callsign is taken." : e.message;
+          save.disabled = false;
+        }
+      });
+      panelEl.appendChild(save);
+      panelEl.appendChild(msg);
+      return;
+    }
+
+    // auth: sign in, with sign-up available
+    panelEl.appendChild(el("h5", "acct-h", "Log in"));
+    var em = field("Email", "email", "");
+    var pw = field("Password", "password", "");
+    panelEl.appendChild(em.wrap);
+    panelEl.appendChild(pw.wrap);
+
+    var row = el("div", "acct-row");
+    var inBtn = el("button", "btn", "Log in");
+    inBtn.type = "button";
+    var upBtn = el("button", "btn", "Create account");
+    upBtn.type = "button";
+    row.appendChild(inBtn);
+    row.appendChild(upBtn);
+    panelEl.appendChild(row);
+    panelEl.appendChild(msg);
+
+    inBtn.addEventListener("click", async function () {
+      msg.textContent = "";
+      inBtn.disabled = upBtn.disabled = true;
+      try {
+        await signIn(em.input.value.trim(), pw.input.value);
+        panelMode = me ? null : "profile";
+        await loadNotes();
+        await refreshAll();
+      } catch (e) {
+        msg.textContent = /confirm/i.test(e.message)
+          ? "Confirm your email address first, then log in."
+          : "Could not log in. Check the address and password.";
+        inBtn.disabled = upBtn.disabled = false;
+      }
+    });
+
+    upBtn.addEventListener("click", async function () {
+      msg.textContent = "";
+      var e1 = em.input.value.trim(), p1 = pw.input.value;
+      if (!e1 || p1.length < 8) {
+        msg.textContent = "Enter an email and a password of at least 8 characters.";
+        return;
+      }
+      inBtn.disabled = upBtn.disabled = true;
+      try {
+        await signUp(e1, p1);
+        msg.textContent = "Check your email for a confirmation link, then log in.";
+      } catch (e) {
+        msg.textContent = /disabled|not allowed/i.test(e.message)
+          ? "Sign-ups are closed. Ask the archivist for an invite."
+          : e.message;
+      }
+      inBtn.disabled = upBtn.disabled = false;
+    });
+  }
+
+  function renderAccount() {
+    accountEl.textContent = "";
+    if (!sbOnline) {
+      accountEl.appendChild(el("span", "acct-off", "Accounts offline"));
+      return;
+    }
+    var b;
+    if (me) {
+      b = el("button", "acct-btn");
+      b.type = "button";
+      var av = el("img", "acct-ava");
+      av.src = me.avatar || NO_IMAGE;
+      av.alt = me.callsign;
+      b.appendChild(av);
+      b.appendChild(el("span", "acct-name", me.callsign));
+      b.addEventListener("click", function () { openPanel("signedin"); });
+    } else if (session) {
+      b = el("button", "acct-btn", "Finish profile");
+      b.type = "button";
+      b.addEventListener("click", function () { openPanel("profile"); });
+    } else {
+      b = el("button", "acct-btn", "Log in");
+      b.type = "button";
+      b.addEventListener("click", function () { openPanel("auth"); });
+    }
+    accountEl.appendChild(b);
+    buildPanel();
+    accountEl.appendChild(panelEl);
+  }
+
+  async function initAccounts() {
+    loadSession();
+    try {
+      await loadNotes();
+      if (session) await loadMe();
+    } catch (e) {
+      sbOnline = false;
+    }
+    await refreshAll();
+  }
+
   var hideBtn = document.getElementById("hidectl");
   hideBtn.addEventListener("click", function () {
     var willHide = document.body.className.indexOf("controls-hidden") === -1;
@@ -4668,5 +5256,7 @@
   renderPersonnel();
   renderLancers();
   render();
+  renderAccount();
+  initAccounts();
 })();
 </script>
