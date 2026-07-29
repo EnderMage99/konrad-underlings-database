@@ -1532,39 +1532,104 @@
     gap: .9rem 1.2rem;
   }
 
+  .sheetgroup { min-width: 0; }
+
   .sheetgroup h5 {
     font-family: var(--mono);
     font-size: 10px;
     letter-spacing: .16em;
     text-transform: uppercase;
-    color: var(--ink-faint);
-    margin: 0 0 .35rem;
+    color: var(--accent);
+    margin: 0 0 .4rem;
     padding-bottom: .25rem;
     border-bottom: 1px solid var(--rule);
   }
 
-  .sheetgroup ul { list-style: none; margin: 0; padding: 0; }
+  .si { border-bottom: 1px dashed rgba(27, 62, 78, .5); }
+  .si:last-child { border-bottom: 0; }
 
-  .sheetgroup li {
+  details.si > summary { list-style: none; cursor: pointer; }
+  details.si > summary::-webkit-details-marker { display: none; }
+
+  .si-head {
     display: flex;
     align-items: baseline;
-    gap: .45rem;
-    padding: .15rem 0;
-    font-family: var(--mono);
-    font-size: var(--fs-sm);
-    color: var(--ink-soft);
+    gap: .4rem;
+    flex-wrap: wrap;
+    padding: .3rem 0;
   }
 
-  .sheetgroup .nm { min-width: 0; }
+  details.si > summary .si-head::before {
+    content: "\25B8";
+    color: var(--accent-dim);
+    font-size: 9px;
+  }
 
-  .sheetgroup .rk {
+  details.si[open] > summary .si-head::before { content: "\25BE"; }
+  details.si > summary:hover .si-name { color: var(--accent); }
+  details.si > summary:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
+
+  .si-name {
+    font-family: var(--mono);
+    font-size: var(--fs-sm);
+    font-weight: 700;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+
+  .si-sub {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  .si-rank {
     margin-left: auto;
+    font-family: var(--mono);
     font-size: 10px;
     letter-spacing: .08em;
     text-transform: uppercase;
     color: var(--accent);
     white-space: nowrap;
   }
+
+  .si-body { padding: 0 0 .5rem .85rem; border-left: 1px solid var(--rule); margin-left: .2rem; }
+
+  .si-line {
+    font-family: var(--mono);
+    font-size: var(--fs-xs);
+    font-variant-numeric: tabular-nums;
+    color: var(--accent);
+    margin-bottom: .3rem;
+  }
+
+  .si-txt {
+    margin: 0 0 .45rem;
+    font-size: var(--fs-sm);
+    line-height: 1.55;
+    color: var(--ink-soft);
+    max-width: 74ch;
+  }
+
+  .si-txt:last-child { margin-bottom: 0; }
+
+  .bondgroup { margin-top: .9rem; }
+
+  .bondq { display: flex; flex-wrap: wrap; gap: .4rem; padding: .2rem 0; }
+
+  .bondq-k {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    min-width: 12rem;
+  }
+
+  .bondq-v { font-size: var(--fs-sm); color: var(--ink-soft); }
 
   .sheetnote {
     margin: .9rem 0 0;
@@ -4218,9 +4283,9 @@
     {
       callsign: "Star", role: "Lancer",
       avatar: AVA_STAR, body: null,
-      pilot: {"name": "Serio Zeal", "player": "Ender Mage", "ll": 5, "background": "Mech Salvager", "hp": 9, "stress": 0, "maxStress": 8, "mechSkills": {"hull": 0, "agi": 3, "sys": 2, "eng": 2}, "skills": [{"n": "Act Unseen or Unheard", "r": 2}, {"n": "Charm", "r": 2}, {"n": "Investigate", "r": 3}, {"n": "Spot", "r": 2}], "talents": [{"n": "Spotter", "r": 3}, {"n": "Field Analyst", "r": 3}, {"n": "Orator", "r": 2}], "licenses": [{"n": "Swallowtail", "r": 3}, {"n": "Kidd", "r": 2}], "coreBonuses": ["Ghostweave"], "gear": {"armor": ["Stealth Hardsuit"], "weapons": ["Light Signature", "Light Signature"], "gear": ["Dataplating", "Player Two Neural Bypass", "Personal Drone"]}, "bond": {"name": "Broker", "powers": [{"n": "Quickfingers", "f": "1/session"}, {"n": "Momentum", "f": "2/session"}, {"n": "Feel the Air", "f": "1/session"}]}},
+      pilot: {"name": "Serio Zeal", "player": "Ender Mage", "ll": 5, "background": "Mech Salvager", "stats": [["LL", 5], ["Grit", "+3"], ["HP", 9], ["Armor", 0], ["E-Defense", 8], ["Evasion", 8], ["Speed", 4], ["Hull", 0], ["Agility", "+3"], ["Systems", "+2"], ["Engineering", "+2"]], "skills": [{"n": "Act Unseen or Unheard", "r": "+4"}, {"n": "Charm", "r": "+4"}, {"n": "Investigate", "r": "+6"}, {"n": "Spot", "r": "+4"}], "talents": [{"n": "Spotter", "r": "III", "txt": "When an allied character adjacent to you attacks a target and consumes Lock On, they may roll twice and choose either result.\nAt the end of your turn, if you did not move and took the Lock On quick tech action, you may Lock On once as a free action.\nWhen you Lock On, you learn your target's Armor, Speed, Evasion, E-Defense, mech skills and current HP, and can share this with allies.\nBentham/Foucault Elimination (Quick): when you Lock On, nominate an allied character adjacent to you. They may immediately make any quick action as a reaction, consuming your target's Lock On. Their action need not be an attack, but they benefit from consuming Lock On if it is."}, {"n": "Field Analyst", "r": "III", "txt": "Whenever an allied character in line of sight misses with an attack, you know by how much. You also gain the Superior Intelligence reaction.\nSuperior Intelligence (Reaction). Trigger: an allied character in line of sight has rolled an attack. Effect: add 1 to that roll, which may cause a hit or a critical hit. Each attack can only be affected once.\nYou gain an Intel Die, a d6 starting at 1. At the end of your turn, if you took no action affecting a hostile character other than Scan, it increases by 2 to a maximum of 6. When you use Superior Intelligence you may add the Intel Die instead of 1, after which it resets to 1. It also resets at the end of each scene.\nWhenever a hostile character in line of sight hits with an attack, you know what they rolled. You may also use Superior Intelligence against hostile rolls, subtracting instead of adding."}, {"n": "Orator", "r": "II", "txt": "Convincing Rhetoric (Reaction). Trigger: you or an ally takes the Scan quick tech action against a hostile character. Effect: you open an isolated comms channel and they become Impaired, until they succeed on a Systems check at the end of their turn. They cannot clear it any other way, and using this on a new character ends it early.\nYou start combat with one Orator die, a d6. At the end of any turn where you did not attack or force a save, gain another to a maximum of three. They last until spent or the scene ends.\n1/round as a free action, spend Orator dice: Encourage (1) - an ally in line of sight makes a Systems check against a non-self-inflicted condition using the die as accuracy, ending it on a success. Investigate (2) - the next attack against a chosen hostile is rolled twice, taking the highest. Cast Doubt (2) - a chosen hostile cannot benefit from or be targeted by allied systems or traits until the end of its next turn."}], "core": [{"n": "Ghostweave", "txt": "During your turn you are Invisible. If you take no actions other than your standard move, Hide and Boost, you remain Invisible until the start of your next turn. You immediately cease to be Invisible when you take a reaction."}], "gear": [{"n": "Stealth Hardsuit", "sub": "Personal Armor", "line": "+0 Armor | E-Def 8 | Evasion 8 | Speed 4", "txt": "Activate Stealth Hardsuit (Quick): become Invisible. You cease to be Invisible if you take any damage."}, {"n": "Light Signature", "sub": "Pilot Weapon \u00b7 Sidearm", "line": "Range 3 | 1 Variable damage", "txt": "When a signature weapon is acquired, choose its damage type: Explosive, Energy or Kinetic. Carried twice."}, {"n": "Dataplating", "sub": "Gear", "txt": "Comm-linked jewellery, subdermal netting or wearable jaw, brow and maxillary plates that allow subvocal communication and persistent heads-up and augmented reality displays without a helm. Dataplates translate nearly any language and let users communicate almost silently."}, {"n": "Player_Two Neural Bypass", "sub": "Gear", "txt": "A neural bypass implant that allows an NHP to take control of and operate a biological pilot's body as if it were a robotic subaltern. Extensive failsafes mean the body may only be controlled this way if the pilot is willing, and they can take back control at any time."}, {"n": "Personal Drone", "sub": "Gear", "txt": "A small, non-combat drone. Fairly noisy, but flies about half a mile with good manoeuvrability before losing signal, relaying audio and visual information as it goes."}], "bond": {"n": "The Broker", "answers": [["What gives you your power?", "Paranoia, and mainly their assistant NHP"], ["What do you value?", "Collecting rare artifacts and treasures, on top of learning about the world"], ["Minor ideal", "Despite my best efforts, we went wildly off the plan"]], "powers": [{"n": "Quickfingers", "f": "1/session", "txt": "Name a visible nearby object you could carry in one or both hands. By the start of the next scene you have possession of it. If you stole it, the person you stole it from finds out within the hour."}, {"n": "Momentum", "f": "2/session", "txt": "When you survey a situation, ask one of the following and get a truthful answer: how do I think I can get around this obstacle; what is the most direct way forward; which way do I feel I should be moving. You or an ally gains +1 Accuracy on their next skill check acting on the answer."}, {"n": "Feel the Air", "f": "1/session", "txt": "Ask up to three of the following about any location you arrive at and receive truthful answers: who lives here or has passed through recently and where to find them; who owns this place or wants to, and where to talk to them; what part of this place people avoid, and why. Gain +1 Accuracy and increased effect on your next check acting on the answers. If you ask only one question, heal 1 Stress."}]}},
       mech: { name: "Overseer", frame: "Swallowtail", image: MECH_SWALLOWTAIL,
-              stats: {"hp": 11, "structure": 4, "stress": 4, "repairs": 5, "core": 1, "heat": 0}, mounts: [{"t": "Flex", "w": ["Mortar"]}, {"t": "Aux/Aux", "w": ["Segment Knife", "Thermal Pistol"]}], systems: ["Athena-Class NHP", "Personalizations", "Field-Approved \"Brass Ignorant\" Modifications", "Manipulators", "Expanded Compartment", "Pattern-A Smoke Charges"] },
+              sheet: {"name": "Overseer", "frame": "Swallowtail", "stats": [["HP", 11], ["Structure", 4], ["Stress", 4], ["Heat cap", 6], ["Repair cap", 5], ["Attack", "+3"], ["Tech attack", "+3"], ["Save", 13], ["Speed", 7], ["E-Defense", 12], ["Evasion", 13], ["Sensors", 20], ["Limited", "+1"]], "traits": [{"n": "Integrated Cloak", "txt": "At the end of its turn the Swallowtail becomes Invisible if it hasn't moved that turn. This lasts until it moves or takes a reaction, or until the start of its next turn."}, {"n": "Prophetic Scanners", "txt": "1/round, when the Swallowtail inflicts Lock On, its target also becomes Shredded until the end of its next turn."}], "core": [{"n": "Cloudscout Tacsim Swarms", "sub": "Prophetic Interjection (Active)", "txt": "Gain the Tactical Simulation reaction for the rest of the scene.\nTactical Simulation (Reaction). Trigger: an allied character in line of sight takes damage from another character in line of sight. Effect: roll 1d6. On 4+ the attack was a simulation predicted by your processor - your ally gains Resistance to all damage from it and may teleport up to 3 spaces, representing their true location. On 3 or less there is a glitch: no Resistance, but they may teleport up to 6 spaces."}], "mounts": [{"t": "Flex mount", "w": [{"n": "Mortar", "sub": "GMS Main Cannon", "line": "Range 15 | Blast 1 | 1d6+1 Explosive"}]}, {"t": "Aux/Aux mount", "w": [{"n": "Segment Knife", "sub": "GMS Auxiliary Melee", "line": "Threat 1 | 1d3+1 Energy"}, {"n": "Thermal Pistol", "sub": "GMS Auxiliary CQB", "line": "Line 5 | 2 Energy", "txt": "Arcing. Inaccurate 1. Overkill 1."}]}], "systems": [{"n": "Athena-Class NHP", "sub": "SSC AI", "txt": "Your mech gains the AI tag and Simulacrum.\nSimulacrum (Quick): ATHENA constructs a perfect, real-time, fully interactive 3D model of a Blast 3 area within Range 50, including moving characters. You have full visibility within the area, though it does not count as line of sight. You know all statistics, weapons and systems of characters inside it. Hostile characters inside gain no cover and cannot Hide or become Invisible, and those ending their turn inside receive Lock On and cease to be Invisible or Hidden. The simulation lasts until the end of the scene, roughly thirty minutes. You may target a new area as a quick action."}, {"n": "Personalizations", "sub": "GMS System", "txt": "You gain +2 HP and, with the GM, may establish a minor modification to your mech. It has no numerical benefit beyond the HP, but if the GM agrees it would help with a pilot or mech skill check you gain +1 Accuracy on that check."}, {"n": "Field-Approved, Brass Ignorant Modifications", "sub": "IPS-N Tech", "txt": "Activate (Quick Tech): choose an allied mech within line of sight and Sensors and power up their weapons. When they make a ranged or melee attack, the damage cannot be reduced in any way, and the kick knocks them back 1 space in any direction after the attack. On hit, their target must succeed on a Hull save or be knocked Prone. Ends when your target successfully hits with a ranged or melee attack, or at the end of the scene."}, {"n": "Manipulators", "sub": "GMS System", "txt": "Your mech has an extra set of limbs. They are too small for any combat benefit, but let the mech interact with objects that would otherwise be too small or sensitive, such as pilot-sized touch pads."}, {"n": "Expanded Compartment", "sub": "GMS System", "txt": "Your mech has space for one additional non-mech character or object of Size 1/2 to ride as a passenger in the cockpit. While inside they cannot be affected from outside or targeted, as if they were a pilot.\nTransfer Control (Protocol): hand over or take back control to or from the passenger. If they take the controls the mech becomes Impaired and Slowed, reflecting the lack of licences and integration."}, {"n": "Pattern-A Smoke Charges", "sub": "GMS Grenade \u00b7 Limited 3", "txt": "Smoke Grenade (Quick): thrown within Range 5. All characters and objects in a Blast 2 area gain soft cover until the end of your next turn, when the smoke disperses.\nDeploy Smoke Mine (Quick): Size 1/2, HP 5. Detonates when any allied character moves over or adjacent to it. All characters and objects in a Burst 3 area gain soft cover until the end of the detonating character's next turn."}]} },
       comments: [
         { by: "overseer", text: "Reaction times hold above baseline across every engagement logged so far. Filing the pilot under promising. He is not to read this entry." },
         { by: "star", text: "Read the entry." }
@@ -4283,18 +4348,44 @@
     return wrap;
   }
 
-  function sheetList(title, items) {
+  // An item with a description becomes expandable, the way COMP/CON shows
+  // them; one without stays a plain row.
+  function sheetItem(it) {
+    var head = el("div", "si-head");
+    head.appendChild(el("span", "si-name", it.n));
+    if (it.sub) head.appendChild(el("span", "si-sub", it.sub));
+    if (it.r) head.appendChild(el("span", "si-rank", it.r));
+    if (it.f) head.appendChild(el("span", "si-rank", it.f));
+
+    if (!it.txt && !it.line) {
+      var row = el("div", "si");
+      row.appendChild(head);
+      return row;
+    }
+
+    var d = el("details", "si");
+    var sm = el("summary");
+    sm.setAttribute("tabindex", "0");
+    sm.appendChild(head);
+    d.appendChild(sm);
+    var body = el("div", "si-body");
+    if (it.line) body.appendChild(el("div", "si-line", it.line));
+    if (it.txt) {
+      it.txt.split("\n").forEach(function (para) {
+        body.appendChild(elRich("p", "si-txt", para));
+      });
+    }
+    d.appendChild(body);
+    return d;
+  }
+
+  function sheetGroup(title, items) {
+    if (!items || !items.length) return null;
     var g = el("div", "sheetgroup");
     g.appendChild(el("h5", null, title));
-    var ul = el("ul");
     items.forEach(function (it) {
-      var li = el("li");
-      li.appendChild(el("span", "nm", it.n !== undefined ? it.n : it));
-      if (it && it.r !== undefined) li.appendChild(el("span", "rk", "+" + it.r));
-      if (it && it.f) li.appendChild(el("span", "rk", it.f));
-      ul.appendChild(li);
+      g.appendChild(sheetItem(typeof it === "string" ? { n: it } : it));
     });
-    g.appendChild(ul);
     return g;
   }
 
@@ -4310,46 +4401,49 @@
     return d;
   }
 
-  function renderPilotStats(P) {
-    return sheet("Pilot stats", P.name + " · LL" + P.ll, function (body) {
-      var k = P.mechSkills;
-      body.appendChild(statGrid([
-        ["LL", P.ll], ["HP", P.hp], ["Stress", P.stress + "/" + P.maxStress],
-        ["Hull", (k.hull > 0 ? "+" : "") + k.hull],
-        ["Agility", (k.agi > 0 ? "+" : "") + k.agi],
-        ["Systems", (k.sys > 0 ? "+" : "") + k.sys],
-        ["Engineering", (k.eng > 0 ? "+" : "") + k.eng]
-      ]));
-      var cols = el("div", "sheetcols");
-      cols.appendChild(sheetList("Background", [P.background]));
-      cols.appendChild(sheetList("Skill triggers", P.skills));
-      cols.appendChild(sheetList("Talents", P.talents));
-      cols.appendChild(sheetList("Licenses", P.licenses));
-      cols.appendChild(sheetList("Core bonuses", P.coreBonuses));
-      cols.appendChild(sheetList("Armor", P.gear.armor));
-      cols.appendChild(sheetList("Pilot weapons", P.gear.weapons));
-      cols.appendChild(sheetList("Pilot gear", P.gear.gear));
-      cols.appendChild(sheetList("Bond: " + P.bond.name, P.bond.powers));
-      body.appendChild(cols);
+  function addGroups(cols, pairs) {
+    pairs.forEach(function (pr) {
+      var g = sheetGroup(pr[0], pr[1]);
+      if (g) cols.appendChild(g);
     });
   }
 
-  function renderMechStats(M) {
-    return sheet("Mech stats", M.name + " · " + M.frame, function (body) {
-      var t = M.stats;
-      body.appendChild(statGrid([
-        ["HP", t.hp], ["Structure", t.structure], ["Stress", t.stress],
-        ["Repair cap", t.repairs], ["Core energy", t.core], ["Heat", t.heat]
-      ]));
-      var cols = el("div", "sheetcols");
-      M.mounts.forEach(function (mt) {
-        cols.appendChild(sheetList(mt.t + " mount", mt.w));
+  function renderPilotStats(P) {
+    return sheet("Pilot stats", P.name + " \u00b7 LL" + P.ll + " \u00b7 " + P.background,
+      function (body) {
+        body.appendChild(statGrid(P.stats));
+        var cols = el("div", "sheetcols");
+        addGroups(cols, [
+          ["Skill triggers", P.skills],
+          ["Talents", P.talents],
+          ["Core bonus", P.core],
+          ["Pilot loadout", P.gear]
+        ]);
+        body.appendChild(cols);
+
+        var bg = el("div", "sheetgroup bondgroup");
+        bg.appendChild(el("h5", null, "Bond: " + P.bond.n));
+        P.bond.answers.forEach(function (a) {
+          var q = el("div", "bondq");
+          q.appendChild(el("span", "bondq-k", a[0]));
+          q.appendChild(el("span", "bondq-v", a[1]));
+          bg.appendChild(q);
+        });
+        P.bond.powers.forEach(function (pw) { bg.appendChild(sheetItem(pw)); });
+        body.appendChild(bg);
       });
-      cols.appendChild(sheetList("Systems", M.systems));
+  }
+
+  function renderMechStats(M) {
+    var S = M.sheet;
+    return sheet("Mech stats", M.name + " \u00b7 " + M.frame, function (body) {
+      body.appendChild(statGrid(S.stats));
+      var cols = el("div", "sheetcols");
+      addGroups(cols, [["Frame traits", S.traits], ["Core system", S.core]]);
+      S.mounts.forEach(function (mt) { addGroups(cols, [[mt.t, mt.w]]); });
       body.appendChild(cols);
-      body.appendChild(el("p", "sheetnote",
-        "Frame-derived values - Evasion, E-Defense, Speed, Sensors, Armor and " +
-        "Size - are not carried in the COMP/CON export and are not shown."));
+      var sysg = sheetGroup("Systems", S.systems);
+      if (sysg) body.appendChild(sysg);
     });
   }
 
