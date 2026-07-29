@@ -1862,11 +1862,23 @@
   .charrow {
     display: flex;
     align-items: center;
-    gap: .5rem;
-    padding: .35rem .4rem;
+    flex-wrap: wrap;
+    gap: .4rem .5rem;
+    padding: .4rem;
     background: var(--ground-2);
     border: 1px solid var(--rule);
   }
+
+  /* The buttons take a line of their own rather than squeezing the callsign. */
+  .char-acts { display: flex; gap: .3rem; width: 100%; }
+  .char-acts > * { flex: 1 1 auto; }
+
+  .char-acts .btn, .char-acts .notes-del {
+    font-size: 9px;
+    padding: .3rem .35rem;
+  }
+
+  .charedit { flex-direction: column; align-items: stretch; gap: .5rem; }
 
   .charrow.is-active {
     border-color: var(--accent-dim);
@@ -4921,6 +4933,7 @@
   var sbOnline = true;    // false when the host is unreachable (artifact CSP)
   var charsOnline = true; // false until the characters table exists
   var panelMode = null;
+  var editingId = null;   // character currently open for editing, if any
 
   function noteKey(kind, id) { return kind + "::" + id; }
 
@@ -5059,6 +5072,17 @@
     setActive(rows[0].id);
   }
 
+  // Past annotations pick the change up on their own: they read the callsign
+  // through an embedded join, not a copy taken when they were filed.
+  async function updateChar(id, patch) {
+    var t = await token();
+    var rows = await api("/rest/v1/characters?id=eq." + id, {
+      method: "PATCH", token: t, headers: { Prefer: "return=representation" },
+      body: patch
+    });
+    CHARS = CHARS.map(function (c) { return c.id === id ? rows[0] : c; });
+  }
+
   async function deleteChar(id) {
     var t = await token();
     await api("/rest/v1/characters?id=eq." + id, { method: "DELETE", token: t });
@@ -5128,10 +5152,26 @@
     });
   }
 
+  // Every mounted annotation block, so they can be swapped individually.
+  var NOTE_MOUNTS = [];
+
+  // Swaps each block for a freshly built one instead of re-rendering the
+  // views. A full render would collapse whichever dossiers the reader has
+  // open and throw their scroll position to the top - filing a comment
+  // should not cost you your place. Nothing outside these blocks and the
+  // account control depends on who is signed in, so nothing else needs it.
   async function refreshAll() {
-    render();
-    renderPersonnel();
-    renderLancers();
+    var mounts = NOTE_MOUNTS;
+    NOTE_MOUNTS = [];
+    mounts.forEach(function (m) {
+      // isConnected, not parentNode: a rebuilt view detaches the card, but the
+      // block inside it keeps pointing at that orphaned card.
+      if (!m.el.isConnected) return;
+      var draft = m.el._ta ? m.el._ta.value : "";
+      var fresh = noteBlock(m.kind, m.id);
+      m.el.parentNode.replaceChild(fresh, m.el);
+      if (draft && fresh._ta) fresh._ta.value = draft;
+    });
     renderAccount();
   }
 
@@ -5139,6 +5179,7 @@
 
   function noteBlock(kind, id) {
     var box = el("div", "notes");
+    NOTE_MOUNTS.push({ kind: kind, id: id, el: box });
     box.appendChild(el("h4", "paneltab", "Annotations"));
 
     if (!sbOnline) {
@@ -5197,6 +5238,7 @@
 
     var form = el("div", "notes-form");
     var ta = el("textarea", "notes-input");
+    box._ta = ta;                        // so a draft survives a refresh
     ta.rows = 2;
     ta.placeholder = "File an annotation as " + speaking.callsign + "...";
     var err = el("p", "notes-err");
@@ -5243,16 +5285,23 @@
 
   function openPanel(mode) {
     panelMode = panelMode === mode ? null : mode;
+    editingId = null;
     renderAccount();
   }
 
   // Callsign, title and picture - the same three fields whether you are
-  // setting up your first character or adding a fifth.
-  function charFields(parent) {
+  // setting up your first character, adding a fifth, or editing one. Pass a
+  // character to prefill; leaving the file empty then keeps its picture.
+  function charFields(parent, init) {
+    init = init || {};
     var cs = field("Callsign", "text", "2 to 24 characters");
     var tl = field("Title", "text", "Rank, role or house");
+    cs.input.value = init.callsign || "";
+    tl.input.value = init.title || "";
+
     var pic = el("label", "acct-field");
-    pic.appendChild(el("span", null, "Profile picture"));
+    pic.appendChild(el("span", null,
+      init.avatar ? "Replace picture" : "Profile picture"));
     var fileIn = el("input");
     fileIn.type = "file";
     fileIn.accept = "image/*";
@@ -5262,21 +5311,61 @@
     parent.appendChild(pic);
 
     return {
-      // Returns null and writes to msg when the callsign will not do.
+      // Returns null and writes to msg when the callsign will not do. The
+      // avatar key is absent, not null, when no new file was picked.
       read: async function (msg) {
         var name = (cs.input.value || "").trim();
         if (name.length < 2 || name.length > 24) {
           msg.textContent = "Callsign must be 2 to 24 characters.";
           return null;
         }
-        var avatar = null;
+        var out = { callsign: name, title: (tl.input.value || "").trim() };
         if (fileIn.files && fileIn.files[0]) {
-          avatar = await shrinkImage(fileIn.files[0], 64);
+          out.avatar = await shrinkImage(fileIn.files[0], 64);
         }
-        return { callsign: name, title: (tl.input.value || "").trim(), avatar: avatar };
+        return out;
       },
       clear: function () { cs.input.value = ""; tl.input.value = ""; fileIn.value = ""; }
     };
+  }
+
+  function charEditRow(c, msg) {
+    var box = el("div", "charrow charedit");
+    box.appendChild(el("h5", "acct-h", "Editing " + c.callsign));
+    var fields = charFields(box, c);
+
+    var acts = el("div", "char-acts");
+    var save = el("button", "btn", "Save");
+    save.type = "button";
+    save.addEventListener("click", async function () {
+      msg.textContent = "";
+      save.disabled = true;
+      try {
+        var v = await fields.read(msg);
+        if (!v) { save.disabled = false; return; }
+        var patch = { callsign: v.callsign, title: v.title || null };
+        if ("avatar" in v) patch.avatar = v.avatar;
+        await updateChar(c.id, patch);
+        editingId = null;
+        await loadNotes();          // past annotations show the new title
+        await refreshAll();
+      } catch (e) {
+        msg.textContent = /duplicate|unique/i.test(e.message)
+          ? "That callsign is taken." : e.message;
+        save.disabled = false;
+      }
+    });
+    acts.appendChild(save);
+
+    var cancel = el("button", "btn", "Cancel");
+    cancel.type = "button";
+    cancel.addEventListener("click", function () {
+      editingId = null;
+      renderAccount();
+    });
+    acts.appendChild(cancel);
+    box.appendChild(acts);
+    return box;
   }
 
   function buildRoster(msg) {
@@ -5292,6 +5381,8 @@
     }
 
     CHARS.forEach(function (c) {
+      if (editingId === c.id) { panelEl.appendChild(charEditRow(c, msg)); return; }
+
       var speaking = cur && c.id === cur.id;
       var row = el("div", "charrow" + (speaking ? " is-active" : ""));
 
@@ -5306,17 +5397,26 @@
       if (c.title) who.appendChild(el("span", "char-title", c.title));
       row.appendChild(who);
 
-      if (speaking) {
-        row.appendChild(el("span", "char-flag", "Speaking"));
-      } else {
+      if (speaking) row.appendChild(el("span", "char-flag", "Speaking"));
+
+      var acts = el("div", "char-acts");
+      if (!speaking) {
         var sw = el("button", "btn", "Switch");
         sw.type = "button";
         sw.addEventListener("click", async function () {
           setActive(c.id);
           await refreshAll();
         });
-        row.appendChild(sw);
+        acts.appendChild(sw);
       }
+
+      var ed = el("button", "btn", "Edit");
+      ed.type = "button";
+      ed.addEventListener("click", function () {
+        editingId = c.id;
+        renderAccount();
+      });
+      acts.appendChild(ed);
 
       var del = el("button", "notes-del", "Retire");
       del.type = "button";
@@ -5332,7 +5432,8 @@
           del.textContent = "Failed";
         }
       });
-      row.appendChild(del);
+      acts.appendChild(del);
+      row.appendChild(acts);
       panelEl.appendChild(row);
     });
 
