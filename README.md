@@ -47,6 +47,24 @@ Replace `index.html` and commit. Everything lives in that one file:
 - Visual contact stills are `VISUALS` at the foot of the script, one keyed
   line each, as data URIs.
 
+## Accounts and annotations
+
+Players can log in and file annotations under any dossier, personnel file,
+Lancer file or assisting NHP. That part is backed by Supabase, reached over
+plain `fetch` so the page stays dependency-free. The publishable key in the
+source is meant to be public; every write is gated by row-level security
+server-side.
+
+One account can keep as many characters as it likes, each with its own
+callsign, title and picture, and switch between them from the account panel.
+Annotations are attributed to whichever character is speaking at the time.
+The active character is a local choice, so switching costs no round trip.
+
+Schema lives in `supabase/characters.sql`. Run it in the Supabase SQL editor;
+it is safe to run twice. The page works either side of that migration - it
+tries the character-aware query first and falls back to account-level
+attribution if the table is not there yet.
+
 ## A note on the stat blocks
 
 The NPC classes, systems and traits reproduced here are LANCER content and

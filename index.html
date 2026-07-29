@@ -1730,6 +1730,13 @@
     flex-wrap: wrap;
   }
 
+  .comment-title {
+    font-weight: 400;
+    font-size: 10px;
+    letter-spacing: .1em;
+    color: var(--ink-faint);
+  }
+
   .comment-kind {
     font-weight: 400;
     letter-spacing: .1em;
@@ -1837,16 +1844,94 @@
     color: var(--ink-soft);
   }
 
+  .acct-fine {
+    margin: -.2rem 0 0;
+    font-size: 10px;
+    line-height: 1.45;
+    color: var(--ink-faint);
+  }
+
+  .acct-sep {
+    height: 1px;
+    background: var(--rule);
+    margin: .15rem 0;
+  }
+
+  /* ---------- character roster ---------- */
+
+  .charrow {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .35rem .4rem;
+    background: var(--ground-2);
+    border: 1px solid var(--rule);
+  }
+
+  .charrow.is-active {
+    border-color: var(--accent-dim);
+    background: rgba(90, 200, 245, .07);
+  }
+
+  .char-ava {
+    width: 2rem;
+    height: 2rem;
+    flex: 0 0 auto;
+    object-fit: cover;
+    border: 1px solid var(--accent-dim);
+    background: var(--plate);
+  }
+
+  .char-id { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
+
+  .char-name {
+    font-family: var(--mono);
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink);
+    overflow-wrap: anywhere;
+  }
+
+  .char-title {
+    font-size: 10px;
+    line-height: 1.4;
+    color: var(--ink-faint);
+    overflow-wrap: anywhere;
+  }
+
+  .char-flag {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    flex: 0 0 auto;
+  }
+
+  .charrow .btn { flex: 0 0 auto; }
+
   /* ---------- annotations ---------- */
 
+  /* Deliberately the same band treatment as .comments above, so player
+     annotations read as a sibling of the in-character comments. */
   .notes {
     grid-column: 1 / -1;
     border-top: 1px solid var(--rule);
-    margin-top: .35rem;
-    padding: .85rem 0 .2rem;
+    padding: .9rem 1.05rem 1rem;
+    background: rgba(8, 18, 27, .55);
   }
 
-  .person-notes, .notes { grid-area: notes; }
+  /* Inside the dossier the band has to escape the grid's own padding to reach
+     the card edges the way it does on a lancer file. */
+  .feat-body > .notes {
+    margin: .5rem -1.05rem -1.05rem -1.3rem;
+  }
+
+  /* Only the personnel card places notes by name; elsewhere .notes keeps the
+     full-width span above. grid-area would otherwise reset it. */
+  .person > .notes { grid-area: notes; }
 
   .notes-msg {
     margin: 0;
@@ -3856,7 +3941,6 @@
     }
 
     if (d.note) body.appendChild(elRich("p", "note", d.note));
-    body.appendChild(noteBlock("contact", d.name));
 
     if (d._group) {
       var vn = el("p", "note vari");
@@ -3872,6 +3956,8 @@
           : "The plainer build - it carries nothing the rest of the family lacks."));
       body.appendChild(vn);
     }
+
+    body.appendChild(noteBlock("contact", d.name));
     det.appendChild(body);
     card.appendChild(det);
 
@@ -4825,11 +4911,15 @@
   var SB_URL = "https://pbvfrdmpieniedgxpogb.supabase.co";
   var SB_KEY = "sb_publishable_dfQX7xZJSfR5xLPUWda2Cg_tzwXfxuC";
   var SB_STORE = "overseer.session";
+  var SB_ACTIVE = "overseer.active";
 
-  var session = null;   // {access_token, refresh_token, expires_at, user_id}
-  var me = null;        // own profile row, once one exists
-  var NOTES = {};       // "kind::id" -> annotations
-  var sbOnline = true;  // false when the host is unreachable (artifact CSP)
+  var session = null;     // {access_token, refresh_token, expires_at, user_id}
+  var me = null;          // own account row, once one exists
+  var CHARS = [];         // own characters, oldest first
+  var activeId = null;    // which of them is currently speaking
+  var NOTES = {};         // "kind::id" -> annotations
+  var sbOnline = true;    // false when the host is unreachable (artifact CSP)
+  var charsOnline = true; // false until the characters table exists
   var panelMode = null;
 
   function noteKey(kind, id) { return kind + "::" + id; }
@@ -4837,6 +4927,24 @@
   function loadSession() {
     try { session = JSON.parse(localStorage.getItem(SB_STORE) || "null"); }
     catch (e) { session = null; }
+    try { activeId = localStorage.getItem(SB_ACTIVE); } catch (e) {}
+  }
+
+  // The active character is a local choice, so switching costs no round trip
+  // and each browser can sit behind a different one.
+  function setActive(id) {
+    activeId = id;
+    try {
+      if (id) localStorage.setItem(SB_ACTIVE, id);
+      else localStorage.removeItem(SB_ACTIVE);
+    } catch (e) {}
+  }
+
+  function activeChar() {
+    for (var i = 0; i < CHARS.length; i++) {
+      if (CHARS[i].id === activeId) return CHARS[i];
+    }
+    return CHARS[0] || null;
   }
 
   function saveSession(v) {
@@ -4892,6 +5000,7 @@
     saveSession({ access_token: r.access_token, refresh_token: r.refresh_token,
                   expires_at: r.expires_at, user_id: r.user.id });
     await loadMe();
+    if (me) await loadChars();
   }
 
   async function signUp(email, password) {
@@ -4904,6 +5013,7 @@
     if (t) { try { await api("/auth/v1/logout", { method: "POST", token: t }); } catch (e) {} }
     saveSession(null);
     me = null;
+    CHARS = [];
   }
 
   async function loadMe() {
@@ -4922,9 +5032,53 @@
     me = rows[0];
   }
 
+  // ---- characters ---------------------------------------------------------
+  // One account may keep any number of them. Reads are public so annotations
+  // can be attributed; writes are limited to your own rows by RLS.
+
+  async function loadChars() {
+    var t = await token();
+    if (!t) { CHARS = []; return; }
+    try {
+      CHARS = await api("/rest/v1/characters?select=*&owner=eq." + session.user_id
+                        + "&order=created_at.asc", { token: t }) || [];
+    } catch (e) {
+      charsOnline = false;
+      CHARS = [];
+    }
+  }
+
+  async function createChar(callsign, title, avatar) {
+    var t = await token();
+    var rows = await api("/rest/v1/characters", {
+      method: "POST", token: t, headers: { Prefer: "return=representation" },
+      body: { owner: session.user_id, callsign: callsign,
+              title: title || null, avatar: avatar || null }
+    });
+    CHARS.push(rows[0]);
+    setActive(rows[0].id);
+  }
+
+  async function deleteChar(id) {
+    var t = await token();
+    await api("/rest/v1/characters?id=eq." + id, { method: "DELETE", token: t });
+    CHARS = CHARS.filter(function (c) { return c.id !== id; });
+    if (activeId === id) setActive(CHARS.length ? CHARS[0].id : null);
+  }
+
+  var NOTE_COLS = "id,body,created_at,target_kind,target_id,author";
+
   async function loadNotes() {
-    var rows = await api("/rest/v1/annotations?select=id,body,created_at,target_kind," +
-      "target_id,author,profiles(callsign,avatar)&order=created_at.asc");
+    var rows;
+    try {
+      rows = await api("/rest/v1/annotations?select=" + NOTE_COLS
+        + ",speaker,characters(callsign,title,avatar)&order=created_at.asc");
+    } catch (e) {
+      // No characters table yet - fall back to account-level attribution.
+      charsOnline = false;
+      rows = await api("/rest/v1/annotations?select=" + NOTE_COLS
+        + ",profiles(callsign,avatar)&order=created_at.asc");
+    }
     NOTES = {};
     (rows || []).forEach(function (r) {
       var k = noteKey(r.target_kind, r.target_id);
@@ -4935,8 +5089,14 @@
   async function postNote(kind, id, body) {
     var t = await token();
     if (!t) throw new Error("Your session has expired. Sign in again.");
-    await api("/rest/v1/annotations", { method: "POST", token: t,
-      body: { target_kind: kind, target_id: id, author: session.user_id, body: body } });
+    var row = { target_kind: kind, target_id: id,
+                author: session.user_id, body: body };
+    if (charsOnline) {
+      var who = activeChar();
+      if (!who) throw new Error("Add a character before filing an annotation.");
+      row.speaker = who.id;
+    }
+    await api("/rest/v1/annotations", { method: "POST", token: t, body: row });
   }
 
   async function deleteNote(id) {
@@ -4991,7 +5151,7 @@
     if (!list.length) box.appendChild(el("p", "notes-msg", "Nothing filed yet."));
 
     list.forEach(function (r) {
-      var who = r.profiles || {};
+      var who = r.characters || r.profiles || {};
       var row = el("div", "comment");
       var av = el("img", "comment-ava");
       av.src = who.avatar || NO_IMAGE;
@@ -5002,6 +5162,7 @@
       var bd = el("div", "comment-body");
       var head = el("div", "comment-who");
       head.appendChild(el("span", null, who.callsign || "Unknown"));
+      if (who.title) head.appendChild(el("span", "comment-title", who.title));
       head.appendChild(el("span", "notes-date", (r.created_at || "").slice(0, 10)));
       if (me && (me.id === r.author || me.is_moderator)) {
         var del = el("button", "notes-del", "Delete");
@@ -5025,17 +5186,19 @@
       box.appendChild(row);
     });
 
-    if (!me) {
-      box.appendChild(el("p", "notes-msg", session
-        ? "Finish setting up your profile to file annotations."
-        : "Log in to file an annotation."));
+    var speaking = charsOnline ? activeChar() : me;
+    if (!me || !speaking) {
+      box.appendChild(el("p", "notes-msg",
+        !session ? "Log in to file an annotation."
+          : !me ? "Finish setting up your account to file annotations."
+            : "Add a character to file annotations."));
       return box;
     }
 
     var form = el("div", "notes-form");
     var ta = el("textarea", "notes-input");
     ta.rows = 2;
-    ta.placeholder = "File an annotation as " + me.callsign + "...";
+    ta.placeholder = "File an annotation as " + speaking.callsign + "...";
     var err = el("p", "notes-err");
     var btn = el("button", "btn", "File");
     btn.type = "button";
@@ -5083,6 +5246,124 @@
     renderAccount();
   }
 
+  // Callsign, title and picture - the same three fields whether you are
+  // setting up your first character or adding a fifth.
+  function charFields(parent) {
+    var cs = field("Callsign", "text", "2 to 24 characters");
+    var tl = field("Title", "text", "Rank, role or house");
+    var pic = el("label", "acct-field");
+    pic.appendChild(el("span", null, "Profile picture"));
+    var fileIn = el("input");
+    fileIn.type = "file";
+    fileIn.accept = "image/*";
+    pic.appendChild(fileIn);
+    parent.appendChild(cs.wrap);
+    parent.appendChild(tl.wrap);
+    parent.appendChild(pic);
+
+    return {
+      // Returns null and writes to msg when the callsign will not do.
+      read: async function (msg) {
+        var name = (cs.input.value || "").trim();
+        if (name.length < 2 || name.length > 24) {
+          msg.textContent = "Callsign must be 2 to 24 characters.";
+          return null;
+        }
+        var avatar = null;
+        if (fileIn.files && fileIn.files[0]) {
+          avatar = await shrinkImage(fileIn.files[0], 64);
+        }
+        return { callsign: name, title: (tl.input.value || "").trim(), avatar: avatar };
+      },
+      clear: function () { cs.input.value = ""; tl.input.value = ""; fileIn.value = ""; }
+    };
+  }
+
+  function buildRoster(msg) {
+    panelEl.appendChild(el("h5", "acct-h", "Your characters"));
+    if (me.is_moderator) {
+      panelEl.appendChild(el("p", "acct-fine", "Signed in as archivist."));
+    }
+
+    var cur = activeChar();
+    if (!CHARS.length) {
+      panelEl.appendChild(el("p", "acct-msg",
+        "None yet. Add one below to start filing annotations."));
+    }
+
+    CHARS.forEach(function (c) {
+      var speaking = cur && c.id === cur.id;
+      var row = el("div", "charrow" + (speaking ? " is-active" : ""));
+
+      var av = el("img", "char-ava");
+      av.src = c.avatar || NO_IMAGE;
+      av.alt = c.callsign;
+      av.loading = "lazy";
+      row.appendChild(av);
+
+      var who = el("div", "char-id");
+      who.appendChild(el("span", "char-name", c.callsign));
+      if (c.title) who.appendChild(el("span", "char-title", c.title));
+      row.appendChild(who);
+
+      if (speaking) {
+        row.appendChild(el("span", "char-flag", "Speaking"));
+      } else {
+        var sw = el("button", "btn", "Switch");
+        sw.type = "button";
+        sw.addEventListener("click", async function () {
+          setActive(c.id);
+          await refreshAll();
+        });
+        row.appendChild(sw);
+      }
+
+      var del = el("button", "notes-del", "Retire");
+      del.type = "button";
+      del.addEventListener("click", async function () {
+        if (del.textContent !== "Sure?") { del.textContent = "Sure?"; return; }
+        del.disabled = true;
+        try {
+          await deleteChar(c.id);
+          await loadNotes();
+          await refreshAll();
+        } catch (e) {
+          del.disabled = false;
+          del.textContent = "Failed";
+        }
+      });
+      row.appendChild(del);
+      panelEl.appendChild(row);
+    });
+
+    if (CHARS.length) {
+      panelEl.appendChild(el("p", "acct-fine",
+        "Retiring a character also removes the annotations they filed."));
+    }
+
+    panelEl.appendChild(el("div", "acct-sep"));
+    panelEl.appendChild(el("h5", "acct-h", "Add a character"));
+    var fields = charFields(panelEl);
+    var add = el("button", "btn", "Add character");
+    add.type = "button";
+    add.addEventListener("click", async function () {
+      msg.textContent = "";
+      add.disabled = true;
+      try {
+        var v = await fields.read(msg);
+        if (!v) { add.disabled = false; return; }
+        await createChar(v.callsign, v.title, v.avatar);
+        fields.clear();
+        await refreshAll();
+      } catch (e) {
+        msg.textContent = e.message;
+        add.disabled = false;
+      }
+    });
+    panelEl.appendChild(add);
+    panelEl.appendChild(msg);
+  }
+
   function buildPanel() {
     panelEl.textContent = "";
     panelEl.hidden = !panelMode;
@@ -5091,8 +5372,11 @@
     var msg = el("p", "acct-msg");
 
     if (panelMode === "signedin") {
-      panelEl.appendChild(el("p", "acct-msg",
-        "Signed in as " + me.callsign + (me.is_moderator ? " (archivist)" : "") + "."));
+      if (charsOnline) buildRoster(msg);
+      else panelEl.appendChild(el("p", "acct-msg", "Signed in as " + me.callsign
+        + (me.is_moderator ? " (archivist)" : "") + "."));
+
+      panelEl.appendChild(el("div", "acct-sep"));
       var out = el("button", "btn", "Sign out");
       out.type = "button";
       out.addEventListener("click", async function () {
@@ -5105,32 +5389,20 @@
     }
 
     if (panelMode === "profile") {
-      panelEl.appendChild(el("h5", "acct-h", "Set up your profile"));
-      var cs = field("Callsign", "text", "2 to 24 characters");
-      var pic = el("label", "acct-field");
-      pic.appendChild(el("span", null, "Profile picture"));
-      var fileIn = el("input");
-      fileIn.type = "file";
-      fileIn.accept = "image/*";
-      pic.appendChild(fileIn);
-      panelEl.appendChild(cs.wrap);
-      panelEl.appendChild(pic);
-      var save = el("button", "btn", "Save profile");
+      panelEl.appendChild(el("h5", "acct-h", "Set up your first character"));
+      panelEl.appendChild(el("p", "acct-fine",
+        "You can add more later and switch between them at will."));
+      var first = charFields(panelEl);
+      var save = el("button", "btn", "Save");
       save.type = "button";
       save.addEventListener("click", async function () {
         msg.textContent = "";
-        var name = (cs.input.value || "").trim();
-        if (name.length < 2 || name.length > 24) {
-          msg.textContent = "Callsign must be 2 to 24 characters.";
-          return;
-        }
         save.disabled = true;
         try {
-          var avatar = null;
-          if (fileIn.files && fileIn.files[0]) {
-            avatar = await shrinkImage(fileIn.files[0], 64);
-          }
-          await createProfile(name, avatar);
+          var v = await first.read(msg);
+          if (!v) { save.disabled = false; return; }
+          await createProfile(v.callsign, v.avatar);
+          if (charsOnline) await createChar(v.callsign, v.title, v.avatar);
           panelMode = null;
           await loadNotes();
           await refreshAll();
@@ -5206,13 +5478,15 @@
     }
     var b;
     if (me) {
+      var who = (charsOnline ? activeChar() : me) || {};
       b = el("button", "acct-btn");
       b.type = "button";
       var av = el("img", "acct-ava");
-      av.src = me.avatar || NO_IMAGE;
-      av.alt = me.callsign;
+      av.src = who.avatar || NO_IMAGE;
+      av.alt = who.callsign || "Account";
       b.appendChild(av);
-      b.appendChild(el("span", "acct-name", me.callsign));
+      b.appendChild(el("span", "acct-name", who.callsign || "Add a character"));
+      if (who.title) b.title = who.callsign + " - " + who.title;
       b.addEventListener("click", function () { openPanel("signedin"); });
     } else if (session) {
       b = el("button", "acct-btn", "Finish profile");
@@ -5232,7 +5506,10 @@
     loadSession();
     try {
       await loadNotes();
-      if (session) await loadMe();
+      if (session) {
+        await loadMe();
+        if (me) await loadChars();
+      }
     } catch (e) {
       sbOnline = false;
     }
