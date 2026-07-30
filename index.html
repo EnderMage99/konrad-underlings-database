@@ -1880,6 +1880,182 @@
 
   .charedit { flex-direction: column; align-items: stretch; gap: .5rem; }
 
+  /* ---------- registry ---------- */
+
+  .regcard {
+    --edge: var(--steel);
+    margin-bottom: 1.2rem;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+  }
+
+  .reg-head {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: .55rem;
+    padding: .7rem 1.05rem .6rem;
+    border-bottom: 1px solid var(--rule);
+    background: var(--surface-alt);
+  }
+
+  .reg-head h3 {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: var(--fs-sm);
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+
+  .reg-tag, .reg-you {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    padding: .1rem .4rem;
+    border: 1px solid var(--accent-dim);
+    color: var(--accent);
+  }
+
+  .reg-you { border-color: var(--brass); color: var(--brass); }
+
+  .reg-count {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  .reg-chars {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+    gap: .7rem;
+    padding: .9rem 1.05rem 1rem;
+  }
+
+  .regchar {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    padding: .45rem;
+    background: var(--ground-2);
+    border: 1px solid var(--rule);
+    min-width: 0;
+  }
+
+  .reg-ava {
+    width: 4rem;
+    height: 4rem;
+    flex: 0 0 auto;
+    object-fit: cover;
+    border: 1px solid var(--accent-dim);
+    background: var(--plate);
+  }
+
+  .reg-id { display: flex; flex-direction: column; gap: .15rem; min-width: 0; }
+
+  .reg-name {
+    font-family: var(--mono);
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink);
+    overflow-wrap: anywhere;
+  }
+
+  .reg-title {
+    font-size: var(--fs-xs);
+    line-height: 1.4;
+    color: var(--ink-soft);
+    overflow-wrap: anywhere;
+  }
+
+  .reg-empty {
+    margin: 0;
+    padding: .9rem 1.05rem;
+    font-size: var(--fs-sm);
+    color: var(--ink-faint);
+  }
+
+  /* ---------- avatar cropper ---------- */
+
+  .crop-mask {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(2, 8, 14, .82);
+  }
+
+  .crop-box {
+    display: flex;
+    flex-direction: column;
+    gap: .6rem;
+    padding: 1rem;
+    max-width: min(22rem, 100%);
+    background: var(--surface);
+    border: 1px solid var(--accent-dim);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, .75), var(--glow);
+  }
+
+  .crop-stage {
+    position: relative;
+    width: 260px;
+    height: 260px;
+    max-width: 100%;
+    overflow: hidden;
+    background: var(--plate);
+    border: 1px solid var(--rule);
+    cursor: grab;
+    touch-action: none;
+    align-self: center;
+  }
+
+  .crop-stage:active { cursor: grabbing; }
+  .crop-stage:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+
+  .crop-img { position: absolute; user-select: none; -webkit-user-drag: none; }
+
+  /* Shows the square that will actually be kept, without blocking the drag. */
+  .crop-ring {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    box-shadow: inset 0 0 0 1px rgba(90, 200, 245, .5);
+  }
+
+  .crop-row { display: flex; align-items: center; gap: .5rem; }
+
+  .crop-row > span {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  .crop-row input[type="range"] { flex: 1 1 auto; accent-color: var(--accent); }
+
+  .crop-prev { display: flex; align-items: center; gap: .5rem; }
+  .crop-prev[hidden] { display: none; }
+
+  .crop-prevava {
+    width: 3rem;
+    height: 3rem;
+    object-fit: cover;
+    border: 1px solid var(--accent-dim);
+    background: var(--plate);
+  }
+
+  .crop-prevmsg { font-size: 10px; color: var(--ink-faint); }
+
   /* Discord blurple, the one place the HUD palette gives way to a brand. */
   .discord-btn {
     border-color: #5865F2;
@@ -2246,6 +2422,12 @@
       </div>
     </details>
     <div id="lancerlist"></div>
+  </div>
+  <div id="registryview" hidden>
+    <p class="viewnote">Everyone holding access to this archive, and the
+      characters they file annotations under. An account may keep as many as it
+      likes and speak as any of them.</p>
+    <div id="registrylist"></div>
   </div>
   <div id="tableview" hidden>
     <div class="tablescroll">
@@ -4325,7 +4507,8 @@
     ] },
     { label: "Record Index", mode: "record", views: [
       { id: "personnel", label: "Personnel",  el: "personview" },
-      { id: "lancers",   label: "Lancers",    el: "lancerview" }
+      { id: "lancers",   label: "Lancers",    el: "lancerview" },
+      { id: "registry",  label: "Registry",   el: "registryview" }
     ] }
   ];
 
@@ -4632,6 +4815,7 @@
   ];
 
   var lancerlist = document.getElementById("lancerlist");
+  var registrylist = document.getElementById("registrylist");
 
   function renderComments(list, label) {
     var box = el("div", "comments");
@@ -5204,6 +5388,89 @@
     if (activeId === id) setActive(CHARS.length ? CHARS[0].id : null);
   }
 
+  // ---- registry ------------------------------------------------------------
+  // Every account and its characters. Both tables are world-readable so this
+  // works for a reader who is not signed in. There is no foreign key between
+  // profiles and characters - both point at auth.users - so PostgREST cannot
+  // embed one in the other and the two lists are stitched together here.
+
+  var REGISTRY = { accounts: [], chars: [] };
+  var registryOnline = true;
+
+  // Swallows its own failures: the registry is one view, and losing it must
+  // not cost the reader annotations everywhere else.
+  async function loadRegistry() {
+    try {
+      var pair = await Promise.all([
+        api("/rest/v1/profiles?select=id,callsign,avatar,is_moderator,created_at"),
+        api("/rest/v1/characters?select=id,owner,callsign,title,avatar,created_at"
+            + "&order=created_at.asc")
+      ]);
+      REGISTRY = { accounts: pair[0] || [], chars: pair[1] || [] };
+      registryOnline = true;
+    } catch (e) {
+      REGISTRY = { accounts: [], chars: [] };
+      registryOnline = false;
+    }
+  }
+
+  function renderRegistry() {
+    registrylist.textContent = "";
+
+    var byOwner = {};
+    REGISTRY.chars.forEach(function (c) {
+      (byOwner[c.owner] = byOwner[c.owner] || []).push(c);
+    });
+
+    var accounts = REGISTRY.accounts.slice().sort(function (a, b) {
+      return (a.created_at || "").localeCompare(b.created_at || "");
+    });
+
+    if (!accounts.length) {
+      registrylist.appendChild(el("p", "reg-empty",
+        !sbOnline ? "The registry is unavailable in this preview."
+          : !registryOnline ? "The registry could not be loaded."
+            : "No accounts on file yet."));
+      return;
+    }
+
+    accounts.forEach(function (a) {
+      var card = el("article", "regcard");
+
+      var head = el("div", "reg-head");
+      head.appendChild(el("h3", null, a.callsign || "Unnamed account"));
+      if (a.is_moderator) head.appendChild(el("span", "reg-tag", "Archivist"));
+      if (me && me.id === a.id) head.appendChild(el("span", "reg-you", "You"));
+      var chars = byOwner[a.id] || [];
+      head.appendChild(el("span", "reg-count",
+        chars.length === 1 ? "1 character" : chars.length + " characters"));
+      card.appendChild(head);
+
+      if (!chars.length) {
+        card.appendChild(el("p", "reg-empty", "No characters registered yet."));
+        registrylist.appendChild(card);
+        return;
+      }
+
+      var grid = el("div", "reg-chars");
+      chars.forEach(function (c) {
+        var tile = el("div", "regchar");
+        var av = el("img", "reg-ava");
+        av.src = c.avatar || NO_IMAGE;
+        av.alt = c.callsign;
+        av.loading = "lazy";
+        tile.appendChild(av);
+        var who = el("div", "reg-id");
+        who.appendChild(el("span", "reg-name", c.callsign));
+        who.appendChild(el("span", "reg-title", c.title || "No title given"));
+        tile.appendChild(who);
+        grid.appendChild(tile);
+      });
+      card.appendChild(grid);
+      registrylist.appendChild(card);
+    });
+  }
+
   var NOTE_COLS = "id,body,created_at,target_kind,target_id,author";
 
   async function loadNotes() {
@@ -5242,28 +5509,165 @@
     await api("/rest/v1/annotations?id=eq." + id, { method: "DELETE", token: t });
   }
 
-  // Avatars are squeezed to 64px in-browser and stored as a data URI on the
-  // row, so no object storage or upload pipeline is needed. Pictures are
-  // always uploaded by hand - nothing is pulled in from Discord.
-  function shrinkImage(file, size) {
+  // ---- avatar cropping -----------------------------------------------------
+  // Pictures are cropped and squeezed in the browser and stored as a data URI
+  // on the row, so there is no object storage or upload pipeline. Nothing is
+  // ever pulled in from Discord.
+
+  var AVATAR_PX = 128;   // stored size; tiles are drawn no larger than 4rem
+  var STAGE_PX = 260;    // the square the reader drags the picture around in
+
+  // Smallest scale at which the picture still covers the square.
+  function coverScale(w, h, stage) { return Math.max(stage / w, stage / h); }
+
+  // Keeps the square filled: the picture may not be dragged past its own edge.
+  function clampPan(v, span, stage) {
+    return Math.min(0, Math.max(stage - span, v));
+  }
+
+  // Which part of the original the square is showing, in source pixels.
+  function cropRect(stage, scale, ox, oy) {
+    return { sx: -ox / scale, sy: -oy / scale,
+             sw: stage / scale, sh: stage / scale };
+  }
+
+  function readAsImage(file) {
     return new Promise(function (resolve, reject) {
       var fr = new FileReader();
       fr.onload = function () {
         var img = new Image();
-        img.onload = function () {
-          var c = document.createElement("canvas");
-          c.width = c.height = size;
-          var g = c.getContext("2d");
-          var side = Math.min(img.width, img.height);
-          g.drawImage(img, (img.width - side) / 2, (img.height - side) / 2,
-                      side, side, 0, 0, size, size);
-          resolve(c.toDataURL("image/webp", 0.82));
-        };
+        img.onload = function () { resolve(img); };
         img.onerror = function () { reject(new Error("That file is not an image.")); };
         img.src = fr.result;
       };
       fr.onerror = function () { reject(new Error("Could not read that file.")); };
       fr.readAsDataURL(file);
+    });
+  }
+
+  // Resolves to a data URI, or to null if the reader backs out.
+  async function cropDialog(file) {
+    var img = await readAsImage(file);
+
+    var base = coverScale(img.width, img.height, STAGE_PX);
+    var zoom = 1, ox = 0, oy = 0;
+
+    var mask = el("div", "crop-mask");
+    var box = el("div", "crop-box");
+    box.setAttribute("role", "dialog");
+    box.setAttribute("aria-label", "Crop profile picture");
+    box.appendChild(el("h5", "acct-h", "Crop profile picture"));
+    box.appendChild(el("p", "acct-fine",
+      "Drag to reposition, and use the slider to zoom."));
+
+    var stage = el("div", "crop-stage");
+    stage.setAttribute("tabindex", "0");
+    var shown = el("img", "crop-img");
+    shown.src = img.src;
+    shown.alt = "";
+    shown.draggable = false;
+    stage.appendChild(shown);
+    stage.appendChild(el("div", "crop-ring"));
+    box.appendChild(stage);
+
+    function scale() { return base * zoom; }
+
+    function place() {
+      var dw = img.width * scale(), dh = img.height * scale();
+      ox = clampPan(ox, dw, STAGE_PX);
+      oy = clampPan(oy, dh, STAGE_PX);
+      shown.style.width = dw + "px";
+      shown.style.height = dh + "px";
+      shown.style.left = ox + "px";
+      shown.style.top = oy + "px";
+    }
+
+    // start centred
+    ox = (STAGE_PX - img.width * scale()) / 2;
+    oy = (STAGE_PX - img.height * scale()) / 2;
+    place();
+
+    var zrow = el("label", "crop-row");
+    zrow.appendChild(el("span", null, "Zoom"));
+    var zin = el("input");
+    zin.type = "range";
+    zin.min = "100";
+    zin.max = "400";
+    zin.value = "100";
+    zin.addEventListener("input", function () {
+      // keep whatever is under the middle of the square in the middle
+      var was = scale();
+      zoom = Number(zin.value) / 100;
+      var now = scale();
+      ox = STAGE_PX / 2 - (STAGE_PX / 2 - ox) * (now / was);
+      oy = STAGE_PX / 2 - (STAGE_PX / 2 - oy) * (now / was);
+      place();
+    });
+    zrow.appendChild(zin);
+    box.appendChild(zrow);
+
+    var dragging = false, px = 0, py = 0;
+    stage.addEventListener("pointerdown", function (e) {
+      dragging = true;
+      px = e.clientX;
+      py = e.clientY;
+      if (stage.setPointerCapture) stage.setPointerCapture(e.pointerId);
+    });
+    stage.addEventListener("pointermove", function (e) {
+      if (!dragging) return;
+      ox += e.clientX - px;
+      oy += e.clientY - py;
+      px = e.clientX;
+      py = e.clientY;
+      place();
+    });
+    stage.addEventListener("pointerup", function () { dragging = false; });
+    stage.addEventListener("pointercancel", function () { dragging = false; });
+
+    stage.addEventListener("keydown", function (e) {
+      var step = e.shiftKey ? 20 : 5;
+      var moved = true;
+      if (e.key === "ArrowLeft") ox -= step;
+      else if (e.key === "ArrowRight") ox += step;
+      else if (e.key === "ArrowUp") oy -= step;
+      else if (e.key === "ArrowDown") oy += step;
+      else moved = false;
+      if (moved) { e.preventDefault(); place(); }
+    });
+
+    return new Promise(function (resolve) {
+      function close(v) {
+        mask.remove();
+        document.removeEventListener("keydown", onEsc);
+        resolve(v);
+      }
+      function onEsc(e) { if (e.key === "Escape") close(null); }
+
+      var row = el("div", "acct-row");
+      var use = el("button", "btn", "Use picture");
+      use.type = "button";
+      use.addEventListener("click", function () {
+        var r = cropRect(STAGE_PX, scale(), ox, oy);
+        var c = document.createElement("canvas");
+        c.width = c.height = AVATAR_PX;
+        c.getContext("2d").drawImage(img, r.sx, r.sy, r.sw, r.sh,
+                                     0, 0, AVATAR_PX, AVATAR_PX);
+        close(c.toDataURL("image/webp", 0.82));
+      });
+      var cancel = el("button", "btn", "Cancel");
+      cancel.type = "button";
+      cancel.addEventListener("click", function () { close(null); });
+      row.appendChild(use);
+      row.appendChild(cancel);
+      box.appendChild(row);
+
+      mask.appendChild(box);
+      mask.addEventListener("pointerdown", function (e) {
+        if (e.target === mask) close(null);
+      });
+      document.addEventListener("keydown", onEsc);
+      document.body.appendChild(mask);
+      stage.focus();
     });
   }
 
@@ -5287,6 +5691,7 @@
       m.el.parentNode.replaceChild(fresh, m.el);
       if (draft && fresh._ta) fresh._ta.value = draft;
     });
+    renderRegistry();
     renderAccount();
   }
 
@@ -5421,13 +5826,57 @@
     fileIn.type = "file";
     fileIn.accept = "image/*";
     pic.appendChild(fileIn);
+
+    // Cropped as soon as a file is chosen, so the reader sees the result they
+    // are about to save rather than discovering the framing afterwards.
+    var picked = null;
+    var prev = el("div", "crop-prev");
+    var prevImg = el("img", "crop-prevava");
+    var prevMsg = el("span", "crop-prevmsg");
+    prev.appendChild(prevImg);
+    prev.appendChild(prevMsg);
+    prev.hidden = true;
+
+    function showPreview(uri) {
+      picked = uri;
+      prev.hidden = !uri;
+      if (!uri) return;
+      prevImg.src = uri;
+      prevImg.alt = "Cropped picture";
+      prevMsg.textContent = "";
+      var again = el("button", "notes-del", "Crop again");
+      again.type = "button";
+      again.addEventListener("click", function () { runCrop(); });
+      prevMsg.appendChild(again);
+    }
+
+    var lastFile = null;
+    async function runCrop() {
+      if (!lastFile) return;
+      try {
+        var uri = await cropDialog(lastFile);
+        if (uri) showPreview(uri);
+      } catch (e) {
+        prev.hidden = false;
+        prevMsg.textContent = e.message;
+      }
+    }
+
+    fileIn.addEventListener("change", function () {
+      picked = null;
+      prev.hidden = true;
+      lastFile = (fileIn.files && fileIn.files[0]) || null;
+      if (lastFile) runCrop();
+    });
+
     parent.appendChild(cs.wrap);
     parent.appendChild(tl.wrap);
     parent.appendChild(pic);
+    parent.appendChild(prev);
 
     return {
       // Returns null and writes to msg when the callsign will not do. The
-      // avatar key is absent, not null, when no new file was picked.
+      // avatar key is absent, not null, when no new picture was chosen.
       read: async function (msg) {
         var name = (cs.input.value || "").trim();
         if (name.length < 2 || name.length > 24) {
@@ -5435,12 +5884,13 @@
           return null;
         }
         var out = { callsign: name, title: (tl.input.value || "").trim() };
-        if (fileIn.files && fileIn.files[0]) {
-          out.avatar = await shrinkImage(fileIn.files[0], 64);
-        }
+        if (picked) out.avatar = picked;
         return out;
       },
-      clear: function () { cs.input.value = ""; tl.input.value = ""; fileIn.value = ""; }
+      clear: function () {
+        cs.input.value = ""; tl.input.value = ""; fileIn.value = "";
+        picked = null; lastFile = null; prev.hidden = true;
+      }
     };
   }
 
@@ -5463,6 +5913,7 @@
         await updateChar(c.id, patch);
         editingId = null;
         await loadNotes();          // past annotations show the new title
+        await loadRegistry();
         await refreshAll();
       } catch (e) {
         msg.textContent = /duplicate|unique/i.test(e.message)
@@ -5541,6 +5992,7 @@
         try {
           await deleteChar(c.id);
           await loadNotes();
+          await loadRegistry();
           await refreshAll();
         } catch (e) {
           del.disabled = false;
@@ -5570,6 +6022,7 @@
         if (!v) { add.disabled = false; return; }
         await createChar(v.callsign, v.title, v.avatar);
         fields.clear();
+        await loadRegistry();
         await refreshAll();
       } catch (e) {
         msg.textContent = e.message;
@@ -5621,6 +6074,7 @@
           if (charsOnline) await createChar(v.callsign, v.title, v.avatar);
           panelMode = null;
           await loadNotes();
+          await loadRegistry();
           await refreshAll();
         } catch (e) {
           msg.textContent = /duplicate|unique/i.test(e.message)
@@ -5755,6 +6209,7 @@
       // us the rest of the account system - fall back to email only.
       try { await loadAuthSettings(); } catch (e) {}
       await loadNotes();
+      await loadRegistry();
       if (session) {
         await loadMe();
         if (me) await loadChars();
