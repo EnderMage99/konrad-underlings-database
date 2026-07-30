@@ -1842,6 +1842,20 @@
   .acct-row { display: flex; gap: .4rem; }
   .acct-row .btn { flex: 1 1 auto; }
 
+  .acct-inline {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-family: var(--mono);
+    font-size: var(--fs-sm);
+    padding: .4rem .5rem;
+    background: var(--ground-2);
+    color: var(--ink);
+    border: 1px solid var(--rule);
+  }
+
+  .acct-inline:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
+  .acct-row .acct-inline + .btn { flex: 0 0 auto; }
+
   .acct-msg {
     margin: 0;
     font-size: var(--fs-xs);
@@ -5349,6 +5363,21 @@
     me = rows[0];
   }
 
+  // Row-level security filters an update it does not permit rather than
+  // refusing it, so a blocked rename comes back 200 with an empty array. No
+  // rows returned is the only signal that the policy is missing.
+  async function updateAccount(callsign) {
+    var t = await token();
+    var rows = await api("/rest/v1/profiles?id=eq." + session.user_id, {
+      method: "PATCH", token: t, headers: { Prefer: "return=representation" },
+      body: { callsign: callsign }
+    });
+    if (!rows || !rows.length) {
+      throw new Error("Renaming is not enabled on this archive yet.");
+    }
+    me = rows[0];
+  }
+
   // ---- characters ---------------------------------------------------------
   // One account may keep any number of them. Reads are public so annotations
   // can be attributed; writes are limited to your own rows by RLS.
@@ -5980,11 +6009,52 @@
     return box;
   }
 
-  function buildRoster(msg) {
-    panelEl.appendChild(el("h5", "acct-h", "Your characters"));
+  // The account name is what the Registry files you under. It is separate from
+  // any character, and readers get to fix whatever they typed at signup.
+  function buildAccountRow(msg) {
+    panelEl.appendChild(el("h5", "acct-h", "Account name"));
     if (me.is_moderator) {
       panelEl.appendChild(el("p", "acct-fine", "Signed in as archivist."));
     }
+
+    var row = el("div", "acct-row");
+    var input = el("input", "acct-inline");
+    input.type = "text";
+    input.maxLength = 24;
+    input.value = me.callsign || "";
+    input.setAttribute("aria-label", "Account name");
+    var save = el("button", "btn", "Rename");
+    save.type = "button";
+    save.addEventListener("click", async function () {
+      msg.textContent = "";
+      var name = (input.value || "").trim();
+      if (name === (me.callsign || "")) return;
+      if (name.length < 2 || name.length > 24) {
+        msg.textContent = "Account name must be 2 to 24 characters.";
+        return;
+      }
+      save.disabled = true;
+      try {
+        await updateAccount(name);
+        await loadRegistry();
+        await refreshAll();
+      } catch (e) {
+        msg.textContent = /duplicate|unique/i.test(e.message)
+          ? "That name is taken." : e.message;
+        save.disabled = false;
+      }
+    });
+    row.appendChild(input);
+    row.appendChild(save);
+    panelEl.appendChild(row);
+    panelEl.appendChild(el("p", "acct-fine",
+      "How the Registry lists you. Your characters are named separately."));
+    panelEl.appendChild(el("div", "acct-sep"));
+  }
+
+  function buildRoster(msg) {
+    buildAccountRow(msg);
+    panelEl.appendChild(el("h5", "acct-h", "Your characters"));
 
     var cur = activeChar();
     if (!CHARS.length) {
@@ -6087,9 +6157,14 @@
     var msg = el("p", "acct-msg");
 
     if (panelMode === "signedin") {
-      if (charsOnline) buildRoster(msg);
-      else panelEl.appendChild(el("p", "acct-msg", "Signed in as " + me.callsign
-        + (me.is_moderator ? " (archivist)" : "") + "."));
+      if (charsOnline) {
+        buildRoster(msg);
+      } else {
+        buildAccountRow(msg);
+        panelEl.appendChild(el("p", "acct-msg",
+          "Characters are not set up on this archive yet."));
+        panelEl.appendChild(msg);
+      }
 
       panelEl.appendChild(el("div", "acct-sep"));
       var out = el("button", "btn", "Sign out");

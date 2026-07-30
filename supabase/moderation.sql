@@ -57,14 +57,29 @@ create policy "delete an annotation"
 -- Serio Zeal becomes the archivist.
 update public.profiles set is_moderator = true where callsign = 'Star';
 
--- Account callsigns date from before characters existed, and the page has no
--- way to edit one. This was a placeholder; the account's character is Lyxie.
+-- This account's callsign was a placeholder; its character is Lyxie.
 update public.profiles set callsign = 'Lyxie'
  where callsign = 'Barry B. Benson';
 
 -- Nobody can promote themselves. Row-level security decides which *rows* you
--- may touch, not which columns, so without this an update policy on profiles
--- would let any signed-in reader set their own is_moderator. The page never
--- writes to profiles after signup, so revoking the column costs nothing.
+-- may touch, not which columns, so without this the policy below would let any
+-- signed-in reader set their own is_moderator. Revoked before the policy
+-- exists, so there is no window in which self-promotion is possible.
 revoke update (is_moderator) on public.profiles from authenticated;
 revoke update (is_moderator) on public.profiles from anon;
+
+-- With that column out of reach, accounts may edit their own row, which is
+-- what lets a reader fix the callsign they typed at signup.
+drop policy if exists "edit your own account" on public.profiles;
+create policy "edit your own account"
+  on public.profiles for update to authenticated
+  using (id = auth.uid()) with check (id = auth.uid());
+
+do $$
+begin
+  if not exists (select 1 from pg_constraint
+                  where conname = 'profiles_callsign_len') then
+    alter table public.profiles add constraint profiles_callsign_len
+      check (char_length(callsign) between 2 and 24);
+  end if;
+end $$;
