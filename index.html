@@ -5439,6 +5439,39 @@
     });
   }
 
+  // ---- usernames -----------------------------------------------------------
+  // Supabase Auth insists on an email address or a phone number as the
+  // identifier, so a username becomes an address in a domain reserved by
+  // RFC 2606: it can never be registered and can never receive mail. The
+  // reader never sees it.
+  //
+  // This only works while email confirmation is off. With it on, Supabase
+  // checks the domain is deliverable before sending, and refuses outright -
+  // which is why the login form falls back to demanding an email address when
+  // AUTH.autoconfirm is false rather than failing at the last step.
+  var USER_DOMAIN = "players.konrad.invalid";
+
+  // Deliberately narrow, and must start and end alphanumeric, so the result is
+  // always a valid email local part.
+  var USERNAME_RE = /^[a-z0-9](?:[a-z0-9._-]{0,22}[a-z0-9])?$/i;
+
+  function asIdentifier(raw) {
+    raw = (raw || "").trim();
+    if (raw.indexOf("@") !== -1) return { email: raw, username: null };
+    return { email: raw.toLowerCase() + "@" + USER_DOMAIN, username: raw };
+  }
+
+  function usernameProblem(name) {
+    if (name.length < 2 || name.length > 24) {
+      return "Username must be 2 to 24 characters.";
+    }
+    if (!USERNAME_RE.test(name)) {
+      return "Use letters, numbers, dots, underscores or hyphens, "
+        + "starting and ending with a letter or number.";
+    }
+    return null;
+  }
+
   async function signUp(email, password) {
     return api("/auth/v1/signup",
       { method: "POST", body: { email: email, password: password } });
@@ -6480,8 +6513,8 @@
       return;
     }
 
-    var em = field("Email", "email", "");
-    var pw = field("Password", "password", "");
+    var em = field("Username or email", "text", "e.g. lyxie");
+    var pw = field("Password", "password", "at least 8 characters");
     panelEl.appendChild(em.wrap);
     panelEl.appendChild(pw.wrap);
 
@@ -6493,39 +6526,90 @@
     row.appendChild(inBtn);
     row.appendChild(upBtn);
     panelEl.appendChild(row);
+    panelEl.appendChild(el("p", "acct-fine", AUTH.autoconfirm
+      ? "A username is enough - no email needed. There is no password reset "
+        + "for a username, so ask the archivist if you lose it."
+      : "An email address is required on this archive."));
     panelEl.appendChild(msg);
+
+    // Returns null and writes to msg when the identifier will not do.
+    function readIdentifier() {
+      var raw = (em.input.value || "").trim();
+      if (!raw) {
+        msg.textContent = "Enter a username or an email address.";
+        return null;
+      }
+      var id = asIdentifier(raw);
+      if (id.username) {
+        var bad = usernameProblem(id.username);
+        if (bad) { msg.textContent = bad; return null; }
+        if (!AUTH.autoconfirm) {
+          msg.textContent = "Usernames are not accepted here. Use a provider "
+            + "above, or an email address.";
+          return null;
+        }
+      }
+      return id;
+    }
 
     inBtn.addEventListener("click", async function () {
       msg.textContent = "";
+      var id = readIdentifier();
+      if (!id) return;
       inBtn.disabled = upBtn.disabled = true;
       try {
-        await signIn(em.input.value.trim(), pw.input.value);
+        await signIn(id.email, pw.input.value);
         panelMode = me ? null : "profile";
+        if (!me && id.username) oauthHint = { callsign: id.username };
         await loadNotes();
+        await loadRegistry();
         await refreshAll();
       } catch (e) {
         msg.textContent = /confirm/i.test(e.message)
           ? "Confirm your email address first, then log in."
-          : "Could not log in. Check the address and password.";
+          : id.username
+            ? "That username and password do not match an account."
+            : "Could not log in. Check the address and password.";
         inBtn.disabled = upBtn.disabled = false;
       }
     });
 
     upBtn.addEventListener("click", async function () {
       msg.textContent = "";
-      var e1 = em.input.value.trim(), p1 = pw.input.value;
-      if (!e1 || p1.length < 8) {
-        msg.textContent = "Enter an email and a password of at least 8 characters.";
+      var id = readIdentifier();
+      if (!id) return;
+      var p1 = pw.input.value;
+      if (p1.length < 8) {
+        msg.textContent = "Password must be at least 8 characters.";
         return;
       }
       inBtn.disabled = upBtn.disabled = true;
       try {
-        await signUp(e1, p1);
-        msg.textContent = "Check your email for a confirmation link, then log in.";
+        var r = await signUp(id.email, p1);
+        if (r && r.access_token) {
+          // Confirmation is off, so signup hands back a session directly and
+          // the reader goes straight on to naming their first character.
+          saveSession({ access_token: r.access_token,
+                        refresh_token: r.refresh_token,
+                        expires_at: r.expires_at, user_id: r.user.id });
+          if (id.username) oauthHint = { callsign: id.username };
+          await loadMe();
+          if (me) await loadChars();
+          panelMode = me ? null : "profile";
+          await loadNotes();
+          await loadRegistry();
+          await refreshAll();
+          return;
+        }
+        msg.textContent = id.username
+          ? "That account exists but cannot sign in yet. Ask the archivist."
+          : "Check your email for a confirmation link, then log in.";
       } catch (e) {
-        msg.textContent = /disabled|not allowed/i.test(e.message)
-          ? "Sign-ups are closed. Ask the archivist for an invite."
-          : e.message;
+        msg.textContent = /already registered|already exists|duplicate/i.test(e.message)
+          ? (id.username ? "That username is taken." : "That address is already registered.")
+          : /disabled|not allowed/i.test(e.message)
+            ? "Sign-ups are closed. Ask the archivist for an invite."
+            : e.message;
       }
       inBtn.disabled = upBtn.disabled = false;
     });
