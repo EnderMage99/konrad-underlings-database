@@ -2000,6 +2000,74 @@
     color: var(--ink-faint);
   }
 
+  /* ---------- comment log ---------- */
+
+  .log-count {
+    margin: 0 0 .8rem;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  .logrow {
+    display: flex;
+    gap: .75rem;
+    padding: .75rem 1.05rem .8rem;
+    margin-bottom: .55rem;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-left: 2px solid var(--accent-dim);
+  }
+
+  .log-ava {
+    width: 2.5rem;
+    height: 2.5rem;
+    flex: 0 0 auto;
+    object-fit: cover;
+    border: 1px solid var(--accent-dim);
+    background: var(--plate);
+  }
+
+  .log-body { display: flex; flex-direction: column; gap: .35rem; min-width: 0; }
+
+  /* The file the annotation was left on, and a way back to it. */
+  .log-where {
+    display: inline-flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: .45rem;
+    align-self: flex-start;
+    max-width: 100%;
+    padding: .2rem .5rem;
+    text-align: left;
+    background: var(--ground-2);
+    border: 1px solid var(--rule);
+    cursor: pointer;
+  }
+
+  .log-where:hover:not(:disabled) { border-color: var(--accent); }
+  .log-where:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
+  .log-where:disabled { cursor: default; opacity: .6; }
+
+  .log-kind {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  .log-name {
+    font-family: var(--mono);
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    letter-spacing: .06em;
+    color: var(--accent);
+    overflow-wrap: anywhere;
+  }
+
   /* ---------- avatar cropper ---------- */
 
   .crop-mask {
@@ -2447,6 +2515,11 @@
       characters they file annotations under. An account may keep as many as it
       likes and speak as any of them.</p>
     <div id="registrylist"></div>
+  </div>
+  <div id="logview" hidden>
+    <p class="viewnote">Every annotation filed against the archive, newest
+      first, with the file it was left on. The list keeps itself current.</p>
+    <div id="loglist"></div>
   </div>
   <div id="tableview" hidden>
     <div class="tablescroll">
@@ -4184,6 +4257,7 @@
 
     body.appendChild(noteBlock("contact", d.name));
     det.appendChild(body);
+    TARGETS["contact::" + d.name] = { view: "cards", node: card, details: det };
     card.appendChild(det);
 
     d._details = det;
@@ -4527,7 +4601,8 @@
     { label: "Record Index", mode: "record", views: [
       { id: "personnel", label: "Personnel",  el: "personview" },
       { id: "lancers",   label: "Lancers",    el: "lancerview" },
-      { id: "registry",  label: "Registry",   el: "registryview" }
+      { id: "registry",  label: "Registry",   el: "registryview" },
+      { id: "log",       label: "Comment log", el: "logview" }
     ] }
   ];
 
@@ -4772,6 +4847,7 @@
     }
     box.appendChild(mech);
     box.appendChild(noteBlock("personnel", p.name));
+    TARGETS["personnel::" + p.name] = { view: "personnel", node: box };
     return box;
   }
 
@@ -4835,6 +4911,7 @@
 
   var lancerlist = document.getElementById("lancerlist");
   var registrylist = document.getElementById("registrylist");
+  var loglist = document.getElementById("loglist");
 
   function renderComments(list, label) {
     var box = el("div", "comments");
@@ -5045,6 +5122,7 @@
 
         if (n.comments && n.comments.length) sub.appendChild(renderComments(n.comments));
         sub.appendChild(noteBlock("nhp", n.name));
+        TARGETS["nhp::" + n.name] = { view: "lancers", node: sub };
         box.appendChild(sub);
       });
 
@@ -5066,6 +5144,7 @@
       }
 
       box.appendChild(noteBlock("lancer", L.callsign));
+      TARGETS["lancer::" + L.callsign] = { view: "lancers", node: box };
       lancerlist.appendChild(box);
     });
   }
@@ -5506,6 +5585,96 @@
     });
   }
 
+  // ---- comment log ---------------------------------------------------------
+  // Where each annotatable card ended up, so the log can send a reader to the
+  // file a comment was left on. Written by the renderers as they build.
+
+  var TARGETS = {};
+
+  var TARGET_KINDS = {
+    contact:   "Dossier",
+    personnel: "Personnel file",
+    nhp:       "Assisting NHP",
+    lancer:    "Lancer file"
+  };
+
+  function focusTarget(key) {
+    if (!TARGETS[key]) return;
+    setView(TARGETS[key].view);
+
+    // setView re-renders the dossiers, which detaches the card registered a
+    // moment ago and files a fresh one - so look the target up again on the
+    // far side of the switch rather than holding the stale node.
+    var t = TARGETS[key];
+    if (!t) return;
+    if (t.details) t.details.open = true;
+    if (t.node.scrollIntoView) {
+      t.node.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+
+  function renderCommentLog() {
+    loglist.textContent = "";
+
+    var all = [];
+    Object.keys(NOTES).forEach(function (k) {
+      NOTES[k].forEach(function (r) { all.push(r); });
+    });
+    all.sort(function (a, b) {
+      return (b.created_at || "").localeCompare(a.created_at || "");
+    });
+
+    if (!all.length) {
+      loglist.appendChild(el("p", "reg-empty", sbOnline
+        ? "Nothing has been filed yet."
+        : "The log is unavailable in this preview."));
+      return;
+    }
+
+    loglist.appendChild(el("p", "log-count",
+      all.length === 1 ? "1 annotation on file"
+        : all.length + " annotations on file"));
+
+    all.forEach(function (r) {
+      var who = r.characters || r.profiles || {};
+      var row = el("div", "logrow");
+
+      var av = el("img", "log-ava");
+      av.src = who.avatar || NO_IMAGE;
+      av.alt = who.callsign || "Unknown";
+      av.loading = "lazy";
+      row.appendChild(av);
+
+      var bd = el("div", "log-body");
+
+      var head = el("div", "comment-who");
+      head.appendChild(el("span", null, who.callsign || "Unknown"));
+      if (who.title) head.appendChild(el("span", "comment-title", who.title));
+      head.appendChild(el("span", "notes-date", (r.created_at || "").slice(0, 10)));
+      bd.appendChild(head);
+
+      var key = noteKey(r.target_kind, r.target_id);
+      var jump = el("button", "log-where");
+      jump.type = "button";
+      jump.appendChild(el("span", "log-kind",
+        TARGET_KINDS[r.target_kind] || r.target_kind));
+      jump.appendChild(el("span", "log-name", r.target_id));
+      if (TARGETS[key]) {
+        jump.addEventListener("click", function () { focusTarget(key); });
+      } else {
+        jump.disabled = true;   // the file it was left on is no longer indexed
+      }
+      bd.appendChild(jump);
+
+      bd.appendChild(r.removed_at
+        ? el("p", "comment-text comment-gone", "Removed by Overseer.")
+        : el("p", "comment-text", r.body));
+
+      row.appendChild(bd);
+      loglist.appendChild(row);
+    });
+  }
+
   var NOTE_BASE = "id,body,created_at,target_kind,target_id,author";
 
   // Tried richest first. Asking for a column or a join that a migration has
@@ -5535,6 +5704,47 @@
     (rows || []).forEach(function (r) {
       var k = noteKey(r.target_kind, r.target_id);
       (NOTES[k] = NOTES[k] || []).push(r);
+    });
+    noteSig = notesSignature(rows);
+  }
+
+  // ---- keeping annotations current -----------------------------------------
+  // Polled rather than subscribed: a websocket would mean the Supabase client
+  // library, and this page has stayed one file with no dependencies. The probe
+  // asks only for ids and removal flags, so it stays small however long the
+  // log grows, and the expensive query with its embedded pictures only runs
+  // when something has actually changed.
+
+  var POLL_MS = 15000;
+  var noteSig = "";
+  var poller = null;
+
+  function notesSignature(rows) {
+    return (rows || []).map(function (r) {
+      return r.id + (r.removed_at ? "!" : "");
+    }).join(",");
+  }
+
+  async function pollNotes() {
+    if (!sbOnline || document.hidden) return;
+    try {
+      var probe = await api("/rest/v1/annotations?select=id"
+        + (canRemove ? ",removed_at" : "") + "&order=created_at.asc");
+      if (notesSignature(probe) === noteSig) return;
+      await loadNotes();
+      await refreshAll();
+    } catch (e) {
+      // transient - the next tick tries again
+    }
+  }
+
+  function startPolling() {
+    if (poller) return;
+    poller = setInterval(pollNotes, POLL_MS);
+    // Catch up the moment a reader comes back to the tab, rather than making
+    // them wait out the remainder of an interval that ran while hidden.
+    document.addEventListener("visibilitychange", function () {
+      if (!document.hidden) pollNotes();
     });
   }
 
@@ -5749,6 +5959,7 @@
       if (draft && fresh._ta) fresh._ta.value = draft;
     });
     renderRegistry();
+    renderCommentLog();
     renderAccount();
   }
 
@@ -6342,6 +6553,7 @@
       sbOnline = false;
     }
     await refreshAll();
+    if (sbOnline) startPolling();
   }
 
   var hideBtn = document.getElementById("hidectl");
