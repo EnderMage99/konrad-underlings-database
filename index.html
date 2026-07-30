@@ -1792,12 +1792,22 @@
   .acct-off { font-family: var(--mono); font-size: 10px; letter-spacing: .12em;
               text-transform: uppercase; color: var(--ink-faint); }
 
+  /* Hangs off the sticky header, so anything past the bottom of the window
+     cannot be reached by scrolling the page - the header does not move. The
+     panel scrolls itself instead, which is what keeps the add-a-character form
+     reachable once an account has a few of them. JS sets the exact height on
+     open; this is the fallback. */
   .acct-panel {
     position: absolute;
     right: 0;
     top: calc(100% + .5rem);
     z-index: 40;
     width: min(20rem, calc(100vw - 2rem));
+    max-height: calc(100vh - 9rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-dim) transparent;
     display: flex;
     flex-direction: column;
     gap: .55rem;
@@ -1806,6 +1816,15 @@
     border: 1px solid var(--accent-dim);
     box-shadow: 0 10px 30px rgba(0, 0, 0, .7), var(--glow);
   }
+
+  .acct-panel::-webkit-scrollbar { width: 8px; }
+  .acct-panel::-webkit-scrollbar-track { background: transparent; }
+  .acct-panel::-webkit-scrollbar-thumb { background: var(--accent-dim); }
+  .acct-panel::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+  /* Nothing inside may shrink below its content, or the roster would collapse
+     instead of the panel scrolling. */
+  .acct-panel > * { flex: 0 0 auto; }
 
   .acct-panel[hidden] { display: none; }
 
@@ -6146,6 +6165,17 @@
     renderAccount();
   }
 
+  // The CSS fallback assumes a header height. Measure the real one, so the
+  // panel ends just above the bottom of the window whatever the header is
+  // doing - collapsed, wrapped onto two rows, or on a phone.
+  function sizePanel() {
+    if (panelEl.hidden) return;
+    var below = accountEl.getBoundingClientRect
+      ? accountEl.getBoundingClientRect().bottom : 0;
+    var room = (window.innerHeight || 800) - below - 20;
+    panelEl.style.maxHeight = Math.max(240, room) + "px";
+  }
+
   // Callsign, title and picture - the same three fields whether you are
   // setting up your first character, adding a fifth, or editing one. Pass a
   // character to prefill; leaving the file empty then keeps its picture.
@@ -6645,6 +6675,7 @@
     accountEl.appendChild(b);
     buildPanel();
     accountEl.appendChild(panelEl);
+    sizePanel();
   }
 
   async function initAccounts() {
@@ -6668,6 +6699,7 @@
     }
     await refreshAll();
     if (sbOnline) startPolling();
+    window.addEventListener("resize", sizePanel);
   }
 
   var hideBtn = document.getElementById("hidectl");
