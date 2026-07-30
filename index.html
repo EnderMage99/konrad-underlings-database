@@ -2091,6 +2091,67 @@
   .comment-shot img { display: block; width: 100%; height: auto; }
   .comment-shot:hover { border-color: var(--accent); }
 
+  /* ---------- paging ---------- */
+
+  .pager {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .4rem .55rem;
+    margin: .5rem 0;
+    padding: .45rem .55rem;
+    background: var(--ground-2);
+    border: 1px solid var(--rule);
+  }
+
+  .pagebtn {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    padding: .28rem .5rem;
+    color: var(--ink-soft);
+    background: var(--surface);
+    border: 1px solid var(--accent-dim);
+    cursor: pointer;
+  }
+
+  .pagebtn:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); }
+  .pagebtn:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
+  .pagebtn:disabled { opacity: .4; cursor: default; }
+
+  .pagenow {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+
+  /* Pushed to its own end of the bar, and onto its own line when cramped. */
+  .pagejump {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    margin-left: auto;
+    flex-wrap: wrap;
+  }
+
+  .pagenum, .pagedate {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: .25rem .35rem;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--rule);
+  }
+
+  .pagenum { width: 3.6rem; }
+  .pagenum:focus-visible, .pagedate:focus-visible {
+    outline: 1px solid var(--accent);
+    outline-offset: 1px;
+  }
+
   /* ---------- comment log ---------- */
 
   .log-count {
@@ -5912,7 +5973,13 @@
       all.length === 1 ? "1 annotation on file"
         : all.length + " annotations on file"));
 
-    all.forEach(function (r) {
+    // Newest first, so page one is the page worth landing on.
+    var page = currentPage("log", all.length, false);
+    if (all.length > PAGE_SIZE) {
+      loglist.appendChild(pagerBar("log", all, page, false, renderCommentLog));
+    }
+
+    pageSlice(all, page).forEach(function (r) {
       var who = r.characters || r.profiles || {};
       var row = el("div", "logrow");
 
@@ -5962,6 +6029,10 @@
       row.appendChild(bd);
       loglist.appendChild(row);
     });
+
+    if (all.length > PAGE_SIZE) {
+      loglist.appendChild(pagerBar("log", all, page, false, renderCommentLog));
+    }
   }
 
   var NOTE_BASE = "id,body,created_at,target_kind,target_id,author";
@@ -6371,6 +6442,103 @@
     renderAccount();
   }
 
+  // ---- paging --------------------------------------------------------------
+  // Page state lives out here, keyed by list, because the blocks themselves are
+  // rebuilt constantly - by a poll, a sign-in, a character switch - and a
+  // reader three pages back should stay three pages back.
+
+  var PAGE_SIZE = 10;
+  var PAGES = {};
+
+  function pageCount(total) {
+    return Math.max(1, Math.ceil(total / PAGE_SIZE));
+  }
+
+  // preferLast suits a list read oldest first, where the interesting end is the
+  // bottom. Clamped every time, so a page that no longer exists resolves to one
+  // that does rather than showing nothing.
+  function currentPage(key, total, preferLast) {
+    var max = pageCount(total);
+    var p = PAGES[key];
+    if (p == null) p = preferLast ? max : 1;
+    return Math.min(max, Math.max(1, p));
+  }
+
+  function pageSlice(rows, page) {
+    return rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  }
+
+  // rows arrive in display order; ascending says which way that runs.
+  function pageForDate(rows, day, ascending) {
+    for (var i = 0; i < rows.length; i++) {
+      var d = (rows[i].created_at || "").slice(0, 10);
+      if (ascending ? d >= day : d <= day) return Math.floor(i / PAGE_SIZE) + 1;
+    }
+    return pageCount(rows.length);
+  }
+
+  function pagerBar(key, rows, page, ascending, redraw) {
+    var max = pageCount(rows.length);
+    var bar = el("div", "pager");
+
+    function go(n) {
+      PAGES[key] = Math.min(max, Math.max(1, n));
+      redraw();
+    }
+
+    var prev = el("button", "pagebtn", "Previous");
+    prev.type = "button";
+    prev.disabled = page <= 1;
+    prev.addEventListener("click", function () { go(page - 1); });
+    bar.appendChild(prev);
+
+    bar.appendChild(el("span", "pagenow", "Page " + page + " of " + max));
+
+    var next = el("button", "pagebtn", "Next");
+    next.type = "button";
+    next.disabled = page >= max;
+    next.addEventListener("click", function () { go(page + 1); });
+    bar.appendChild(next);
+
+    var jump = el("div", "pagejump");
+
+    var num = el("input", "pagenum");
+    num.type = "number";
+    num.min = "1";
+    num.max = String(max);
+    num.value = String(page);
+    num.setAttribute("aria-label", "Page number");
+    var numGo = el("button", "pagebtn", "Go");
+    numGo.type = "button";
+    numGo.addEventListener("click", function () {
+      var n = parseInt(num.value, 10);
+      if (n >= 1) go(n);
+    });
+    num.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); numGo.click(); }
+    });
+    jump.appendChild(num);
+    jump.appendChild(numGo);
+
+    var day = el("input", "pagedate");
+    day.type = "date";
+    day.setAttribute("aria-label", "Jump to a date");
+    var first = (rows[0] || {}).created_at || "";
+    var last = (rows[rows.length - 1] || {}).created_at || "";
+    day.min = (ascending ? first : last).slice(0, 10);
+    day.max = (ascending ? last : first).slice(0, 10);
+    var dayGo = el("button", "pagebtn", "Go to date");
+    dayGo.type = "button";
+    dayGo.addEventListener("click", function () {
+      if (day.value) go(pageForDate(rows, day.value, ascending));
+    });
+    jump.appendChild(day);
+    jump.appendChild(dayGo);
+
+    bar.appendChild(jump);
+    return bar;
+  }
+
   // ---- annotation block ---------------------------------------------------
 
   function noteBlock(kind, id) {
@@ -6384,10 +6552,19 @@
       return box;
     }
 
-    var list = NOTES[noteKey(kind, id)] || [];
+    var key = noteKey(kind, id);
+    var list = NOTES[key] || [];
     if (!list.length) box.appendChild(el("p", "notes-msg", "Nothing filed yet."));
 
-    list.forEach(function (r) {
+    // Oldest first, so the page worth landing on is the last one.
+    var page = currentPage(key, list.length, true);
+    if (list.length > PAGE_SIZE) {
+      box.appendChild(el("p", "notes-msg",
+        list.length + " annotations on this file."));
+      box.appendChild(pagerBar(key, list, page, true, refreshAll));
+    }
+
+    pageSlice(list, page).forEach(function (r) {
       var who = r.characters || r.profiles || {};
       var row = el("div", "comment");
       var av = el("img", "comment-ava");
@@ -6444,6 +6621,10 @@
       row.appendChild(bd);
       box.appendChild(row);
     });
+
+    if (list.length > PAGE_SIZE) {
+      box.appendChild(pagerBar(key, list, page, true, refreshAll));
+    }
 
     var speaking = charsOnline ? activeChar() : me;
     if (!me || !speaking) {
@@ -6513,6 +6694,7 @@
         await postNote(kind, id, v, path);
         ta.value = "";
         clearPick();
+        PAGES[key] = null;      // show the page the new annotation is on
         await loadNotes();
         await refreshAll();
       } catch (e) {
