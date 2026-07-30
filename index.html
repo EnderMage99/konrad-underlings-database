@@ -2143,6 +2143,8 @@
 
   .crop-prevmsg { font-size: 10px; color: var(--ink-faint); }
 
+  .oauth-btn { text-align: center; }
+
   /* Discord blurple, the one place the HUD palette gives way to a brand. */
   .discord-btn {
     border-color: #5865F2;
@@ -5222,7 +5224,21 @@
 
   // Which sign-in routes the project actually offers. Read from the server so
   // a provider enabled in the dashboard lights up here with no code change.
-  var AUTH = { email: true, discord: false };
+  var AUTH = { email: true, autoconfirm: false, providers: [] };
+
+  // Display names for the sign-in buttons. Any provider switched on in the
+  // dashboard appears by itself; one not listed here falls back to its id.
+  var PROVIDER_NAMES = {
+    discord: "Discord", google: "Google", twitch: "Twitch", github: "GitHub",
+    gitlab: "GitLab", bitbucket: "Bitbucket", apple: "Apple", azure: "Microsoft",
+    facebook: "Facebook", figma: "Figma", fly: "Fly", kakao: "Kakao",
+    keycloak: "Keycloak", linkedin: "LinkedIn", linkedin_oidc: "LinkedIn",
+    notion: "Notion", slack: "Slack", slack_oidc: "Slack", snapchat: "Snapchat",
+    spotify: "Spotify", twitter: "X", workos: "WorkOS", zoom: "Zoom"
+  };
+
+  // Anything not an OAuth provider, so it is never rendered as one.
+  var NOT_OAUTH = { email: 1, phone: 1, anonymous_users: 1 };
   var authErr = "";     // carried over from a failed OAuth round trip
   var oauthHint = null; // display name Discord handed back, to prefill callsign
 
@@ -5337,18 +5353,19 @@
     try { history.replaceState(null, "", pageUrl()); } catch (e) {}
   }
 
-  async function startDiscord() {
+  async function startOAuth(provider) {
     var verifier = b64url(crypto.getRandomValues(new Uint8Array(48)));
     try { localStorage.setItem(SB_VERIFIER, verifier); } catch (e) {}
     var digest = await crypto.subtle.digest("SHA-256",
       new TextEncoder().encode(verifier));
-    location.href = SB_URL + "/auth/v1/authorize?provider=discord"
+    location.href = SB_URL + "/auth/v1/authorize?provider="
+      + encodeURIComponent(provider)
       + "&redirect_to=" + encodeURIComponent(pageUrl())
       + "&code_challenge=" + b64url(new Uint8Array(digest))
       + "&code_challenge_method=s256";
   }
 
-  // Discord is a way in and nothing more: we take the display name as a
+  // A provider is a way in and nothing more: we take the display name as a
   // starting point for the callsign field and ignore the rest of the profile.
   function hintFrom(user) {
     var m = (user && user.user_metadata) || {};
@@ -5409,8 +5426,17 @@
 
   async function loadAuthSettings() {
     var s = await api("/auth/v1/settings");
-    AUTH.email = !!(s && s.external && s.external.email);
-    AUTH.discord = !!(s && s.external && s.external.discord);
+    var ext = (s && s.external) || {};
+    AUTH.email = !!ext.email;
+    AUTH.autoconfirm = !!(s && s.mailer_autoconfirm);
+    AUTH.providers = Object.keys(ext).filter(function (k) {
+      return ext[k] === true && !NOT_OAUTH[k];
+    }).sort(function (a, b) {
+      // Discord first, it is the one the table already uses
+      if (a === "discord") return -1;
+      if (b === "discord") return 1;
+      return a.localeCompare(b);
+    });
   }
 
   async function signUp(email, password) {
@@ -6429,21 +6455,25 @@
       authErr = "";
     }
 
-    if (AUTH.discord) {
-      var dbtn = el("button", "btn discord-btn", "Continue with Discord");
-      dbtn.type = "button";
-      dbtn.addEventListener("click", function () {
-        dbtn.disabled = true;
-        startDiscord();
+    AUTH.providers.forEach(function (p) {
+      var name = PROVIDER_NAMES[p] || p;
+      var b = el("button", "btn oauth-btn" + (p === "discord" ? " discord-btn" : ""),
+                 "Continue with " + name);
+      b.type = "button";
+      b.dataset.provider = p;
+      b.addEventListener("click", function () {
+        b.disabled = true;
+        startOAuth(p);
       });
-      panelEl.appendChild(dbtn);
-      if (AUTH.email) {
-        panelEl.appendChild(el("p", "acct-fine", "or use an email address"));
-      }
+      panelEl.appendChild(b);
+    });
+
+    if (AUTH.providers.length && AUTH.email) {
+      panelEl.appendChild(el("p", "acct-fine", "or use an email address"));
     }
 
     if (!AUTH.email) {
-      if (!AUTH.discord) {
+      if (!AUTH.providers.length) {
         panelEl.appendChild(el("p", "acct-msg",
           "No sign-in method is enabled. Ask the archivist."));
       }
