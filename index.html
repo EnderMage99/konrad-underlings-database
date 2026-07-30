@@ -2019,6 +2019,78 @@
     color: var(--ink-faint);
   }
 
+  /* ---------- uploaded images ---------- */
+
+  .shotgrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+    gap: .6rem;
+  }
+
+  .shot-added { position: relative; }
+
+  .shot-added a { display: block; }
+
+  .shot-del {
+    position: absolute;
+    top: .3rem;
+    right: .3rem;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    padding: .15rem .4rem;
+    color: var(--ink-soft);
+    background: rgba(2, 8, 14, .82);
+    border: 1px solid var(--rule);
+    cursor: pointer;
+  }
+
+  .shot-del:hover:not(:disabled) { color: var(--alert); border-color: var(--alert); }
+
+  .shot-add { margin-top: .6rem; }
+
+  /* A file input styled as a quiet secondary action. */
+  .notes-pick {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    cursor: pointer;
+  }
+
+  .notes-pick:hover { color: var(--accent); }
+  .notes-pick input { max-width: 11rem; font-size: 10px; color: var(--ink-soft); }
+
+  .notes-chosen {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin: .35rem 0 0;
+    font-size: 10px;
+    color: var(--ink-soft);
+    overflow-wrap: anywhere;
+  }
+
+  .notes-chosen[hidden] { display: none; }
+
+  /* Attached to a comment: bounded so a tall picture cannot push the thread
+     apart, and clickable through to the full upload. */
+  .comment-shot {
+    display: block;
+    align-self: flex-start;
+    max-width: min(22rem, 100%);
+    margin-top: .15rem;
+    border: 1px solid var(--rule);
+  }
+
+  .comment-shot img { display: block; width: 100%; height: auto; }
+  .comment-shot:hover { border-color: var(--accent); }
+
   /* ---------- comment log ---------- */
 
   .log-count {
@@ -4148,6 +4220,140 @@
     return wrap;
   }
 
+  // Visual records and card thumbnails both depend on who is signed in and on
+  // what has been uploaded, but a full re-render would collapse every open
+  // dossier. They are tracked so they can be swapped in place, exactly as the
+  // annotation blocks are.
+  var VIS_MOUNTS = [];
+  var THUMBS = [];
+
+  function contactShots(d) {
+    return IMAGES[noteKey("contact", d.name)] || [];
+  }
+
+  function thumbSrc(d) {
+    var ups = contactShots(d);
+    return VISUALS[d.name] || (ups.length ? publicUrl(ups[0].path) : null);
+  }
+
+  function refreshVisuals() {
+    var groups = VIS_MOUNTS;
+    VIS_MOUNTS = [];
+    groups.forEach(function (m) {
+      if (!m.el.isConnected) return;
+      m.el.parentNode.replaceChild(visualGroup(m.d, contactShots(m.d)), m.el);
+    });
+
+    var thumbs = THUMBS;
+    THUMBS = [];
+    thumbs.forEach(function (t) {
+      if (!t.img.isConnected) return;
+      THUMBS.push(t);
+      var src = thumbSrc(t.d);
+      t.img.src = src || NO_IMAGE;
+      t.img.alt = src ? ("Visual contact: " + t.d.short) : "No image data";
+      t.wrap.className = "card-shot" + (src ? "" : " ph");
+    });
+  }
+
+  // The visual record for one contact: the transcribed still first where there
+  // is one, then whatever readers have added, then a way to add more.
+  function visualGroup(d, uploads) {
+    var vg = el("div", "group shotgroup");
+    VIS_MOUNTS.push({ d: d, el: vg });
+    vg.appendChild(el("h4", null, "Visual contact"));
+
+    var builtIn = VISUALS[d.name];
+    if (!builtIn && !uploads.length) {
+      vg.appendChild(el("div", "shot-empty", "No visual contact on file."));
+    } else {
+      var grid = el("div", "shotgrid");
+
+      if (builtIn) {
+        var fig = el("div", "shot");
+        var fimg = el("img");
+        fimg.src = builtIn;
+        fimg.alt = "Visual contact: " + d.short;
+        fimg.loading = "lazy";
+        fig.appendChild(d.status === "kia" ? withKia(fimg) : fimg);
+        grid.appendChild(fig);
+      }
+
+      uploads.forEach(function (row) {
+        var cell = el("div", "shot shot-added");
+        var a = el("a");
+        a.href = publicUrl(row.path);
+        a.target = "_blank";
+        a.rel = "noopener";
+        var im = el("img");
+        im.src = publicUrl(row.path);
+        im.alt = "Added visual contact: " + d.short;
+        im.loading = "lazy";
+        a.appendChild(im);
+        cell.appendChild(a);
+
+        if (me && (me.id === row.author || me.is_moderator)) {
+          var drop = el("button", "shot-del", "Remove");
+          drop.type = "button";
+          drop.addEventListener("click", async function () {
+            if (drop.textContent !== "Sure?") { drop.textContent = "Sure?"; return; }
+            drop.disabled = true;
+            try {
+              await dropImage(row);
+              await loadImages();
+              refreshVisuals();
+            } catch (e) {
+              drop.disabled = false;
+              drop.textContent = "Failed";
+            }
+          });
+          cell.appendChild(drop);
+        }
+        grid.appendChild(cell);
+      });
+      vg.appendChild(grid);
+    }
+
+    if (imagesOnline && me && (!charsOnline || activeChar())) {
+      vg.appendChild(addShotControl(d));
+    }
+    return vg;
+  }
+
+  function addShotControl(d) {
+    var wrap = el("div", "shot-add");
+    var pick = el("label", "notes-pick");
+    pick.appendChild(el("span", null, "Add to visual record"));
+    var fileIn = el("input");
+    fileIn.type = "file";
+    fileIn.accept = "image/*";
+    pick.appendChild(fileIn);
+    var note = el("p", "notes-err");
+    wrap.appendChild(pick);
+    wrap.appendChild(note);
+
+    fileIn.addEventListener("change", async function () {
+      var file = (fileIn.files && fileIn.files[0]) || null;
+      if (!file) return;
+      note.className = "notes-msg";
+      note.textContent = "Shrinking...";
+      fileIn.disabled = true;
+      try {
+        var blob = await fitImage(file, GALLERY_EDGE, GALLERY_BYTES);
+        note.textContent = "Uploading...";
+        var path = await uploadFile(blob);
+        await addImage("contact", d.name, path);
+        await loadImages();
+        refreshVisuals();  // the thumbnail may now have an image to show
+      } catch (e) {
+        note.className = "notes-err";
+        note.textContent = e.message;
+        fileIn.disabled = false;
+      }
+    });
+    return wrap;
+  }
+
   function renderCard(d) {
     var card = el("article", "card" + (d.status === "kia" ? " kia" : ""));
     card.style.setProperty("--faccolor",
@@ -4155,13 +4361,18 @@
 
     var head = el("div", "card-head");
 
-    var shot = VISUALS[d.name];
+    // The thumbnail is always the first image on file: the transcribed still
+    // where there is one, otherwise the earliest reader upload. It does not
+    // change as more are added.
+    var uploads = contactShots(d);
+    var shot = thumbSrc(d);
     var thumb = el("div", "card-shot" + (shot ? "" : " ph"));
     var timg = el("img");
     timg.src = shot || NO_IMAGE;
     timg.alt = shot ? ("Visual contact: " + d.short) : "No image data";
     timg.loading = "lazy";
     thumb.appendChild(d.status === "kia" ? withKia(timg) : timg);
+    THUMBS.push({ d: d, wrap: thumb, img: timg });
     head.appendChild(thumb);
 
     var title = el("div", "card-title");
@@ -4233,20 +4444,7 @@
 
     var body = el("div", "feat-body");
 
-    var vg = el("div", "group shotgroup");
-    vg.appendChild(el("h4", null, "Visual contact"));
-    if (shot) {
-      var fig = el("div", "shot");
-      var fimg = el("img");
-      fimg.src = shot;
-      fimg.alt = "Visual contact: " + d.short;
-      fimg.loading = "lazy";
-      fig.appendChild(shot && d.status === "kia" ? withKia(fimg) : fimg);
-      vg.appendChild(fig);
-    } else {
-      vg.appendChild(el("div", "shot-empty", "No visual contact on file."));
-    }
-    body.appendChild(vg);
+    body.appendChild(visualGroup(d, uploads));
 
     [["Weapons", d.weapons], ["Systems", d.systems],
      ["Traits", d.traits], ["Reactions", d.reactions]].forEach(function (pair) {
@@ -5269,6 +5467,7 @@
   var sbOnline = true;    // false when the host is unreachable (artifact CSP)
   var charsOnline = true; // false until the characters table exists
   var canRemove = true;   // false until the removal columns exist
+  var canAttach = true;   // false until annotations.image exists
   var panelMode = null;
   var editingId = null;   // character currently open for editing, if any
 
@@ -5747,6 +5946,18 @@
       bd.appendChild(r.removed_at
         ? el("p", "comment-text comment-gone", "Removed by Overseer.")
         : el("p", "comment-text", r.body));
+      if (r.image && !r.removed_at) {
+        var fig = el("a", "comment-shot");
+        fig.href = publicUrl(r.image);
+        fig.target = "_blank";
+        fig.rel = "noopener";
+        var si = el("img");
+        si.src = publicUrl(r.image);
+        si.alt = "Image attached by " + (who.callsign || "unknown");
+        si.loading = "lazy";
+        fig.appendChild(si);
+        bd.appendChild(fig);
+      }
 
       row.appendChild(bd);
       loglist.appendChild(row);
@@ -5759,6 +5970,7 @@
   // not added yet is a 400, so each step down drops one feature rather than
   // leaving the whole panel dark.
   var NOTE_SELECTS = [
+    NOTE_BASE + ",removed_at,image,speaker,characters(callsign,title,avatar)",
     NOTE_BASE + ",removed_at,speaker,characters(callsign,title,avatar)",
     NOTE_BASE + ",speaker,characters(callsign,title,avatar)",
     NOTE_BASE + ",profiles(callsign,avatar)"
@@ -5775,8 +5987,9 @@
       } catch (e) { failure = e; }
     }
     if (used < 0) throw failure;   // the host itself is unreachable
-    charsOnline = used < 2;
-    canRemove = used < 1;
+    canAttach = used < 1;
+    canRemove = used < 2;
+    charsOnline = used < 3;
 
     NOTES = {};
     (rows || []).forEach(function (r) {
@@ -5826,7 +6039,7 @@
     });
   }
 
-  async function postNote(kind, id, body) {
+  async function postNote(kind, id, body, image) {
     var t = await token();
     if (!t) throw new Error("Your session has expired. Sign in again.");
     var row = { target_kind: kind, target_id: id,
@@ -5836,6 +6049,7 @@
       if (!who) throw new Error("Add a character before filing an annotation.");
       row.speaker = who.id;
     }
+    if (image) row.image = image;
     await api("/rest/v1/annotations", { method: "POST", token: t, body: row });
   }
 
@@ -5852,6 +6066,121 @@
     await api("/rest/v1/annotations?id=eq." + id, { method: "PATCH", token: t,
       body: { body: "", removed_at: new Date().toISOString(),
               removed_by: session.user_id } });
+  }
+
+  // ---- uploaded pictures ---------------------------------------------------
+  // Held in Supabase Storage rather than as data URIs on the row. Avatars are
+  // tiny and never change, so inlining them costs nothing; photographs would
+  // mean re-downloading every picture ever posted on each refresh of the
+  // annotation list. Here the row carries a path and the browser caches the
+  // file.
+
+  var BUCKET = "archive";
+  var COMMENT_EDGE = 640;     // long edge, in pixels
+  var COMMENT_BYTES = 110000; // and a hard ceiling on the encoded result
+  var GALLERY_EDGE = 1000;
+  var GALLERY_BYTES = 220000;
+  var MAX_SOURCE = 25 * 1024 * 1024;  // refuse before decoding this much
+
+  function publicUrl(path) {
+    return SB_URL + "/storage/v1/object/public/" + BUCKET + "/" + path;
+  }
+
+  function rid() {
+    if (crypto.randomUUID) return crypto.randomUUID();
+    return b64url(crypto.getRandomValues(new Uint8Array(16))).toLowerCase();
+  }
+
+  // Scaled to fit inside a square of maxEdge, keeping the aspect ratio.
+  function drawToBlob(img, maxEdge, quality) {
+    var w = img.width, h = img.height;
+    var k = Math.min(1, maxEdge / Math.max(w, h));
+    var c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(w * k));
+    c.height = Math.max(1, Math.round(h * k));
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    return new Promise(function (resolve, reject) {
+      c.toBlob(function (b) {
+        if (b) resolve(b); else reject(new Error("Could not encode that image."));
+      }, "image/webp", quality);
+    });
+  }
+
+  // Steps quality down first, then dimensions, until the encoded file fits.
+  // A photograph straight off a phone is several megabytes; a comment wants
+  // tens of kilobytes, and the difference is not something to leave to chance.
+  async function fitImage(file, maxEdge, maxBytes) {
+    if (file.size > MAX_SOURCE) throw new Error("That image is too large to read.");
+    var img = await readAsImage(file);
+    var quality = 0.82, edge = maxEdge, blob = null;
+    for (var i = 0; i < 7; i++) {
+      blob = await drawToBlob(img, edge, quality);
+      if (blob.size <= maxBytes) return blob;
+      if (quality > 0.55) quality -= 0.11;
+      else edge = Math.round(edge * 0.8);
+    }
+    return blob;   // best effort; the bucket also caps size server-side
+  }
+
+  async function uploadFile(blob) {
+    var t = await token();
+    if (!t) throw new Error("Your session has expired. Sign in again.");
+    var path = session.user_id + "/" + rid() + ".webp";
+    var res = await fetch(SB_URL + "/storage/v1/object/" + BUCKET + "/" + path, {
+      method: "POST",
+      headers: { apikey: SB_KEY, Authorization: "Bearer " + t,
+                 "Content-Type": "image/webp", "x-upsert": "false" },
+      body: blob
+    });
+    if (!res.ok) {
+      var txt = "";
+      try { txt = await res.text(); } catch (e) {}
+      throw new Error(/Bucket not found/i.test(txt)
+        ? "Image uploads are not set up on this archive yet."
+        : "That image could not be uploaded.");
+    }
+    return path;
+  }
+
+  // ---- dossier galleries ---------------------------------------------------
+
+  var IMAGES = {};            // "kind::id" -> rows, oldest first
+  var imagesOnline = true;    // false until the images table exists
+
+  async function loadImages() {
+    try {
+      var rows = await api("/rest/v1/images?select=id,target_kind,target_id,path,"
+        + "author,created_at&order=created_at.asc");
+      IMAGES = {};
+      (rows || []).forEach(function (r) {
+        var k = noteKey(r.target_kind, r.target_id);
+        (IMAGES[k] = IMAGES[k] || []).push(r);
+      });
+      imagesOnline = true;
+    } catch (e) {
+      IMAGES = {};
+      imagesOnline = false;
+    }
+  }
+
+  async function addImage(kind, id, path) {
+    var t = await token();
+    await api("/rest/v1/images", { method: "POST", token: t,
+      body: { target_kind: kind, target_id: id, path: path,
+              author: session.user_id } });
+  }
+
+  async function dropImage(row) {
+    var t = await token();
+    await api("/rest/v1/images?id=eq." + row.id, { method: "DELETE", token: t });
+    // Best effort: the row is what the page reads, so a stranded object in the
+    // bucket is untidy rather than visible.
+    try {
+      await fetch(SB_URL + "/storage/v1/object/" + BUCKET + "/" + row.path, {
+        method: "DELETE",
+        headers: { apikey: SB_KEY, Authorization: "Bearer " + t }
+      });
+    } catch (e) {}
   }
 
   // ---- avatar cropping -----------------------------------------------------
@@ -6036,6 +6365,7 @@
       m.el.parentNode.replaceChild(fresh, m.el);
       if (draft && fresh._ta) fresh._ta.value = draft;
     });
+    refreshVisuals();
     renderRegistry();
     renderCommentLog();
     renderAccount();
@@ -6099,6 +6429,18 @@
       bd.appendChild(r.removed_at
         ? el("p", "comment-text comment-gone", "Removed by Overseer.")
         : el("p", "comment-text", r.body));
+      if (r.image && !r.removed_at) {
+        var fig = el("a", "comment-shot");
+        fig.href = publicUrl(r.image);
+        fig.target = "_blank";
+        fig.rel = "noopener";
+        var si = el("img");
+        si.src = publicUrl(r.image);
+        si.alt = "Image attached by " + (who.callsign || "unknown");
+        si.loading = "lazy";
+        fig.appendChild(si);
+        bd.appendChild(fig);
+      }
       row.appendChild(bd);
       box.appendChild(row);
     });
@@ -6120,24 +6462,73 @@
     var err = el("p", "notes-err");
     var btn = el("button", "btn", "File");
     btn.type = "button";
+
+    // One picture per annotation, shrunk in the browser before it goes
+    // anywhere. Held as a File until the annotation is filed, so nothing is
+    // uploaded for a comment the reader abandons.
+    var pending = null;
+    var pick = el("label", "notes-pick");
+    pick.appendChild(el("span", null, "Add image"));
+    var fileIn = el("input");
+    fileIn.type = "file";
+    fileIn.accept = "image/*";
+    pick.appendChild(fileIn);
+
+    var chosen = el("p", "notes-chosen");
+    chosen.hidden = true;
+
+    function clearPick() {
+      pending = null;
+      fileIn.value = "";
+      chosen.hidden = true;
+      chosen.textContent = "";
+    }
+
+    fileIn.addEventListener("change", function () {
+      err.textContent = "";
+      pending = (fileIn.files && fileIn.files[0]) || null;
+      chosen.hidden = !pending;
+      if (!pending) return;
+      chosen.textContent = "";
+      chosen.appendChild(el("span", null, pending.name || "image"));
+      var drop = el("button", "notes-del", "Remove");
+      drop.type = "button";
+      drop.addEventListener("click", clearPick);
+      chosen.appendChild(drop);
+    });
+
     btn.addEventListener("click", async function () {
       var v = (ta.value || "").trim();
       err.textContent = "";
-      if (!v) return;
+      if (!v && !pending) return;
       btn.disabled = true;
       try {
-        await postNote(kind, id, v);
+        var path = null;
+        if (pending) {
+          btn.textContent = "Shrinking";
+          var blob = await fitImage(pending, COMMENT_EDGE, COMMENT_BYTES);
+          btn.textContent = "Uploading";
+          path = await uploadFile(blob);
+        }
+        await postNote(kind, id, v, path);
         ta.value = "";
+        clearPick();
         await loadNotes();
         await refreshAll();
       } catch (e) {
         err.textContent = e.message;
         btn.disabled = false;
+        btn.textContent = "File";
       }
     });
+
     form.appendChild(ta);
     form.appendChild(btn);
     box.appendChild(form);
+    if (canAttach) {
+      box.appendChild(pick);
+      box.appendChild(chosen);
+    }
     box.appendChild(err);
     return box;
   }
@@ -6686,6 +7077,7 @@
       // us the rest of the account system - fall back to email only.
       try { await loadAuthSettings(); } catch (e) {}
       await loadNotes();
+      await loadImages();
       await loadRegistry();
       if (session) {
         await loadMe();
