@@ -1730,6 +1730,11 @@
     flex-wrap: wrap;
   }
 
+  .comment-gone {
+    font-style: italic;
+    color: var(--ink-faint);
+  }
+
   .comment-title {
     font-weight: 400;
     font-size: 10px;
@@ -5135,6 +5140,7 @@
   var NOTES = {};         // "kind::id" -> annotations
   var sbOnline = true;    // false when the host is unreachable (artifact CSP)
   var charsOnline = true; // false until the characters table exists
+  var canRemove = true;   // false until the removal columns exist
   var panelMode = null;
   var editingId = null;   // character currently open for editing, if any
 
@@ -5471,19 +5477,31 @@
     });
   }
 
-  var NOTE_COLS = "id,body,created_at,target_kind,target_id,author";
+  var NOTE_BASE = "id,body,created_at,target_kind,target_id,author";
+
+  // Tried richest first. Asking for a column or a join that a migration has
+  // not added yet is a 400, so each step down drops one feature rather than
+  // leaving the whole panel dark.
+  var NOTE_SELECTS = [
+    NOTE_BASE + ",removed_at,speaker,characters(callsign,title,avatar)",
+    NOTE_BASE + ",speaker,characters(callsign,title,avatar)",
+    NOTE_BASE + ",profiles(callsign,avatar)"
+  ];
 
   async function loadNotes() {
-    var rows;
-    try {
-      rows = await api("/rest/v1/annotations?select=" + NOTE_COLS
-        + ",speaker,characters(callsign,title,avatar)&order=created_at.asc");
-    } catch (e) {
-      // No characters table yet - fall back to account-level attribution.
-      charsOnline = false;
-      rows = await api("/rest/v1/annotations?select=" + NOTE_COLS
-        + ",profiles(callsign,avatar)&order=created_at.asc");
+    var rows = null, used = -1, failure = null;
+    for (var i = 0; i < NOTE_SELECTS.length; i++) {
+      try {
+        rows = await api("/rest/v1/annotations?select=" + NOTE_SELECTS[i]
+                         + "&order=created_at.asc");
+        used = i;
+        break;
+      } catch (e) { failure = e; }
     }
+    if (used < 0) throw failure;   // the host itself is unreachable
+    charsOnline = used < 2;
+    canRemove = used < 1;
+
     NOTES = {};
     (rows || []).forEach(function (r) {
       var k = noteKey(r.target_kind, r.target_id);
@@ -5507,6 +5525,16 @@
   async function deleteNote(id) {
     var t = await token();
     await api("/rest/v1/annotations?id=eq." + id, { method: "DELETE", token: t });
+  }
+
+  // An archivist removing someone else's annotation leaves the row and its
+  // attribution, but blanks the text. The table is world readable, so hiding
+  // the words in the page would leave them plainly readable over the API.
+  async function removeNote(id) {
+    var t = await token();
+    await api("/rest/v1/annotations?id=eq." + id, { method: "PATCH", token: t,
+      body: { body: "", removed_at: new Date().toISOString(),
+              removed_by: session.user_id } });
   }
 
   // ---- avatar cropping -----------------------------------------------------
@@ -5725,13 +5753,21 @@
       head.appendChild(el("span", null, who.callsign || "Unknown"));
       if (who.title) head.appendChild(el("span", "comment-title", who.title));
       head.appendChild(el("span", "notes-date", (r.created_at || "").slice(0, 10)));
-      if (me && (me.id === r.author || me.is_moderator)) {
-        var del = el("button", "notes-del", "Delete");
+      var mine = me && me.id === r.author;
+      var archivist = me && me.is_moderator;
+
+      // Your own goes without trace; an archivist's removal leaves a marker,
+      // so a gap in a thread is never silent.
+      if (!r.removed_at && (mine || archivist)) {
+        var soft = !mine && canRemove;
+        var del = el("button", "notes-del", soft ? "Remove" : "Delete");
         del.type = "button";
         del.addEventListener("click", async function () {
+          if (del.textContent !== "Sure?") { del.textContent = "Sure?"; return; }
           del.disabled = true;
           try {
-            await deleteNote(r.id);
+            if (soft) await removeNote(r.id);
+            else await deleteNote(r.id);
             await loadNotes();
             await refreshAll();
           } catch (e) {
@@ -5742,7 +5778,9 @@
         head.appendChild(del);
       }
       bd.appendChild(head);
-      bd.appendChild(el("p", "comment-text", r.body));
+      bd.appendChild(r.removed_at
+        ? el("p", "comment-text comment-gone", "Removed by Overseer.")
+        : el("p", "comment-text", r.body));
       row.appendChild(bd);
       box.appendChild(row);
     });
@@ -5815,7 +5853,9 @@
   function charFields(parent, init) {
     init = init || {};
     var cs = field("Callsign", "text", "2 to 24 characters");
-    var tl = field("Title", "text", "Rank, role or house");
+    var tl = field("Title", "text", "Up to 24 characters");
+    cs.input.maxLength = 24;
+    tl.input.maxLength = 24;
     cs.input.value = init.callsign || "";
     tl.input.value = init.title || "";
 
@@ -5883,7 +5923,13 @@
           msg.textContent = "Callsign must be 2 to 24 characters.";
           return null;
         }
-        var out = { callsign: name, title: (tl.input.value || "").trim() };
+        // maxLength stops typing past 24, but not a paste on every browser
+        var title = (tl.input.value || "").trim();
+        if (title.length > 24) {
+          msg.textContent = "Title must be 24 characters or fewer.";
+          return null;
+        }
+        var out = { callsign: name, title: title };
         if (picked) out.avatar = picked;
         return out;
       },
