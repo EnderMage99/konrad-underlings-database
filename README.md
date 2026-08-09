@@ -46,6 +46,10 @@ Replace `index.html` and commit. Everything lives in that one file:
   loadouts (Witch, Hornet) share one string rather than duplicating it.
 - Visual contact stills are `VISUALS` at the foot of the script, one keyed
   line each, as data URIs.
+- Unit icons are `ICONS`, keyed the same way and sitting beside them. A
+  contact with one uses it for its card thumbnail and keeps its still for
+  the visual contact panel — icons are small square crops, stills are full
+  captures, and the thumbnail frame wants the former.
 
 ## Accounts and annotations
 
