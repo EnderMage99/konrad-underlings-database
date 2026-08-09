@@ -8,11 +8,11 @@ faction, tier and battlefield role.
 
 ## What's in it
 
-- **42 contacts** across four factions — Gongsi (35), Stormrider (3),
+- **43 contacts** across four factions — Gongsi (36), Stormrider (3),
   Wildlife (3), Dachtylo Company (1).
 - Full stat lines plus every weapon, system, trait and reaction, recorded
   verbatim from the scans.
-- **Seven views** — Dossiers, Variants, a Stat table that puts all 42 side by
+- **Seven views** — Dossiers, Variants, a Stat table that puts all 43 side by
   side, Personnel, Lancers, Registry and the Comment log.
 - **Eight variant families** — contacts that scan almost identically and split
   on only a handful of features, laid out as an aligned comparison. The two
