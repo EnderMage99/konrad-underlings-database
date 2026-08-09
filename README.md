@@ -8,15 +8,15 @@ faction, tier and battlefield role.
 
 ## What's in it
 
-- **39 contacts** across four factions — Gongsi (32), Stormrider (3),
+- **42 contacts** across four factions — Gongsi (35), Stormrider (3),
   Wildlife (3), Dachtylo Company (1).
 - Full stat lines plus every weapon, system, trait and reaction, recorded
   verbatim from the scans.
-- **Three views** — Dossiers, Variants, and a Stat table that puts all 28
-  side by side.
-- **Six variant families** — contacts that scan almost identically and split
-  on only a handful of features, laid out as an aligned comparison. Witch and
-  Hornet differ on *zero* of sixteen stats.
+- **Seven views** — Dossiers, Variants, a Stat table that puts all 42 side by
+  side, Personnel, Lancers, Registry and the Comment log.
+- **Eight variant families** — contacts that scan almost identically and split
+  on only a handful of features, laid out as an aligned comparison. The two
+  Cataphracts differ on *zero* of sixteen stats, as do Witch and Hornet.
 - **Visual contact stills** for contacts that have one on file.
 - Search across every rules string, plus filters by faction, tier and role.
 
