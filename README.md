@@ -8,15 +8,17 @@ faction, tier and battlefield role.
 
 ## What's in it
 
-- **43 contacts** across four factions — Gongsi (36), Stormrider (3),
+- **45 contacts** across four factions — Gongsi (38), Stormrider (3),
   Wildlife (3), Dachtylo Company (1).
 - Full stat lines plus every weapon, system, trait and reaction, recorded
   verbatim from the scans.
-- **Seven views** — Dossiers, Variants, a Stat table that puts all 43 side by
-  side, Personnel, Lancers, Registry and the Comment log.
+- **Eight views** — Dossiers, Variants, a Stat table that puts all 45 side by
+  side, Personnel, Lancers, the Hall of Infamy, Registry and the Comment log.
 - **Eight variant families** — contacts that scan almost identically and split
   on only a handful of features, laid out as an aligned comparison. The two
   Cataphracts differ on *zero* of sixteen stats, as do Witch and Hornet.
+- **A Hall of Infamy** for the contacts that cost the squad something, with
+  the account of the engagement the scan itself cannot record.
 - **Visual contact stills** for contacts that have one on file.
 - Search across every rules string, plus filters by faction, tier and role.
 
@@ -46,6 +48,9 @@ Replace `index.html` and commit. Everything lives in that one file:
   loadouts (Witch, Hornet) share one string rather than duplicating it.
 - Visual contact stills are `VISUALS` at the foot of the script, one keyed
   line each, as data URIs.
+- Hall of Infamy records are `INFAMY`. Each one keys a contact by name and
+  borrows that contact's still, so the record and the scan cannot drift
+  apart; the prose is the part no stat block holds.
 - Unit icons are `ICONS`, keyed the same way and sitting beside them. A
   contact with one uses it for its card thumbnail and keeps its still for
   the visual contact panel — icons are small square crops, stills are full
