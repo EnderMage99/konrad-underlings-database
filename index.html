@@ -36,6 +36,12 @@
     --violet:      #A78BFA;
     --alert:       #F2555A;
 
+    /* Dried-blood red, for the Hall of Infamy. Deliberately not --alert:
+       that one is a live warning and belongs on KIA marks and bad statuses,
+       where it has to catch the eye. These records are old news. */
+    --blood:       #7C2A2F;
+    --blood-soft:  #C87A7E;
+
     /* Faction identity. Kept clear of the cyan chrome so a spine or size
        hexagon never reads as part of the interface. */
     --fac-gongsi:     #F2555A;
@@ -1919,11 +1925,15 @@
   .charedit { flex-direction: column; align-items: stretch; gap: .5rem; }
 
   /* ---------- hall of infamy ---------- */
-  /* Deliberately the alert colour rather than the cyan chrome: these are the
-     files you do not want to open. Otherwise it borrows the lancer file's
-     shape, so a record reads the same whoever it is about. */
+  /* Dried-blood red rather than the cyan chrome: these are the files you do
+     not want to open. Otherwise it borrows the lancer file's shape, so a
+     record reads the same whoever it is about. */
 
-  .infamy { --edge: var(--alert); margin-bottom: 1.8rem; }
+  .infamy {
+    --edge: var(--blood);
+    margin-bottom: 1.8rem;
+    box-shadow: 0 0 22px -8px rgba(124, 42, 47, .75);
+  }
 
   .infamy-head {
     display: flex;
@@ -1931,8 +1941,8 @@
     gap: .7rem;
     flex-wrap: wrap;
     padding: .85rem 1.05rem .7rem;
-    border-bottom: 1px solid var(--rule);
-    background: var(--surface-alt);
+    border-bottom: 1px solid var(--blood);
+    background: rgba(124, 42, 47, .16);
   }
 
   .infamy-head h3 {
@@ -1942,7 +1952,7 @@
     letter-spacing: .14em;
     text-transform: uppercase;
     margin: 0;
-    color: var(--alert);
+    color: var(--blood-soft);
   }
 
   .infamy-epithet {
@@ -1994,12 +2004,12 @@
   /* The pilot who ended it. Given its own frame because on current evidence
      that is the only reason the entry is past tense. */
   .infamy-credit {
-    border-left: 2px solid var(--alert);
-    background: rgba(255, 92, 92, .07);
+    border-left: 2px solid var(--blood);
+    background: rgba(124, 42, 47, .17);
     padding: .6rem .8rem;
   }
 
-  .infamy-credit .infamy-label { color: var(--alert); }
+  .infamy-credit .infamy-label { color: var(--blood-soft); }
   .infamy-credit p:last-child { margin-bottom: 0; }
 
   .infamy-cost { font-family: var(--mono); font-size: var(--fs-xs); }
