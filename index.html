@@ -2030,6 +2030,9 @@
 
   .infamy-link:hover { color: var(--ink); border-color: var(--accent); }
 
+  .infamy-roster { display: flex; flex-wrap: wrap; gap: .4rem; }
+  .infamy-roster .infamy-link { margin-top: 0; }
+
   /* Where the record is still short of its source. */
   .infamy-gap {
     border-left: 2px solid var(--rule);
@@ -6620,17 +6623,25 @@
       id: "avenger",
       title: "The Avenger",
       contact: "Gongsi Avenger",
-      epithet: "Put the whole squad on the floor. One pilot did not walk away.",
+      epithet: "Three mechs went into that desert. None came out.",
+      roster: ["Gongsi Avenger", "Gongsi Assassin",
+               "Gongsi Legionnaire Spacer Unit", "Gongsi Mirage"],
       blocks: [
+        { label: "The contract",
+          text: "A Dachtylo team was put down in the desert about a kilometre short of a traitor's signal, with orders to bring him in. Every other unit was committed to a raid elsewhere, so two pilots went in undersupplied: Nepeta Aor and K9T1-B133 \"Kay\" Reverb." },
         { label: "The engagement",
-          text: "A Gongsi Avenger under the Commander template brought the Lancers within reach of a total loss - by the account on file it came close to killing every pilot in the field. No other single contact in the archive has managed that." },
-        { label: "Why it held", text: "The scan explains most of it. Assault Armor gives it Resistance to everything originating within Range 3, so closing to finish it halves your output instead of raising it, and the Slug Pistol's Threat 3 wants you there anyway. Erupting Shrapnel taxes anyone it has already damaged 4 Explosive AP every further time they attack, which turns a drawn-out fight against it into attrition on your side only. And Revenge means the usual answer to a Commander - strip the escort first - hands it Overshield 12, +5 damage and +1 Accuracy for the rest of the scene, while Infectious Revenge shields everything still standing around it." }
+          text: "Nepeta opened by scanning the Avenger and the Assassin covering it - the stat blocks in this index came off that sweep. The Gongsi force fought as a unit around the Commander, with the Assassin, a Legionnaire Unit and a Mirage screening it. It went badly early. Kay's frame took critical damage and had to reboot its core systems, and her NHP twice offered to move her out of the line. She refused both times: there was no running from this one, she was the leader, she had to win." },
+        { label: "How it ended",
+          text: "Adrena Ochre arrived unannounced as reinforcement partway through - the Avenger's own reaction was to ask who she was - and it did not change the outcome. With her mech failing, Kay told her NHP they were pulling a B131, a callback to an earlier unit that had done the same thing, and put the Manticore's reactor out. The blast rolled 39. The Avenger stood for a few moments and then collapsed. Nepeta was unconscious by then and had to be told afterwards what had happened." },
+        { label: "Why it held",
+          text: "The scan accounts for most of it. Assault Armor gives it Resistance to everything originating within Range 3, so closing to finish it halves your output while its Threat 3 pistol wants you there. Erupting Shrapnel taxes anyone it has already damaged 4 Explosive AP every further time they attack. And Revenge is on record: an earlier explosion left it standing unhurt with its shield gone, which is Overshield 12 doing exactly what the trait says. Note that Infectious Revenge was never triggered - the Overshield 6 it would have handed every ally around it never went out. This could have gone worse." }
       ],
       credit: {
         pilot: "K9T1-B133 \"Kay\" Reverb",
-        text: "Kay ended it by destroying their own mech, taking the Avenger with them in the blast. On the record as it stands, that is the only reason this entry is written in the past tense."
+        text: "Kay ended it by detonating her own reactor, and did not walk out of the desert. Nothing else on the field had put a mark on the Avenger that stuck."
       },
-      gap: "Recorded from a summary rather than from the mission log itself. The blow-by-blow, the other pilots' part in it, and the exact state of the field when Kay went out are all still missing from this file."
+      cost: "Three mechs destroyed - Kay's, Nepeta's, and Adrena's, the last of them caught in the same blast. Two pilots reached extraction, Nepeta with an arm gone and a leg crushed inside the hardsuit. The traitor was recovered unconscious and dragged out. Nepeta stripped the Avenger's slug pistol off the wreck and kept it.",
+      gap: "Most of the engagement was played in voice, so the written log holds the dice and the dialogue but not the manoeuvring. Turn order, positioning and the exact sequence of losses are not recoverable from it."
     }
   ];
 
@@ -6695,12 +6706,35 @@
         body.appendChild(blk);
       });
 
+      // Everything else that was on the field, each keyed to its own dossier.
+      var present = (f.roster || []).filter(function (n) { return BY_NAME[n]; });
+      if (present.length) {
+        var rb = el("div", "infamy-block");
+        rb.appendChild(el("p", "infamy-label", "On the field"));
+        var row = el("div", "infamy-roster");
+        present.forEach(function (n) {
+          var c = el("button", "infamy-link", BY_NAME[n].short);
+          c.type = "button";
+          c.addEventListener("click", function () { openDossier(n); });
+          row.appendChild(c);
+        });
+        rb.appendChild(row);
+        body.appendChild(rb);
+      }
+
       if (f.credit) {
         var cr = el("div", "infamy-block infamy-credit");
         cr.appendChild(el("p", "infamy-label", "Ended by"));
         cr.appendChild(el("p", "infamy-cost", f.credit.pilot));
         cr.appendChild(elRich("p", null, f.credit.text));
         body.appendChild(cr);
+      }
+
+      if (f.cost) {
+        var cb = el("div", "infamy-block");
+        cb.appendChild(el("p", "infamy-label", "The cost"));
+        cb.appendChild(elRich("p", null, f.cost));
+        body.appendChild(cb);
       }
 
       if (f.gap) {
