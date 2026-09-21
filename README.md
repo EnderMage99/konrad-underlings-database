@@ -8,13 +8,13 @@ faction, tier and battlefield role.
 
 ## What's in it
 
-- **46 contacts** across four factions - Gongsi (38), Stormrider (3),
+- **49 contacts** across four factions - Gongsi (41), Stormrider (3),
   Wildlife (4), Dachtylo Company (1).
 - Full stat lines plus every weapon, system, trait and reaction, recorded
   verbatim from the scans.
-- **Eight views** - Dossiers, Variants, a Stat table that puts all 46 side by
+- **Eight views** - Dossiers, Variants, a Stat table that puts all 49 side by
   side, Personnel, Lancers, the Hall of Infamy, Registry and the Comment log.
-- **Eight variant families** — contacts that scan almost identically and split
+- **Nine variant families** — contacts that scan almost identically and split
   on only a handful of features, laid out as an aligned comparison. The two
   Cataphracts differ on *zero* of sixteen stats, as do Witch and Hornet.
 - **A Hall of Infamy** for the contacts that cost the squad something, with
