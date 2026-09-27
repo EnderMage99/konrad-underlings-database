@@ -4475,12 +4475,12 @@
       weapons: [
         { n: "???", ghost: true, mount: "Observed ranged",
           line: "Line 10 | ? damage",
-          txt: "Fires a line attack 10 spaces long. Seen once; the damage type and number were not recorded, and neither was whether the line was Line 10 exactly or the ten it happened to reach before something stopped it. Nothing on the frame looks like a gun, so the eye is the working guess for where it comes from.",
-          meta: "Observed / Line 10 confirmed / Damage unconfirmed" }
+          txt: "Fires a line 10 spaces long, but not where it likes: the line is drawn between Contact 01 and its duplicates, and it bounced from copy to copy five times in the one firing seen, hitting anything the segments passed through. It is not freely aimed - the geometry is set by where the copies are standing, so the duplicates are as much a targeting system as a decoy. Damage type and number were not recorded. Nothing on the frame looks like a gun, so the eye is the working guess for where it comes from.",
+          meta: "Observed / Line 10 confirmed / Bounces between duplicates, 5 seen / Damage unconfirmed" }
       ],
       systems: [
-        { n: "???", ghost: true, txt: "Observed: the contact produced one or more duplicates of itself mid-engagement. Whether the copies are real units, projections or something done to the pilots' sensors is not established - they behaved like hallucinations. Assumed to be a quick or full action with some recharge; the trigger was not seen.",
-          meta: "Observed / Unconfirmed / Possibly a hallucination effect" }
+        { n: "???", ghost: true, txt: "Observed: the contact produced one or more duplicates of itself mid-engagement. Whether the copies are real units, projections or something done to the pilots' sensors is not established - they behaved like hallucinations. What is established is that they are not only decoys: the line attack is drawn between them, so where the copies stand decides what the line can reach. Assumed to be a quick or full action with some recharge; the trigger was not seen.",
+          meta: "Observed / Unconfirmed / Possibly a hallucination effect / Anchors the line attack" }
       ],
       traits: [
         { n: "Abominable", line: "T1",
@@ -4491,7 +4491,7 @@
           meta: "Observed once / Save 12 confirmed / Rules text unconfirmed" }
       ],
       reactions: [],
-      note: "Behaviour in combat is the only record. Contact 01 hangs back, multiplies, and shoots. The duplicates appeared without warning and the squad could not tell them from the original by sight; the working theory is that they are not real, but nobody has tested it by ignoring one. Treat every copy as live until one is proven otherwise, and expect the real one to be wherever the fewest guns are pointed. It also fired a line attack 10 spaces long, so hanging back is not the same as being out of reach - do not stand in a row inside 10 of it, and watch whether the copies can fire too, because that would be the quickest way to find out which one is real. Hitting it is not free either: the one confirmed hit made the shooter save against 12, and on the failure the shooter went Invisible. Invisible is normally a thing you want, so read that carefully - it may mean the Horror has got into that pilot's sensors rather than done them a favour, and the duplicates may be the same trick from the other side. Whoever lands the hit should expect to roll for it. Scan returns nothing."
+      note: "Behaviour in combat is the only record. Contact 01 hangs back, multiplies, and shoots. The duplicates appeared without warning and the squad could not tell them from the original by sight; the working theory is that they are not real, but nobody has tested it by ignoring one. Treat every copy as live until one is proven otherwise, and expect the real one to be wherever the fewest guns are pointed. The line attack is where the copies stop being a guessing game and start being a weapon: it is drawn between Contact 01 and its duplicates, 10 spaces a segment, and it bounced copy to copy five times in the one firing seen, hitting anything the segments crossed. It cannot be aimed freely, which cuts both ways - it only goes where the copies let it, so read the copies as the firing solution. Do not stand on a line between any two of them, and moving a copy's position, if they can be moved, moves the line. Hitting it is not free either: the one confirmed hit made the shooter save against 12, and on the failure the shooter went Invisible. Invisible is normally a thing you want, so read that carefully - it may mean the Horror has got into that pilot's sensors rather than done them a favour, and the duplicates may be the same trick from the other side. Whoever lands the hit should expect to roll for it. Scan returns nothing."
     },
     {
       slide: 52, name: "Horrors Contact 02", faction: "horror",
@@ -4506,14 +4506,15 @@
         { n: "Chain Axe", mount: "Heavy Melee",
           line: "Threat 1 | 7 Kinetic at T1, 9 at T2 | +1 attack at T1, +2 at T2",
           txt: "On critical hit: the target becomes Shredded until the end of their next turn.",
-          meta: "Berserker class weapon, same numbers as the Berserker Knight and Nomiraka - the 7 counted in the field was a single roll and does not place the tier" }
+          meta: "Berserker class weapon, same numbers as the Berserker Knight and Nomiraka - the 7 counted in the field was a single roll and does not place the tier" },
+        { n: "???", ghost: true, mount: "Custom attack",
+          line: "Threat ? | +? attack",
+          txt: "A separate attack from the axe, not a system: it rolls to hit, and on hit the target loses all Overshield. Every Overshield the squad has carried into its reach has come off in one go. Whether it deals damage underneath, what its attack bonus is, and whether it is its own action or rides along with something else are not established.",
+          meta: "Custom / Observed / Rolls to hit / Overshield strip on hit confirmed / Rest unconfirmed" }
       ],
       systems: [
         { n: "Avalanche Charge", txt: "The Berserker moves spaces equal to their Speed in a straight line, ignoring reactions and engagement, then attacks a random adjacent character - hostile or allied - with the Chain Axe.",
-          meta: "Quick action / Recharge 5+ / Berserker class system, carried over" },
-        { n: "???", ghost: true,
-          txt: "Custom system. On use: the target loses all Overshield. Every Overshield the squad has carried into its reach has come off in one go. Originally logged as an on-hit effect of the axe; now understood to be its own system rather than part of the attack. Action type, range and any recharge are not established.",
-          meta: "Custom / Observed / Overshield strip confirmed / Rules text unconfirmed" }
+          meta: "Quick action / Recharge 5+ / Berserker class system, carried over" }
       ],
       traits: [
         { n: "Abominable", line: "T1",
@@ -4530,7 +4531,7 @@
           meta: "Assumed from the Horror template / Unconfirmed" }
       ],
       reactions: [],
-      note: "Behaviour in combat is the only record the scan allows, but the behaviour gave it away: a custom Berserker. The two Berserkers already on file, the Knight and Nomiraka, share a Chain Axe, Stampede Defense, Aggression, Retribution and Avalanche Charge, and all five are carried over here with the Berserker's own numbers. The axe's damage and Retribution's bonus both step up from T1 to T2, and the 7 counted in the field was a single roll, which is not enough to say which; the tier stays unknown until a scan or a steadier count settles it. The point-blank counterattack was Aggression: the first time it takes damage in a round it swings at a random adjacent character, its own side included, so shooting it from inside Threat 1 hands it a free attack. Stampede Defense is the fight, as it is for every Berserker - blanket Resistance until you land Impaired, Stunned, Immobilized, Shredded, Slowed or Exposed, and its own axe crits Shred, not yours. What is custom is the Overshield strip, which is a system rather than the axe, and what is still unknown is most of what Abominable hides: Structure, Stress, Save, Evasion, skills, and whether the rest of the Horror template is on it. HP is bracketed at 12 to 14 from the damage it took before the count was lost - close to the 12 a T1 Berserker carries under Nomiraka's Resilient bonus, for what one bracket is worth."
+      note: "Behaviour in combat is the only record the scan allows, but the behaviour gave it away: a custom Berserker. The two Berserkers already on file, the Knight and Nomiraka, share a Chain Axe, Stampede Defense, Aggression, Retribution and Avalanche Charge, and all five are carried over here with the Berserker's own numbers. The axe's damage and Retribution's bonus both step up from T1 to T2, and the 7 counted in the field was a single roll, which is not enough to say which; the tier stays unknown until a scan or a steadier count settles it. The point-blank counterattack was Aggression: the first time it takes damage in a round it swings at a random adjacent character, its own side included, so shooting it from inside Threat 1 hands it a free attack. Stampede Defense is the fight, as it is for every Berserker - blanket Resistance until you land Impaired, Stunned, Immobilized, Shredded, Slowed or Exposed, and its own axe crits Shred, not yours. What is custom is the Overshield strip, which is its own attack rather than the axe - it rolls to hit like any other, so Evasion and cover count against it - and what is still unknown is most of what Abominable hides: Structure, Stress, Save, Evasion, skills, and whether the rest of the Horror template is on it. HP is bracketed at 12 to 14 from the damage it took before the count was lost - close to the 12 a T1 Berserker carries under Nomiraka's Resilient bonus, for what one bracket is worth."
     },
     {
       slide: 53, name: "Horrors Contact 03", faction: "horror",
