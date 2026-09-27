@@ -8,11 +8,11 @@ faction, tier and battlefield role.
 
 ## What's in it
 
-- **51 contacts** across five factions - Gongsi (41), Stormrider (3),
-  Wildlife (4), Dachtylo Company (1), Horrors (2).
+- **52 contacts** across five factions - Gongsi (41), Stormrider (3),
+  Wildlife (4), Dachtylo Company (1), Horrors (3).
 - Full stat lines plus every weapon, system, trait and reaction, recorded
   verbatim from the scans.
-- **Eight views** - Dossiers, Variants, a Stat table that puts all 51 side by
+- **Eight views** - Dossiers, Variants, a Stat table that puts all 52 side by
   side, Personnel, Lancers, the Hall of Infamy, Registry and the Comment log.
 - **Horrors** - contacts that carry the Abominable trait, so a scan returns
   nothing but the word. Their dossiers hold "???" for every reading and
