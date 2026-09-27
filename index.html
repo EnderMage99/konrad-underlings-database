@@ -4873,6 +4873,13 @@
     return n;
   }
 
+  // Accent-insensitive lowercasing, so "langren" finds Làngrén. Applied to
+  // every haystack and to the query, so both sides fold the same way.
+  function fold(s) {
+    s = String(s).toLowerCase();
+    return s.normalize ? s.normalize("NFD").replace(/[\u0300-\u036f]/g, "") : s;
+  }
+
   function haystack(d) {
     var bits = [d.name, d.short, d.cls, d.role, d.tier, FACTIONS[d.faction].name];
     (d.tmpl || []).forEach(function (t) { bits.push(t); });
@@ -4889,21 +4896,21 @@
     }
     (d._scaling || []).forEach(function (s) { bits.push("tier scaling", s.f, s.t); });
     if (LORE[d.name]) bits.push("briefing", LORE[d.name]);
-    return bits.join(" ").toLowerCase();
+    return fold(bits.join(" "));
   }
 
   // Scoped haystacks, so a search can be narrowed to one kind of feature.
   // Each covers the feature's name, damage line, rules text and tags.
   function featureHay(d, key) {
-    return (d[key] || []).map(function (f) {
+    return fold((d[key] || []).map(function (f) {
       return [f.n, f.line || "", f.txt || "", f.meta || "", f.mount || ""].join(" ");
-    }).join(" ").toLowerCase();
+    }).join(" "));
   }
 
   DATA.forEach(function (d) {
     d._hay = haystack(d);
     d._hayScope = {
-      name: [d.name, d.short, d.cls].join(" ").toLowerCase(),
+      name: fold([d.name, d.short, d.cls].join(" ")),
       weapon: featureHay(d, "weapons"),
       system: featureHay(d, "systems"),
       trait: featureHay(d, "traits"),
@@ -5551,7 +5558,7 @@
 
   var searchEl = document.getElementById("search");
   searchEl.addEventListener("input", function () {
-    state.q = searchEl.value.trim().toLowerCase();
+    state.q = fold(searchEl.value.trim());
     render();
   });
 
@@ -6825,7 +6832,7 @@
 
   function openDossier(name) {
     searchEl.value = name;
-    state.q = name.toLowerCase();
+    state.q = fold(name);
     state.faction = state.tier = state.role = state.only = null;
     document.querySelectorAll(".chip[aria-pressed='true']").forEach(function (c) {
       c.setAttribute("aria-pressed", "false");
