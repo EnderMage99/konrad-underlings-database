@@ -602,6 +602,30 @@
     80%  { filter: none; }
   }
 
+  /* Held steady: the text glitch and frame flicker stay, but nothing drops
+     out of view. Every opacity animation above is overridden here. */
+  .fac-horror .steady-btn { padding: .3rem .6rem; }
+  .fac-horror .steady-btn[aria-pressed="true"] {
+    color: var(--fac-horror);
+    border-color: var(--fac-horror);
+  }
+  .fac-horror.steady .faction-head .blurb,
+  .fac-horror.steady .card-title .class,
+  .fac-horror.steady .tag,
+  .fac-horror.steady .stat .v,
+  .fac-horror.steady .stat.skill .v,
+  .fac-horror.steady .stat.hp .v,
+  .fac-horror.steady .entry.ghost,
+  .fac-horror.steady .entry.ghost .meta,
+  .fac-horror.steady .note,
+  .fac-horror.steady .card-shot img,
+  .fac-horror.steady .shotgrid .shot img {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+
   /* ---------- dossier card ---------- */
 
   .card {
@@ -5187,6 +5211,12 @@
   var currentView = "cards";
   var booted = false;
 
+  // Horrors section: whether the dropouts are held off. See render().
+  var HORROR_STEADY_KEY = "horror-steady";
+  var horrorSteady = false;
+  try { horrorSteady = localStorage.getItem(HORROR_STEADY_KEY) === "1"; }
+  catch (e) {}
+
   // ---- helpers ---------------------------------------------------------
 
   function el(tag, cls, text) {
@@ -5681,6 +5711,30 @@
       fh.appendChild(el("span", "blurb", FACTIONS[fk].blurb));
       fh.appendChild(el("span", "count",
         list.length + (list.length === 1 ? " contact" : " contacts")));
+      if (fk === "horror") {
+        // Steady readings: keeps the text glitch and the frame flicker but
+        // stops entries, stats and tags dropping out, for anyone who wants
+        // to actually read the sheet. Remembered per browser.
+        if (horrorSteady) sec.className += " steady";
+        var hb = el("button", "btn steady-btn");
+        hb.type = "button";
+        var paintSteady = function () {
+          hb.textContent = horrorSteady ? "Resume dropouts" : "Hold readings steady";
+          hb.setAttribute("aria-pressed", String(horrorSteady));
+          hb.title = horrorSteady
+            ? "Let assumed entries flicker in and out again"
+            : "Stop entries flickering out; the text glitch stays";
+        };
+        paintSteady();
+        hb.addEventListener("click", function () {
+          horrorSteady = !horrorSteady;
+          try { localStorage.setItem(HORROR_STEADY_KEY, horrorSteady ? "1" : "0"); }
+          catch (e) {}
+          sec.classList.toggle("steady", horrorSteady);
+          paintSteady();
+        });
+        fh.appendChild(hb);
+      }
       sec.appendChild(fh);
 
       var cards = el("div", "cards");
