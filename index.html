@@ -4473,9 +4473,13 @@
                save: "???", evade: "???", edef: "???", sensor: "???" },
       skills: { hull: "?", agi: "?", sys: "?", eng: "?" },
       weapons: [
+        { n: "???", ghost: true, mount: "Observed ranged",
+          line: "Line 10 | ? damage",
+          txt: "Fires a line attack 10 spaces long. Seen once; the damage type and number were not recorded, and neither was whether the line was Line 10 exactly or the ten it happened to reach before something stopped it. Nothing on the frame looks like a gun, so the eye is the working guess for where it comes from.",
+          meta: "Observed / Line 10 confirmed / Damage unconfirmed" },
         { n: "???", ghost: true, mount: "Assumed melee",
           line: "Threat ? | ? damage",
-          txt: "Four grasping limbs and nothing that looks like a gun. Assumed to fight in Threat. No hit has been recorded against it yet, so the profile is a guess.",
+          txt: "Four grasping limbs. Assumed to be able to fight in Threat as well, but no melee attack has been recorded against it yet, so the profile is a guess.",
           meta: "Assumed / Unconfirmed" }
       ],
       systems: [
@@ -4486,11 +4490,11 @@
         { n: "Abominable", line: "T1",
           txt: "Scan doesn't reveal any information about the Horror except that they are a Horror.",
           meta: "Verbatim from the scan - the only line it returns" },
-        { n: "???", ghost: true, txt: "The eye. The core is a lidded optic that stays lit while the copies are active. Unknown whether it is a weak point, a sensor, or the source of the duplication.",
+        { n: "???", ghost: true, txt: "The eye. The core is a lidded optic that stays lit while the copies are active. Unknown whether it is a weak point, a sensor, the source of the duplication, or the source of the line attack - or all four.",
           meta: "Assumed / Unconfirmed" }
       ],
       reactions: [],
-      note: "Behaviour in combat is the only record. Contact 01 hangs back and multiplies. The duplicates appeared without warning and the squad could not tell them from the original by sight; the working theory is that they are not real, but nobody has tested it by ignoring one. Treat every copy as live until one is proven otherwise, and expect the real one to be wherever the fewest guns are pointed. Scan returns nothing."
+      note: "Behaviour in combat is the only record. Contact 01 hangs back, multiplies, and shoots. The duplicates appeared without warning and the squad could not tell them from the original by sight; the working theory is that they are not real, but nobody has tested it by ignoring one. Treat every copy as live until one is proven otherwise, and expect the real one to be wherever the fewest guns are pointed. It also fired a line attack 10 spaces long, so hanging back is not the same as being out of reach - do not stand in a row inside 10 of it, and watch whether the copies can fire too, because that would be the quickest way to find out which one is real. Scan returns nothing."
     },
     {
       slide: 52, name: "Horrors Contact 02", faction: "horror",
