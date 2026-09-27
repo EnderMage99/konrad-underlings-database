@@ -4572,17 +4572,21 @@
       weapons: [
         { n: "???", ghost: true, mount: "Observed ranged",
           line: "Range ? | ~6 Energy",
-          txt: "A heavy rifle or cannon carried on the right arm, cabled into the frame. One hit recorded at 6 Energy - a single count, so whether that is flat or rolled is not settled. Range not established; it fired from further than Threat.",
-          meta: "Observed / ~6 Energy observed / Range unconfirmed" }
+          txt: "A heavy rifle or cannon carried on the right arm, cabled into the frame. One hit recorded at 6 Energy - a single count, so whether that is flat or rolled is not settled. Range not established; it fired from further than Threat. Both times it has fired, it made itself Exposed first - see the system below.",
+          meta: "Observed / ~6 Energy observed / Fired while Exposed / Range unconfirmed" }
       ],
-      systems: [],
+      systems: [
+        { n: "???", ghost: true,
+          txt: "Observed: Contact 03 made itself Exposed, then fired the arm gun for 6 Energy. Exposed doubles the kinetic, energy and explosive damage it takes until it is cleared, so this is a cost it pays on purpose - which means the shot is worth more than the 6 counted, or the gun cannot fire without it. Compare the Nosferatu, whose Superheated Talons only work while Exposed and which chooses Exposed over Impaired. Whether it is an action of its own, part of the attack, or a trait that fires on any shot is not established.",
+          meta: "Observed twice / Self-Exposed before firing confirmed / Rules text unconfirmed" }
+      ],
       traits: [
         { n: "Abominable", line: "T1",
           txt: "Scan doesn't reveal any information about the Horror except that they are a Horror.",
           meta: "Verbatim from the scan - the only line it returns" }
       ],
       reactions: [],
-      note: "Behaviour in combat is the only record. Contact 03 moves and shoots: about 4 spaces a round, then 6 Energy from the arm gun. Slower than Contact 02 and without the reach of Contact 01's line, so on its own it is the one to fight at range and keep moving away from - 4 spaces a round is not a closing speed. What the shield arm does is unknown, so do not count on the first shot at it landing clean. Scan returns nothing."
+      note: "Behaviour in combat is the only record. Contact 03 moves and shoots: about 4 spaces a round, then 6 Energy from the arm gun - and it makes itself Exposed before it fires. That is the opening: Exposed doubles the damage it takes from kinetic, energy and explosive hits, so the round after it shoots is the round to hit it hard, and whoever is holding a reaction or an Overwatch should spend it then. It is paying that price for a reason, so assume the shot has more to it than the 6 counted - a hidden rider, or a gun that will not fire otherwise, the way the Nosferatu's talons will not. Slower than Contact 02 and without the reach of Contact 01's line, so on its own it is the one to fight at range and keep moving away from - 4 spaces a round is not a closing speed. What the shield arm does is unknown, so do not count on the first shot at it landing clean. Scan returns nothing."
     },
     {
       slide: 54, name: "Horrors Contact 04", faction: "horror",
