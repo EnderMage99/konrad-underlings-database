@@ -4552,10 +4552,13 @@
           meta: "Berserker class trait, carried over - value follows the tier once it is known" },
         { n: "???", ghost: true,
           txt: "The other Horror-templated Berserker on file, the Berserker Knight, carries Mutations, Terrifying and Abhorrent Redundancies from the Horror template. None of the three has been seen on Contact 02 yet, and Abominable may be what its template gives it instead. Assume Terrifying until an attack with line of sight comes back without the +1 Difficulty.",
-          meta: "Assumed from the Horror template / Unconfirmed" }
+          meta: "Assumed from the Horror template / Unconfirmed" },
+        { n: "???", ghost: true,
+          txt: "Observed: Contact 02 covered 12 spaces in a single round with movement still left over. Speed 5 alone does not do that, but the Berserker kit can: a standard move of 5, Avalanche Charge for another 5 in a straight line as a quick action, and a Boost for 5 more is 15 on a round it spends both actions moving. So 12 and change is inside what is already on the sheet. If it ever does it while also attacking with something other than the Avalanche Charge swing, or clears more than 15, that is a hidden trait and this entry becomes it.",
+          meta: "Observed / 12+ spaces in a round / Explained by known kit until proven otherwise" }
       ],
       reactions: [],
-      note: "Behaviour in combat is the only record the scan allows, but the behaviour gave it away: a custom Berserker. The two Berserkers already on file, the Knight and Nomiraka, share a Chain Axe, Stampede Defense, Aggression, Retribution and Avalanche Charge, and all five are carried over here with the Berserker's own numbers. The axe's damage and Retribution's bonus both step up from T1 to T2, and the 7 counted in the field was a single roll, which is not enough to say which; the tier stays unknown until a scan or a steadier count settles it. The point-blank counterattack was Aggression: the first time it takes damage in a round it swings at a random adjacent character, its own side included, so shooting it from inside Threat 1 hands it a free attack. Stampede Defense is the fight, as it is for every Berserker - blanket Resistance until you land Impaired, Stunned, Immobilized, Shredded, Slowed or Exposed, and its own axe crits Shred, not yours. What is custom is the Overshield strip, which is its own attack rather than the axe - it rolls to hit like any other, so Evasion and cover count against it - and what is still unknown is most of what Abominable hides: Structure, Stress, Save, Evasion, skills, and whether the rest of the Horror template is on it. HP is bracketed at 12 to 14 from the damage it took before the count was lost - close to the 12 a T1 Berserker carries under Nomiraka's Resilient bonus, for what one bracket is worth."
+      note: "Behaviour in combat is the only record the scan allows, but the behaviour gave it away: a custom Berserker. The two Berserkers already on file, the Knight and Nomiraka, share a Chain Axe, Stampede Defense, Aggression, Retribution and Avalanche Charge, and all five are carried over here with the Berserker's own numbers. The axe's damage and Retribution's bonus both step up from T1 to T2, and the 7 counted in the field was a single roll, which is not enough to say which; the tier stays unknown until a scan or a steadier count settles it. The point-blank counterattack was Aggression: the first time it takes damage in a round it swings at a random adjacent character, its own side included, so shooting it from inside Threat 1 hands it a free attack. It has also been seen crossing 12 spaces in a round with more to spare, which looks like a hidden trait but need not be: move, Avalanche Charge and Boost together reach 15 on the printed Speed, at the cost of the whole turn. Treat its reach as 15, not 5, and treat anything past that as new information. Stampede Defense is the fight, as it is for every Berserker - blanket Resistance until you land Impaired, Stunned, Immobilized, Shredded, Slowed or Exposed, and its own axe crits Shred, not yours. What is custom is the Overshield strip, which is its own attack rather than the axe - it rolls to hit like any other, so Evasion and cover count against it - and what is still unknown is most of what Abominable hides: Structure, Stress, Save, Evasion, skills, and whether the rest of the Horror template is on it. HP is bracketed at 12 to 14 from the damage it took before the count was lost - close to the 12 a T1 Berserker carries under Nomiraka's Resilient bonus, for what one bracket is worth."
     },
     {
       slide: 53, name: "Horrors Contact 03", faction: "horror",
@@ -4585,7 +4588,7 @@
       slide: 54, name: "Horrors Contact 04", faction: "horror",
       cls: "???",
       tier: "Unknown", role: "Unknown", size: "1/2", tmpl: ["Horror"],
-      flags: ["Abominable", "Sighted only"], unscanned: true,
+      flags: ["Abominable"], unscanned: true,
       stats: { hp: "???", armor: "???", structure: "???", stress: "???",
                heat: "???", speed: "???", act: "???",
                save: "???", evade: "???", edef: "???", sensor: "???" },
@@ -4593,17 +4596,21 @@
       weapons: [
         { n: "???", ghost: true, mount: "Assumed ranged",
           line: "Range ? | ? damage",
-          txt: "A cannon mounted under the head, fed from the body. Not yet fired, so range, damage and type are all open.",
+          txt: "A cannon mounted under the head, fed from the body. Not yet fired as a weapon, so range, damage and type are all open. It may be the missile launcher below rather than a gun at all.",
           meta: "Assumed from the still / Unconfirmed" }
       ],
-      systems: [],
+      systems: [
+        { n: "???", ghost: true, line: "Range ? | Blast 1 | 3 Heat",
+          txt: "Fires a missile as a system rather than a weapon attack. On hit: 3 Heat to each character in the blast, and no damage at all. Seen once. Range, whether it rolls to hit or forces a save, and any recharge are not established.",
+          meta: "Observed / Blast 1 confirmed / 3 Heat, no damage confirmed / Rest unconfirmed" }
+      ],
       traits: [
         { n: "Abominable", line: "T1",
           txt: "Scan doesn't reveal any information about the Horror except that they are a Horror.",
           meta: "Verbatim from the scan - the only line it returns" }
       ],
       reactions: [],
-      note: "Sighted, not yet engaged. Contact 04 has not moved or acted since it was spotted, so there is no behaviour to record - a low quadruped with a spined back and a cannon slung under the head, it is the smallest Horror on file and the most likely of the three to be a fast one. Size 1/2 is the one thing the sighting settles. Scan returns nothing."
+      note: "Behaviour in combat is the only record. Contact 04 has fired once and not yet moved: a missile, as a system rather than an attack, that bursts Blast 1 and puts 3 Heat on everything inside with no damage attached. That is a heat-pressure piece, not a damage dealer - on its own it is a nuisance, but it stacks with anything else that heats you, and 3 a shot on a pilot already running warm is how Overheating starts. A low quadruped with a spined back and a cannon slung under the head, it is the smallest Horror on file and the most likely of the six to be a fast one, but that is still a guess until it moves. Size 1/2 and the missile are what the record settles. Scan returns nothing."
     },
     {
       slide: 55, name: "Horrors Contact 05", faction: "horror",
