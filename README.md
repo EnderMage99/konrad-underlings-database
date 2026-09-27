@@ -23,6 +23,9 @@ faction, tier and battlefield role.
   its own Health bar, its own separate scan, and its own effect on the body.
 - **Visual contact stills** for contacts that have one on file.
 - Search across every rules string, plus filters by faction, tier and role.
+- **Arrival order** - sort contacts by when they were indexed, newest or
+  oldest first, and a **NEW** tag on everything from the last three batches
+  of additions.
 
 ## Viewing it
 
@@ -46,6 +49,14 @@ Replace `index.html` and commit. Everything lives in that one file:
 - Variant families are `VARIANT_GROUPS` — the shared / changed / unique split
   is *computed* from the stat blocks, not written by hand, so it can't drift
   out of step with the data.
+- The arrival ledger is `ADDED`: one entry per commit that indexed at least
+  one new contact, oldest first. It drives the *Sort: Newest / Oldest first*
+  chips and the **NEW** tag, which every contact in the last three entries
+  wears. A commit that adds no contact gets no entry, so it never ages
+  anyone out. When you index a contact, append an entry with the date and
+  the contact's full name (or add the name to that day's entry if there
+  already is one). A contact left out of the ledger is flagged in the
+  browser console.
 - Tier scaling lines are `TIER_SCALING`.
 - Class briefings are `LORE`, keyed by contact name. A contact with no entry
   just doesn't show the section. Archetypes that appear twice under different

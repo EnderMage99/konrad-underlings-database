@@ -527,6 +527,8 @@
   .tag.tier  { color: var(--brass); }
   .tag.flag  { color: var(--brass); }
   .tag.vari  { color: var(--violet); }
+  .tag.new   { color: var(--plate); background: var(--brass); border-color: var(--brass); font-weight: 700; }
+  td.nm .tag.new { margin-left: .5rem; vertical-align: middle; }
 
   .sizehex {
     flex: 0 0 auto;
@@ -2753,6 +2755,7 @@
     <div class="filterset combat-only" id="f-tier"><span class="setlabel">Tier</span></div>
     <div class="filterset combat-only" id="f-role"><span class="setlabel">Role</span></div>
     <div class="filterset combat-only" id="f-only"><span class="setlabel">Only show</span></div>
+    <div class="filterset combat-only" id="f-sort"><span class="setlabel">Sort</span></div>
   </div>
 </div>
 
@@ -4441,6 +4444,44 @@
       { f: "Raptor Plasma Rifle", t: "At T2 it makes two attacks at a time; at T3, three." }]
   };
 
+  // ---- arrival ledger ---------------------------------------------------
+  // One entry per commit that indexed at least one new contact, oldest
+  // first. This is what "Sort: newest" orders by, and a contact in any of the
+  // last NEW_WINDOW entries wears a NEW tag. A commit that adds no contact
+  // gets no entry, so it never pushes anyone out of the window. When you
+  // index a contact, append an entry (or add the name to today's entry if
+  // there already is one). Names are the full names used as keys in DATA.
+  var NEW_WINDOW = 3;
+  var ADDED = [
+    { on: "2026-07-28", members: [
+        "Rainmaker", "Gongsi Witch", "Gongsi Assault", "Gongsi Sniper",
+        "Gongsi Hornet", "Gongsi Ace", "Gongsi Bombard", "Gongsi Witch 2",
+        "Platoon Captain Yuehan", "Sand Worm", "Erimou Tigris",
+        "Construction Forklift", "Gongsi Barricade", "Gongsi Demolisher",
+        "Gongsi Construction Unit", "Gongsi Engineer", "Gongsi Operator",
+        "Gongsi Hive", "Stormrider Cataphract", "Stormrider Goliath",
+        "Security Unit 'Ronin-C'", "Security Unit 'Ronin'",
+        "Security Unit 'Scout'", "Security Unit 'Spite'",
+        "Security Unit 'Operator'", "Gongsi Specter", "Stormrider Hornet",
+        "Invideis-II Xuebao"] },
+    { on: "2026-07-28", members: ["Gongsi Scourer"] },
+    { on: "2026-07-28", members: ["Gongsi Mirage"] },
+    { on: "2026-07-28", members: ["Gongsi Gaoshou Scout Ace-Unit"] },
+    { on: "2026-07-28", members: ["Gongsi Ship Captain Nomiraka"] },
+    { on: "2026-07-29", members: ["Dachtylo Company Squad Leader's Frame"] },
+    { on: "2026-08-09", members: ["Gongsi Underwater Lurker", "Gongsi Berserker Knight"] },
+    { on: "2026-08-09", members: ["Gongsi Quick Response Ship"] },
+    { on: "2026-08-09", members: ["Gongsi Gaoshou Squadron Captain",
+        "Gongsi Gaoshou Squadron Ace", "Gongsi Gaoshou Squadron Hornet"] },
+    { on: "2026-08-09", members: ["Gongsi Spacer Commander Assault",
+        "Gongsi Legionnaire Spacer Unit", "Gongsi Spacer Cataphract"] },
+    { on: "2026-08-09", members: ["Gongsi Spacer Strider"] },
+    { on: "2026-08-10", members: ["Gongsi Assassin", "Gongsi Avenger"] },
+    { on: "2026-09-06", members: ["Lightning Dragon"] },
+    { on: "2026-09-21", members: ["Gongsi Spite",
+        "Gongsi Facility Commander Làngrén", "Gongsi Nosferatu"] }
+  ];
+
   // ---- class briefings --------------------------------------------------
   // Background on the chassis pattern rather than the individual unit, keyed
   // by full contact name. A contact with no entry here simply doesn't show
@@ -4784,6 +4825,25 @@
     }
   });
 
+  // Arrival order from the ledger: _seq is a single number that sorts by
+  // batch first and position within the batch second, and _new is set for
+  // anything in the last NEW_WINDOW batches. A contact missing from the
+  // ledger sorts first as "oldest" and is flagged in the console so the
+  // omission gets noticed rather than silently accepted.
+  var ADDED_SEQ = {};
+  ADDED.forEach(function (b, bi) {
+    b.members.forEach(function (n, mi) {
+      ADDED_SEQ[n] = { seq: bi * 1000 + mi, batch: bi, on: b.on };
+    });
+  });
+  DATA.forEach(function (d) {
+    var a = ADDED_SEQ[d.name];
+    if (!a) console.warn("Not in the ADDED ledger: " + d.name);
+    d._seq = a ? a.seq : -1;
+    d._addedOn = a ? a.on : null;
+    d._new = !!a && a.batch >= ADDED.length - NEW_WINDOW;
+  });
+
   // ---- derived filter vocabularies -------------------------------------
 
   var FACTION_ORDER = ["gongsi", "stormrider", "wildlife", "dachtylo"];
@@ -4797,7 +4857,7 @@
   TIERS.sort();
 
   var state = { q: "", faction: null, tier: null, role: null, only: null,
-                scope: null, expand: false };
+                scope: null, sort: null, expand: false };
   var currentView = "cards";
   var booted = false;
 
@@ -4925,6 +4985,7 @@
     if (state.role && d.role !== state.role) return false;
     if (state.only === "variants" && !d._group) return false;
     if (state.only === "scaling" && !d._scaling) return false;
+    if (state.only === "new" && !d._new) return false;
     if (state.q) {
       var hay = state.scope ? d._hayScope[state.scope] : d._hay;
       if (hay.indexOf(state.q) === -1) return false;
@@ -5137,6 +5198,11 @@
     title.appendChild(el("h3", null, d.short));
     title.appendChild(el("span", "class", d.cls));
     var tags = el("div", "tagrow");
+    if (d._new) {
+      var nt = el("span", "tag new", "NEW");
+      nt.title = "Indexed " + d._addedOn;
+      tags.appendChild(nt);
+    }
     tags.appendChild(el("span", "tag tier", d.tier));
     tags.appendChild(el("span", "tag role", d.role));
     (d.tmpl || []).forEach(function (t) { tags.appendChild(el("span", "tag tmpl", t)); });
@@ -5259,9 +5325,15 @@
 
     FACTION_ORDER.forEach(function (fk, fi) {
       // Alphabetical within the faction, on the displayed name.
+      // Alphabetical within the faction by default; the Sort chips switch
+      // to ledger order, with A-Z only breaking ties between contacts that
+      // arrived in the same batch position (which the ledger never produces).
       var list = DATA
         .filter(function (d) { return d.faction === fk && matches(d); })
         .sort(function (a, b) {
+          if (state.sort && a._seq !== b._seq) {
+            return state.sort === "newest" ? b._seq - a._seq : a._seq - b._seq;
+          }
           return a.short.localeCompare(b.short, "en", { sensitivity: "base" });
         });
       if (!list.length) return;
@@ -5296,7 +5368,9 @@
       list.forEach(function (d) {
         var tr = el("tr");
         function td(v, cls) { tr.appendChild(el("td", cls, v)); }
-        td(d.short, "nm");
+        var nm = el("td", "nm", d.short);
+        if (d._new) nm.appendChild(el("span", "tag new", "NEW"));
+        tr.appendChild(nm);
         td(FACTIONS[d.faction].name, "ro");
         td(d.role, "ro");
         td(d.tier);
@@ -5550,8 +5624,13 @@
   });
   buildChips("f-tier", "tier", TIERS);
   buildChips("f-role", "role", ROLES);
-  buildChips("f-only", "only", ["variants", "scaling"], function (v) {
-    return v === "variants" ? "Has variants" : "Scales T1-T3";
+  buildChips("f-only", "only", ["variants", "scaling", "new"], function (v) {
+    return v === "variants" ? "Has variants"
+         : v === "scaling"  ? "Scales T1-T3" : "New arrivals";
+  });
+  // No chip pressed is the default A-Z within each faction.
+  buildChips("f-sort", "sort", ["newest", "oldest"], function (v) {
+    return v === "newest" ? "Newest first" : "Oldest first";
   });
 
   // ---- controls --------------------------------------------------------
@@ -5641,7 +5720,7 @@
 
   document.getElementById("reset").addEventListener("click", function () {
     state = { q: "", faction: null, tier: null, role: null, only: null,
-              scope: null, expand: false };
+              scope: null, sort: null, expand: false };
     searchEl.value = "";
     expandBtn.setAttribute("aria-pressed", "false");
     expandBtn.textContent = "Expand all";
