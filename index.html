@@ -2918,7 +2918,7 @@
   <div class="wrap controls-inner">
     <div class="indexbar" id="indexbar"></div>
     <div class="searchrow combat-only">
-      <input id="search" type="search" placeholder="Search everything..."
+      <input id="search" type="search" placeholder="Search contact names..."
              aria-label="Search contacts" />
       <button class="btn" id="expand" type="button" aria-pressed="false">Expand all</button>
       <button class="btn" id="reset" type="button">Reset</button>
@@ -5353,7 +5353,7 @@
     if (state.only === "scaling" && !d._scaling) return false;
     if (state.only === "new" && !d._new) return false;
     if (state.q) {
-      var hay = state.scope ? d._hayScope[state.scope] : d._hay;
+      var hay = d._hayScope[state.scope || "name"];
       if (hay.indexOf(state.q) === -1) return false;
     }
     return true;
@@ -5685,7 +5685,7 @@
 
   function render() {
     searchEl.placeholder = state.scope
-      ? SCOPE_HINT[state.scope] : "Search everything...";
+      ? SCOPE_HINT[state.scope] : "Search contact names...";
     cardview.textContent = "";
     tbody.textContent = "";
     var shown = 0;

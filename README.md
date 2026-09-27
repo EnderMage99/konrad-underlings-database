@@ -28,7 +28,9 @@ faction, tier and battlefield role.
 - **Targetable parts** for a contact big enough to have them, each part with
   its own Health bar, its own separate scan, and its own effect on the body.
 - **Visual contact stills** for contacts that have one on file.
-- Search across every rules string, plus filters by faction, tier and role.
+- Search by contact name, with a *Search in* switch to look inside weapons,
+  systems, traits, reactions or parts instead, plus filters by faction, tier
+  and role.
 - **Arrival order** - sort contacts by when they were indexed, newest or
   oldest first, and a **NEW** tag on everything from the last three batches
   of additions.
