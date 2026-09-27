@@ -528,7 +528,13 @@
   .tag.flag  { color: var(--brass); }
   .tag.vari  { color: var(--violet); }
   .tag.new   { color: var(--plate); background: var(--brass); border-color: var(--brass); font-weight: 700; }
-  td.nm .tag.new { margin-left: .5rem; vertical-align: middle; }
+  .card-title h3 .tag.new, td.nm .tag.new {
+    display: inline-block;
+    margin-left: .5rem;
+    vertical-align: middle;
+    letter-spacing: .1em;
+    line-height: 1.4;
+  }
 
   .sizehex {
     flex: 0 0 auto;
@@ -5195,14 +5201,15 @@
     head.appendChild(thumb);
 
     var title = el("div", "card-title");
-    title.appendChild(el("h3", null, d.short));
-    title.appendChild(el("span", "class", d.cls));
-    var tags = el("div", "tagrow");
+    var h3 = el("h3", null, d.short);
     if (d._new) {
       var nt = el("span", "tag new", "NEW");
       nt.title = "Indexed " + d._addedOn;
-      tags.appendChild(nt);
+      h3.appendChild(nt);
     }
+    title.appendChild(h3);
+    title.appendChild(el("span", "class", d.cls));
+    var tags = el("div", "tagrow");
     tags.appendChild(el("span", "tag tier", d.tier));
     tags.appendChild(el("span", "tag role", d.role));
     (d.tmpl || []).forEach(function (t) { tags.appendChild(el("span", "tag tmpl", t)); });
