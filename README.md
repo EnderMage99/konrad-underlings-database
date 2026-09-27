@@ -8,12 +8,18 @@ faction, tier and battlefield role.
 
 ## What's in it
 
-- **49 contacts** across four factions - Gongsi (41), Stormrider (3),
-  Wildlife (4), Dachtylo Company (1).
+- **51 contacts** across five factions - Gongsi (41), Stormrider (3),
+  Wildlife (4), Dachtylo Company (1), Horrors (2).
 - Full stat lines plus every weapon, system, trait and reaction, recorded
   verbatim from the scans.
-- **Eight views** - Dossiers, Variants, a Stat table that puts all 49 side by
+- **Eight views** - Dossiers, Variants, a Stat table that puts all 51 side by
   side, Personnel, Lancers, the Hall of Infamy, Registry and the Comment log.
+- **Horrors** - contacts that carry the Abominable trait, so a scan returns
+  nothing but the word. Their dossiers hold "???" for every reading and
+  describe only what they were seen doing in combat, with assumed weapons and
+  traits marked as such. The section renders in COMP/CON's HORUS glitch
+  style, slowed and muted so it does not strobe, and goes still under
+  prefers-reduced-motion.
 - **Nine variant families** — contacts that scan almost identically and split
   on only a handful of features, laid out as an aligned comparison. The two
   Cataphracts differ on *zero* of sixteen stats, as do Witch and Hornet.
