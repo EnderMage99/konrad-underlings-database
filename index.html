@@ -4494,32 +4494,42 @@
     },
     {
       slide: 52, name: "Horrors Contact 02", faction: "horror",
-      cls: "???",
-      tier: "Unknown", role: "Unknown", size: "1", tmpl: ["Horror"],
-      flags: ["Abominable"], unscanned: true,
-      stats: { hp: "???", armor: "Yes", structure: "???", stress: "???",
-               heat: "???", speed: "~5", act: "???",
-               save: "???", evade: "???", edef: "???", sensor: "???" },
+      cls: "Enemy Berserker Horror Mech - custom build",
+      tier: "T1", role: "Bruiser", size: "1", tmpl: ["Horror"],
+      flags: ["Abominable", "Custom", "Tier inferred"], unscanned: true,
+      stats: { hp: "???", armor: 1, structure: "???", stress: "???",
+               heat: 6, speed: 5, act: 1,
+               save: "???", evade: "???", edef: 6, sensor: 5 },
       skills: { hull: "?", agi: "?", sys: "?", eng: "?" },
       weapons: [
-        { n: "???", ghost: true, mount: "Assumed Main Melee",
-          line: "Threat ? | ~7 Kinetic",
-          txt: "Bladed claws on both forelimbs. On hit: the target loses all Overshield. Damage counted in the field at around 7 Kinetic a hit - an observation, not a scanned value, so whether that is a flat number or a die roll is not settled.",
-          meta: "Observed / Overshield strip confirmed / ~7 Kinetic observed" }
+        { n: "Chain Axe", mount: "Heavy Melee",
+          line: "Threat 1 | 7 Kinetic | +1 attack",
+          txt: "On critical hit: the target becomes Shredded until the end of their next turn.",
+          meta: "Berserker class weapon, carried over from the Berserker Knight and Nomiraka - the 7 Kinetic counted in the field is the T1 value" }
       ],
-      systems: [],
+      systems: [
+        { n: "Avalanche Charge", txt: "The Berserker moves spaces equal to their Speed in a straight line, ignoring reactions and engagement, then attacks a random adjacent character - hostile or allied - with the Chain Axe.",
+          meta: "Quick action / Recharge 5+ / Berserker class system, carried over" },
+        { n: "???", ghost: true,
+          txt: "Custom system. On use: the target loses all Overshield. Every Overshield the squad has carried into its reach has come off in one go. Originally logged as an on-hit effect of the axe; now understood to be its own system rather than part of the attack. Action type, range and any recharge are not established.",
+          meta: "Custom / Observed / Overshield strip confirmed / Rules text unconfirmed" }
+      ],
       traits: [
         { n: "Abominable", line: "T1",
           txt: "Scan doesn't reveal any information about the Horror except that they are a Horror.",
           meta: "Verbatim from the scan - the only line it returns" },
-        { n: "???", ghost: true, txt: "The hide is a mass of bulbous plating with a green glow through the seams. It has Armor: hits against it have come back reduced. How much is not established - the field count has not been steady enough to pin a number on it.",
-          meta: "Observed / Armor confirmed / Value unconfirmed" }
+        { n: "Stampede Defense", txt: "The Berserker has Resistance to all damage unless they are Impaired, Stunned, Immobilized, Shredded, Slowed or Exposed.",
+          meta: "Berserker class trait, carried over" },
+        { n: "Aggression", txt: "After taking damage for the first time each round, the Berserker must immediately attack a random adjacent character - hostile or allied - with the Chain Axe.",
+          meta: "Berserker class trait, confirmed - this is the point-blank counterattack" },
+        { n: "Retribution", txt: "Whenever the Berserker takes damage, their next attack deals +2 bonus damage. This bonus stacks up to +8. Bonuses are lost when the Berserker attacks, or at the end of their next turn.",
+          meta: "Berserker class trait, carried over at the T1 value" },
+        { n: "???", ghost: true,
+          txt: "The other Horror-templated Berserker on file, the Berserker Knight, carries Mutations, Terrifying and Abhorrent Redundancies from the Horror template. None of the three has been seen on Contact 02 yet, and Abominable may be what its template gives it instead. Assume Terrifying until an attack with line of sight comes back without the +1 Difficulty.",
+          meta: "Assumed from the Horror template / Unconfirmed" }
       ],
-      reactions: [
-        { n: "???", ghost: true, txt: "Trigger: a character adjacent to the contact attacks it with a ranged weapon. Effect (observed): the contact immediately attacks the shooter with its claws. Seen once, at point blank. Unknown whether it fires on every adjacent shot, once a round, or only on a hit.",
-          meta: "Observed once / Unconfirmed" }
-      ],
-      note: "Behaviour in combat is the only record. Contact 02 closes and claws. It covers about 5 spaces a round, so anything inside 5 of it at the start of its turn is in reach, and every hit so far has torn off the target's whole Overshield in one go and landed around 7 Kinetic besides - so going in shielded buys exactly one swing of grace and nothing more. It is armored, by an amount not yet pinned down, so bring AP or something that hits hard enough to not care. It answered a point-blank shot with a counterattack, which makes shooting it from inside its reach the wrong idea until the trigger is understood - back off past 5 and fire, or commit to melee and take the trade knowingly. Scan returns nothing."
+      reactions: [],
+      note: "Behaviour in combat is the only record the scan allows, but the behaviour gave it away: a custom Berserker. The two Berserkers already on file, the Knight and Nomiraka, share a Chain Axe, Stampede Defense, Aggression, Retribution and Avalanche Charge, and all five are carried over here. The 7 Kinetic counted in the field is the axe's T1 value, which is why the tier is written as T1 rather than scanned as it. The point-blank counterattack was Aggression: the first time it takes damage in a round it swings at a random adjacent character, its own side included, so shooting it from inside Threat 1 hands it a free attack. Stampede Defense is the fight, as it is for every Berserker - blanket Resistance until you land Impaired, Stunned, Immobilized, Shredded, Slowed or Exposed, and its own axe crits Shred, not yours. What is custom is the Overshield strip, which is a system rather than the axe, and what is still unknown is everything Abominable hides: HP, Structure, Stress, Save, Evasion, skills, and whether the rest of the Horror template is on it."
     }
   ];
 
