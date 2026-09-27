@@ -463,55 +463,143 @@
   }
 
   /* ---------- Horrors: the glitched section ---------- */
-  /* Modelled on COMP/CON's .horus--subtle: text-shadow offsets that snap
-     through a few frames twice a cycle and are otherwise off. Slowed to a
-     9-13s loop, offsets held to 1-2px, and the chroma under half opacity so
-     nothing strobes. The card frame drifts between the faction teal and a
-     muted slip of magenta or cyan rather than flashing. The whole treatment
-     is switched off under prefers-reduced-motion by the global rule at the
-     foot of the sheet, which leaves the section static in the faction
-     colour. */
-  .fac-horror .faction-head h2 { animation: horus-text 9s infinite; }
+  /* After COMP/CON's .horus--subtle, turned up. Text snaps through a few
+     offset frames of red/cyan shadow several times a cycle; card frames
+     flick between a light green and a purple on stepped timing; anything
+     flagged ghost (an assumed weapon, system, trait or reaction) drops in
+     and out of view. Colours stay under full brightness and nothing goes
+     to white, and the global prefers-reduced-motion rule at the foot of the
+     sheet stops all of it, leaving the section static in the faction
+     colour. Tune the loop lengths here if it is too much at the table. */
+  .fac-horror .faction-head h2 { animation: horus-text 2.4s infinite; }
   .fac-horror .faction-head .blurb {
     font-family: var(--mono);
     letter-spacing: .04em;
     color: var(--fac-horror);
-    opacity: .8;
+    animation: horus-fade 5s steps(1) infinite;
   }
-  .fac-horror .card-title h3 { animation: horus-text 11s infinite -4s; }
-  .fac-horror .card-title .class { color: var(--fac-horror); opacity: .7; }
+  .fac-horror .card-title h3 { animation: horus-text 2.8s infinite -1.1s; }
+  .fac-horror .card-title .class {
+    color: var(--fac-horror);
+    animation: horus-fade 3.7s steps(1) infinite -2s;
+  }
   .fac-horror .tag.tmpl, .fac-horror .tag.flag { color: var(--fac-horror); }
+  .fac-horror .tag { animation: horus-fade 6s steps(1) infinite; }
+  .fac-horror .tag:nth-child(2n) { animation-delay: -3.1s; }
+  .fac-horror .tag:nth-child(3n) { animation-delay: -1.4s; }
+
   .fac-horror .stat .v,
   .fac-horror .stat.skill .v,
-  .fac-horror .stat.hp .v { color: var(--fac-horror); opacity: .85; }
-  .fac-horror .entry .name { animation: horus-text 13s infinite -7s; }
+  .fac-horror .stat.hp .v {
+    color: var(--fac-horror);
+    animation: horus-fade 4.3s steps(1) infinite;
+  }
+  .fac-horror .stat:nth-child(2n) .v { animation-delay: -1.7s; }
+  .fac-horror .stat:nth-child(3n) .v { animation-delay: -2.9s; }
+  .fac-horror .stat:nth-child(5n) .v { animation-delay: -0.6s; }
+  .fac-horror .sizehex .val { animation: horus-text 3.1s infinite -0.7s; }
+
+  .fac-horror .group h4 { animation: horus-text 3.3s infinite -2.2s; }
+  .fac-horror .entry .name { animation: horus-text 2.6s infinite -1.6s; }
+  .fac-horror .entry:nth-child(2n) .name { animation-delay: -0.4s; }
+
+  /* Real readings stay put; ghosts flick in and out. */
+  .fac-horror .entry.ghost { animation: horus-ghost 3.9s steps(1) infinite; }
+  .fac-horror .group:nth-child(2n) .entry.ghost { animation-delay: -1.9s; }
+  .fac-horror .entry.ghost:nth-child(2n) { animation-delay: -2.7s; }
+  .fac-horror .entry.ghost .meta { animation: horus-fade 2.3s steps(1) infinite -0.9s; }
+
+  .fac-horror .card-shot img,
+  .fac-horror .shotgrid .shot img { animation: horus-image 4.6s steps(1) infinite; }
 
   /* .card paints its 1px frame as its own background, under ::before */
-  .fac-horror .card { animation: horus-edge 12s ease-in-out infinite; }
-  .fac-horror .card:nth-child(even) { animation-delay: -6s; }
-  .fac-horror .card:hover { box-shadow: 0 0 30px -5px rgba(159, 232, 218, .35); }
+  .fac-horror .card { animation: horus-edge 2.2s steps(1) infinite; }
+  .fac-horror .card:nth-child(2n) { animation-delay: -1.3s; }
+  .fac-horror .card::after { animation: horus-spine 2.2s steps(1) infinite; }
+  .fac-horror .card:nth-child(2n)::after { animation-delay: -1.3s; }
+  .fac-horror .card:hover { box-shadow: 0 0 30px -5px rgba(150, 255, 170, .35); }
+  .fac-horror .note { animation: horus-fade 7s steps(1) infinite -4s; }
 
   @keyframes horus-text {
-    0%, 24%, 30%, 74%, 80%, 100% { text-shadow: none; transform: none; }
-    25% { text-shadow:  1px -1px rgba(255, 0, 90, .45), -1px  1px rgba(0, 255, 255, .45); }
-    26% { text-shadow: -1px -1px rgba(255, 0, 90, .45),  1px  1px rgba(0, 255, 255, .45); transform: translateX(1px); }
-    27% { text-shadow:  1px  1px rgba(255, 0, 90, .45), -2px  0   rgba(0, 255, 255, .45); }
-    28% { text-shadow: -2px  0   rgba(255, 0, 90, .45), -1px -1px rgba(0, 255, 255, .45); transform: translateX(-1px); }
-    75% { text-shadow: -2px  0   rgba(255, 0, 90, .45), -1px -1px rgba(0, 255, 255, .45); }
-    76% { text-shadow: -1px -1px rgba(255, 0, 90, .45),  1px  1px rgba(0, 255, 255, .45); transform: translateX(-1px); }
-    77% { text-shadow:  1px -1px rgba(255, 0, 90, .45), -1px  1px rgba(0, 255, 255, .45); }
-    78% { text-shadow:  1px  1px rgba(255, 0, 90, .45), -2px  0   rgba(0, 255, 255, .45); transform: translateX(1px); }
+    0%, 8%, 16%, 38%, 46%, 66%, 74%, 100% { text-shadow: none; transform: none; }
+    9%  { text-shadow:  2px -1px rgba(255, 0, 90, .6), -2px  1px rgba(0, 255, 255, .6); }
+    10% { text-shadow: -2px -2px rgba(255, 0, 90, .6),  2px  1px rgba(0, 255, 255, .6); transform: translateX(2px); }
+    12% { text-shadow:  2px  1px rgba(255, 0, 90, .6), -3px  0   rgba(0, 255, 255, .6); transform: translateX(-1px); }
+    14% { text-shadow: -3px  0   rgba(255, 0, 90, .6), -1px -1px rgba(0, 255, 255, .6); }
+    39% { text-shadow: -3px  0   rgba(255, 0, 90, .6), -1px -1px rgba(0, 255, 255, .6); transform: translateX(-2px); }
+    41% { text-shadow: -1px -1px rgba(255, 0, 90, .6),  2px  2px rgba(0, 255, 255, .6); }
+    43% { text-shadow:  2px -1px rgba(255, 0, 90, .6), -2px  1px rgba(0, 255, 255, .6); transform: translateX(1px) skewX(-4deg); }
+    45% { text-shadow:  1px  1px rgba(255, 0, 90, .6), -3px  0   rgba(0, 255, 255, .6); }
+    67% { text-shadow:  3px  0   rgba(255, 0, 90, .6), -2px -1px rgba(0, 255, 255, .6); transform: translateX(-1px); }
+    69% { text-shadow: -2px  1px rgba(255, 0, 90, .6),  2px -2px rgba(0, 255, 255, .6); transform: translateX(2px); }
+    71% { text-shadow:  1px -2px rgba(255, 0, 90, .6), -1px  2px rgba(0, 255, 255, .6); }
+    73% { text-shadow: -1px  0   rgba(255, 0, 90, .6),  3px  0   rgba(0, 255, 255, .6); transform: translateX(-2px); }
   }
 
+  /* Frames: a light green and a purple, with a dark blink between them. */
   @keyframes horus-edge {
-    0%, 100% { background: var(--rule); }
-    28%      { background: rgba(159, 232, 218, .5); }
-    30%      { background: rgba(255, 90, 200, .3); }
-    32%      { background: rgba(159, 232, 218, .5); }
-    58%      { background: var(--rule); }
-    76%      { background: rgba(159, 232, 218, .35); }
-    78%      { background: rgba(80, 220, 255, .3); }
-    80%      { background: rgba(159, 232, 218, .35); }
+    0%   { background: #8CF7A6; }
+    22%  { background: #B58CFF; }
+    27%  { background: var(--rule); }
+    30%  { background: #B58CFF; }
+    48%  { background: #8CF7A6; }
+    51%  { background: #B58CFF; }
+    53%  { background: #8CF7A6; }
+    72%  { background: var(--rule); }
+    75%  { background: #B58CFF; }
+    90%  { background: #8CF7A6; }
+    93%  { background: #B58CFF; }
+    96%  { background: #8CF7A6; }
+    100% { background: #8CF7A6; }
+  }
+  @keyframes horus-spine {
+    0%   { background: #8CF7A6; }
+    22%  { background: #B58CFF; }
+    48%  { background: #8CF7A6; }
+    51%  { background: #B58CFF; }
+    75%  { background: #B58CFF; }
+    90%  { background: #8CF7A6; }
+    100% { background: #8CF7A6; }
+  }
+
+  /* A short dropout: mostly on, briefly dim, once briefly gone. */
+  @keyframes horus-fade {
+    0%, 100% { opacity: 1; }
+    31%  { opacity: .35; }
+    34%  { opacity: 1; }
+    62%  { opacity: 0; }
+    65%  { opacity: .5; }
+    67%  { opacity: 1; }
+    88%  { opacity: .2; }
+    90%  { opacity: 1; }
+  }
+
+  /* Ghost entries spend real time absent, and slip sideways on the way. */
+  @keyframes horus-ghost {
+    0%   { opacity: 1;   transform: none; }
+    18%  { opacity: .15; transform: translateX(3px); }
+    21%  { opacity: 1;   transform: none; }
+    40%  { opacity: 0;   transform: translateX(-4px); }
+    47%  { opacity: 0;   }
+    48%  { opacity: .6;  transform: translateX(2px); }
+    50%  { opacity: 1;   transform: none; }
+    66%  { opacity: .3;  }
+    68%  { opacity: 1;   }
+    83%  { opacity: 0;   transform: translateX(3px); }
+    88%  { opacity: 1;   transform: none; }
+    100% { opacity: 1;   transform: none; }
+  }
+
+  /* Still on file: colour channels drift, a couple of hard cuts. */
+  @keyframes horus-image {
+    0%, 100% { filter: none; }
+    20%  { filter: hue-rotate(60deg) contrast(1.15); }
+    23%  { filter: none; }
+    45%  { filter: hue-rotate(-90deg) saturate(1.4); }
+    47%  { filter: invert(.08) contrast(1.3); }
+    49%  { filter: none; }
+    77%  { filter: hue-rotate(120deg); }
+    80%  { filter: none; }
   }
 
   /* ---------- dossier card ---------- */
@@ -4378,27 +4466,27 @@
     {
       slide: 51, name: "Horrors Contact 01", faction: "horror",
       cls: "???",
-      tier: "Unknown", role: "Unknown", size: "?", tmpl: ["Horror"],
+      tier: "Unknown", role: "Unknown", size: "1", tmpl: ["Horror"],
       flags: ["Abominable"], unscanned: true,
       stats: { hp: "???", armor: "???", structure: "???", stress: "???",
                heat: "???", speed: "???", act: "???",
                save: "???", evade: "???", edef: "???", sensor: "???" },
       skills: { hull: "?", agi: "?", sys: "?", eng: "?" },
       weapons: [
-        { n: "???", mount: "Assumed melee",
+        { n: "???", ghost: true, mount: "Assumed melee",
           line: "Threat ? | ? damage",
           txt: "Four grasping limbs and nothing that looks like a gun. Assumed to fight in Threat. No hit has been recorded against it yet, so the profile is a guess.",
           meta: "Assumed / Unconfirmed" }
       ],
       systems: [
-        { n: "???", txt: "Observed: the contact produced one or more duplicates of itself mid-engagement. Whether the copies are real units, projections or something done to the pilots' sensors is not established - they behaved like hallucinations. Assumed to be a quick or full action with some recharge; the trigger was not seen.",
+        { n: "???", ghost: true, txt: "Observed: the contact produced one or more duplicates of itself mid-engagement. Whether the copies are real units, projections or something done to the pilots' sensors is not established - they behaved like hallucinations. Assumed to be a quick or full action with some recharge; the trigger was not seen.",
           meta: "Observed / Unconfirmed / Possibly a hallucination effect" }
       ],
       traits: [
         { n: "Abominable", line: "T1",
           txt: "Scan doesn't reveal any information about the Horror except that they are a Horror.",
           meta: "Verbatim from the scan - the only line it returns" },
-        { n: "???", txt: "The eye. The core is a lidded optic that stays lit while the copies are active. Unknown whether it is a weak point, a sensor, or the source of the duplication.",
+        { n: "???", ghost: true, txt: "The eye. The core is a lidded optic that stays lit while the copies are active. Unknown whether it is a weak point, a sensor, or the source of the duplication.",
           meta: "Assumed / Unconfirmed" }
       ],
       reactions: [],
@@ -4407,14 +4495,14 @@
     {
       slide: 52, name: "Horrors Contact 02", faction: "horror",
       cls: "???",
-      tier: "Unknown", role: "Unknown", size: "?", tmpl: ["Horror"],
+      tier: "Unknown", role: "Unknown", size: "1", tmpl: ["Horror"],
       flags: ["Abominable"], unscanned: true,
       stats: { hp: "???", armor: "???", structure: "???", stress: "???",
                heat: "???", speed: "???", act: "???",
                save: "???", evade: "???", edef: "???", sensor: "???" },
       skills: { hull: "?", agi: "?", sys: "?", eng: "?" },
       weapons: [
-        { n: "???", mount: "Assumed Main Melee",
+        { n: "???", ghost: true, mount: "Assumed Main Melee",
           line: "Threat ? | ? Kinetic",
           txt: "Bladed claws on both forelimbs. On hit: the target loses all Overshield. Whether any damage goes through underneath is not confirmed - the hits recorded so far were absorbed entirely by the shield it stripped.",
           meta: "Observed / Overshield strip confirmed / Damage unconfirmed" }
@@ -4424,11 +4512,11 @@
         { n: "Abominable", line: "T1",
           txt: "Scan doesn't reveal any information about the Horror except that they are a Horror.",
           meta: "Verbatim from the scan - the only line it returns" },
-        { n: "???", txt: "The hide is a mass of bulbous plating with a green glow through the seams. Assumed to carry Armor or Resistance of some kind; no damage number has come back off it that would settle which.",
+        { n: "???", ghost: true, txt: "The hide is a mass of bulbous plating with a green glow through the seams. Assumed to carry Armor or Resistance of some kind; no damage number has come back off it that would settle which.",
           meta: "Assumed / Unconfirmed" }
       ],
       reactions: [
-        { n: "???", txt: "Trigger: a character adjacent to the contact attacks it with a ranged weapon. Effect (observed): the contact immediately attacks the shooter with its claws. Seen once, at point blank. Unknown whether it fires on every adjacent shot, once a round, or only on a hit.",
+        { n: "???", ghost: true, txt: "Trigger: a character adjacent to the contact attacks it with a ranged weapon. Effect (observed): the contact immediately attacks the shooter with its claws. Seen once, at point blank. Unknown whether it fires on every adjacent shot, once a round, or only on a hit.",
           meta: "Observed once / Unconfirmed" }
       ],
       note: "Behaviour in combat is the only record. Contact 02 closes and claws. Every hit so far has torn off the target's whole Overshield in one go, so going in shielded buys exactly one swing of grace and nothing more. It answered a point-blank shot with a counterattack, which makes shooting it from inside its reach the wrong idea until the trigger is understood - back off and fire, or commit to melee and take the trade knowingly. Scan returns nothing."
@@ -5129,7 +5217,7 @@
     g.appendChild(el("h4", null, title));
     var ul = el("ul");
     items.forEach(function (f) {
-      var li = el("li", "entry");
+      var li = el("li", "entry" + (f.ghost ? " ghost" : ""));
       var nm = el("div", "name", f.n);
       if (f.mount) {
         var mt = el("span");
