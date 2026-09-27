@@ -4586,34 +4586,35 @@
     },
     {
       slide: 54, name: "Horrors Contact 04", faction: "horror",
-      cls: "???",
-      tier: "Unknown", role: "Unknown", size: "1/2", tmpl: ["Horror"],
-      flags: ["Abominable"], unscanned: true,
-      stats: { hp: "???", armor: "???", structure: "???", stress: "???",
-               heat: "???", speed: "???", act: "???",
-               save: "???", evade: "???", edef: "???", sensor: "???" },
-      skills: { hull: "?", agi: "?", sys: "?", eng: "?" },
+      cls: "Enemy Hornet Horror Mech - custom build, grounded",
+      tier: "Unknown", role: "Skirmisher", size: "1/2", tmpl: ["Horror"],
+      flags: ["Abominable", "Custom", "Grounded", "T1 line assumed"], unscanned: true,
+      stats: { hp: 8, heat: 5, speed: 6, act: 1,
+               save: 12, evade: 16, edef: 6, sensor: 5 },
+      skills: { hull: -2, agi: 2, sys: 2, eng: 0 },
       weapons: [
-        { n: "???", ghost: true, mount: "Assumed ranged",
-          line: "Range ? | ? damage",
-          txt: "A cannon mounted under the head, fed from the body. Not yet fired as a weapon, so range, damage and type are all open. It may be the missile launcher below rather than a gun at all.",
-          meta: "Assumed from the still / Unconfirmed" }
+        { n: "Stinger Pistol", mount: "Auxiliary CQB",
+          line: "Range 8 | Threat 3 | 1 Energy | +1 attack | +1 accuracy",
+          txt: "On hit: targets become Impaired until the end of their next turn.",
+          meta: "Hornet class weapon, carried over from the Gongsi and Stormrider Hornets - not yet seen fired" }
       ],
       systems: [
+        { n: "Impale Systems", line: "+2 attack",
+          txt: "Tech attack against a character within Sensors. On a hit they take 3 heat and become Jammed until the end of their next turn.",
+          meta: "Quick tech / Recharge 5+ / Hornet class system, confirmed - this is the Jamming quick tech seen against E-Defense" },
         { n: "???", ghost: true, line: "Range ? | Blast 1 | 3 Heat",
-          txt: "Fires a missile as a system rather than a weapon attack. On hit: 3 Heat to each character in the blast, and no damage at all. Seen once. Range, whether it rolls to hit or forces a save, and any recharge are not established.",
-          meta: "Observed / Blast 1 confirmed / 3 Heat, no damage confirmed / Rest unconfirmed" },
-        { n: "???", ghost: true, line: "Tech attack vs E-Defense",
-          txt: "Quick tech. Tech attack against a character's E-Defense; on a success the target is Jammed. Seen once. Range, attack bonus, how long the Jammed lasts and any recharge are not established, and neither is whether it can take more than one target.",
-          meta: "Quick tech / Observed / Jammed on success confirmed / Rest unconfirmed" }
+          txt: "Fires a missile as a system rather than a weapon attack. On hit: 3 Heat to each character in the blast, and no damage at all. Seen once. The Gongsi Hornet carries Hex Missiles - Range 10, Blast 1, 3 Burn, Smart - and this reads as that launcher with heat in place of burn, so assume Range 10 and Smart until it shows otherwise. Whether it rolls to hit or forces a save, and any recharge, are not established.",
+          meta: "Custom / Observed / Blast 1 confirmed / 3 Heat, no damage confirmed / Likely a reworked Hex Missiles" }
       ],
       traits: [
         { n: "Abominable", line: "T1",
           txt: "Scan doesn't reveal any information about the Horror except that they are a Horror.",
-          meta: "Verbatim from the scan - the only line it returns" }
+          meta: "Verbatim from the scan - the only line it returns" },
+        { n: "Weave", txt: "Each round, the first attack made against the Hornet as a reaction automatically fails.",
+          meta: "Hornet class trait, carried over" }
       ],
       reactions: [],
-      note: "Behaviour in combat is the only record. Contact 04 has acted twice and not yet moved: a missile, as a system rather than an attack, that bursts Blast 1 and puts 3 Heat on everything inside with no damage attached. That is a heat-pressure piece, not a damage dealer - on its own it is a nuisance, but it stacks with anything else that heats you, and 3 a shot on a pilot already running warm is how Overheating starts. It also threw a quick tech that Jams against E-Defense, which makes it the first Horror on file with a tech attack and the one to keep the low-E-Def frames away from: a Jammed pilot loses their tech, their comms and their reactions, and a pilot who is both Jammed and taking heat is exactly the shape of trouble this thing is built to make. Read it as a Controller until it does something else. A low quadruped with a spined back and a cannon slung under the head, it is the smallest Horror on file and the most likely of the six to be a fast one, but that is still a guess until it moves. Size 1/2 and the missile are what the record settles. Scan returns nothing."
+      note: "Behaviour in combat is the only record the scan allows, and the behaviour named it: a Hornet, custom-built and grounded. The two Hornets already scanned, Gongsi and Stormrider, share a Stinger Pistol, Impale Systems, Weave, the SSC Total Suite hover and an identical T1 stat line, and all of it is carried over here except the hover - this one does not fly, which is the one thing about it that is worse than a Hornet. The stat line is the T1 Hornet's on the strength of the chassis, not a reading, so treat every number as a floor the way the Gaoshou Squadron's Hornets taught us to. The Jamming quick tech seen against E-Defense is Impale Systems, which also puts 3 heat on the target - so if the count of 3 Heat came from that rather than the missile, the missile is still unmeasured. Evade 16 is what makes it a problem: it is joint-hardest to hit in the index, Weave eats the first Overwatch on it every round, and it does not need to fly to stay out of reach at Speed 6. What is still unknown is whether it carries the Gongsi build's Hex Missiles and Umbral Interdiction or the Stormrider's Supersonic and Coreworms, or neither; the heat missile suggests the Gongsi side, reworked. Grounding a Hornet suggests a build that gave the hover up for something, and that something has not been seen yet."
     },
     {
       slide: 55, name: "Horrors Contact 05", faction: "horror",
