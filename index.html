@@ -4497,7 +4497,7 @@
       cls: "???",
       tier: "Unknown", role: "Unknown", size: "1", tmpl: ["Horror"],
       flags: ["Abominable"], unscanned: true,
-      stats: { hp: "???", armor: "???", structure: "???", stress: "???",
+      stats: { hp: "???", armor: "Yes", structure: "???", stress: "???",
                heat: "???", speed: "~5", act: "???",
                save: "???", evade: "???", edef: "???", sensor: "???" },
       skills: { hull: "?", agi: "?", sys: "?", eng: "?" },
@@ -4512,14 +4512,14 @@
         { n: "Abominable", line: "T1",
           txt: "Scan doesn't reveal any information about the Horror except that they are a Horror.",
           meta: "Verbatim from the scan - the only line it returns" },
-        { n: "???", ghost: true, txt: "The hide is a mass of bulbous plating with a green glow through the seams. Assumed to carry Armor or Resistance of some kind; no damage number has come back off it that would settle which.",
-          meta: "Assumed / Unconfirmed" }
+        { n: "???", ghost: true, txt: "The hide is a mass of bulbous plating with a green glow through the seams. It has Armor: hits against it have come back reduced. How much is not established - the field count has not been steady enough to pin a number on it.",
+          meta: "Observed / Armor confirmed / Value unconfirmed" }
       ],
       reactions: [
         { n: "???", ghost: true, txt: "Trigger: a character adjacent to the contact attacks it with a ranged weapon. Effect (observed): the contact immediately attacks the shooter with its claws. Seen once, at point blank. Unknown whether it fires on every adjacent shot, once a round, or only on a hit.",
           meta: "Observed once / Unconfirmed" }
       ],
-      note: "Behaviour in combat is the only record. Contact 02 closes and claws. It covers about 5 spaces a round, so anything inside 5 of it at the start of its turn is in reach, and every hit so far has torn off the target's whole Overshield in one go and landed around 7 Kinetic besides - so going in shielded buys exactly one swing of grace and nothing more. It answered a point-blank shot with a counterattack, which makes shooting it from inside its reach the wrong idea until the trigger is understood - back off past 5 and fire, or commit to melee and take the trade knowingly. Scan returns nothing."
+      note: "Behaviour in combat is the only record. Contact 02 closes and claws. It covers about 5 spaces a round, so anything inside 5 of it at the start of its turn is in reach, and every hit so far has torn off the target's whole Overshield in one go and landed around 7 Kinetic besides - so going in shielded buys exactly one swing of grace and nothing more. It is armored, by an amount not yet pinned down, so bring AP or something that hits hard enough to not care. It answered a point-blank shot with a counterattack, which makes shooting it from inside its reach the wrong idea until the trigger is understood - back off past 5 and fire, or commit to melee and take the trade knowingly. Scan returns nothing."
     }
   ];
 
