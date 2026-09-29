@@ -3,19 +3,21 @@
 -- Run this once in the Supabase SQL editor, after characters.sql.
 -- It is safe to run twice.
 
--- Length limits, matching what the page enforces in the form. The page is the
+-- Length limits, matching what the page enforces in the form. Added NOT VALID
+-- so a row written before the limit existed (one title runs to 29) is left
+-- alone; the check applies to every new write and edit from here on. The page is the
 -- only client today, but a constraint here is what actually guarantees it.
 do $$
 begin
   if not exists (select 1 from pg_constraint
                   where conname = 'characters_callsign_len') then
     alter table public.characters add constraint characters_callsign_len
-      check (char_length(callsign) between 2 and 24);
+      check (char_length(callsign) between 2 and 24) not valid;
   end if;
   if not exists (select 1 from pg_constraint
                   where conname = 'characters_title_len') then
     alter table public.characters add constraint characters_title_len
-      check (title is null or char_length(title) <= 24);
+      check (title is null or char_length(title) <= 24) not valid;
   end if;
 end $$;
 
@@ -80,6 +82,6 @@ begin
   if not exists (select 1 from pg_constraint
                   where conname = 'profiles_callsign_len') then
     alter table public.profiles add constraint profiles_callsign_len
-      check (char_length(callsign) between 2 and 24);
+      check (char_length(callsign) between 2 and 24) not valid;
   end if;
 end $$;
