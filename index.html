@@ -626,6 +626,153 @@
     filter: none;
   }
 
+  /* ---------- the sheet editor ---------- */
+  /* Editing controls are in the page for everyone and shown only under
+     body.archivist, which the account row sets. The server refuses the
+     write regardless; the class just keeps the buttons out of readers' way. */
+  .sheet-tools { display: none; }
+  body.archivist .sheet-tools { display: flex; gap: .4rem; align-items: center; flex-wrap: wrap; }
+  .card .sheet-tools { margin-top: .9rem; }
+  .person-desc .sheet-tools { margin-top: .6rem; }
+  .viewtools { margin: 0 0 1.2rem; }
+  .newrow { margin-left: auto; }
+  .newrow .acct-inline { max-width: 16rem; }
+  body.ed-open { overflow: hidden; }
+
+  .ed-veil {
+    position: fixed;
+    inset: 0;
+    z-index: 95;
+    background: rgba(2, 6, 10, .82);
+    overflow-y: auto;
+    padding: 2rem 1rem;
+  }
+  .ed-panel {
+    max-width: 62rem;
+    margin: 0 auto;
+    background: var(--surface);
+    border: 1px solid var(--accent-dim);
+    box-shadow: 0 0 60px -10px rgba(63, 216, 240, .35);
+  }
+  .ed-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .8rem 1.1rem;
+    border-bottom: 1px solid var(--rule);
+    position: sticky;
+    top: 0;
+    background: var(--surface);
+    z-index: 1;
+  }
+  .ed-head h3 {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: var(--fs-md);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .ed-body { padding: 1rem 1.1rem; display: flex; flex-direction: column; gap: .8rem; }
+  .ed-tabs { display: flex; gap: .3rem; }
+  .ed-view { display: flex; flex-direction: column; gap: .7rem; }
+  .ed-view[hidden] { display: none; }
+  .ed-view .paneltab { margin: .6rem 0 0; }
+  .ed-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+    gap: .55rem .7rem;
+  }
+  .ed-stats { grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr)); }
+  .ed-pics { grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); }
+  .ed-wide { grid-column: 1 / -1; }
+  .ed-field select, .ed-field textarea {
+    font-family: var(--mono);
+    font-size: var(--fs-sm);
+    padding: .4rem .5rem;
+    background: var(--ground-2);
+    color: var(--ink);
+    border: 1px solid var(--rule);
+  }
+  .ed-field textarea { font-family: var(--body); line-height: 1.55; }
+  .ed-field select:focus-visible, .ed-field textarea:focus-visible {
+    outline: 1px solid var(--accent); outline-offset: 1px;
+  }
+  .ed-checks { display: flex; gap: 1rem; flex-wrap: wrap; }
+  .ed-check {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  .ed-list { border: 1px solid var(--rule); padding: .6rem .7rem; }
+  .ed-listhead { display: flex; align-items: center; justify-content: space-between; }
+  .ed-listhead .paneltab { margin: 0; }
+  .ed-listbody { display: flex; flex-direction: column; gap: .6rem; margin-top: .5rem; }
+  .ed-item {
+    display: flex;
+    flex-direction: column;
+    gap: .45rem;
+    padding: .6rem;
+    background: var(--ground-2);
+    border-left: 2px solid var(--accent-dim);
+  }
+  .ed-itemtools { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
+  .ed-itemtools .ed-check { margin-right: auto; }
+  .ed-remove { border-color: var(--alert); color: var(--alert); }
+  .ed-json { font-family: var(--mono); font-size: 12px; line-height: 1.45; white-space: pre; }
+  .ed-pic { display: flex; flex-direction: column; gap: .4rem; }
+  .ed-piclabel {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .ed-picframe {
+    aspect-ratio: 1;
+    background: var(--ground-2);
+    border: 1px solid var(--rule);
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+  }
+  .ed-picframe img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .ed-picframe.ph img { opacity: .35; }
+  .ed-pick { cursor: pointer; }
+  .ed-pick.busy { opacity: .5; pointer-events: none; }
+  .ed-foot {
+    display: flex;
+    gap: .5rem;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: .8rem 1.1rem;
+    border-top: 1px solid var(--rule);
+    position: sticky;
+    bottom: 0;
+    background: var(--surface);
+  }
+  .ed-foot .notes-err { flex-basis: 100%; }
+  .ed-save { color: var(--accent); border-color: var(--accent); }
+  .ed-danger { color: var(--alert); border-color: var(--alert); margin-left: auto; }
+  .ed-danger + .ed-danger { margin-left: 0; }
+  .ed-hiddenrows { display: flex; flex-direction: column; gap: .35rem; }
+  .ed-hiddenrow {
+    display: flex;
+    align-items: center;
+    gap: .8rem;
+    padding: .4rem .6rem;
+    background: var(--ground-2);
+    border: 1px solid var(--rule);
+  }
+  .ed-hiddenname { font-family: var(--mono); font-size: var(--fs-sm); color: var(--ink-soft); }
+
   /* ---------- dossier card ---------- */
 
   .card {
@@ -2922,6 +3069,10 @@
              aria-label="Search contacts" />
       <button class="btn" id="expand" type="button" aria-pressed="false">Expand all</button>
       <button class="btn" id="reset" type="button">Reset</button>
+      <span class="sheet-tools newrow">
+        <select id="newfrom" class="acct-inline" aria-label="Start the new contact from"><option value="">Blank sheet</option></select>
+        <button class="btn" id="newcontact" type="button">New contact</button>
+      </span>
     </div>
     <div class="filterset combat-only" id="f-scope"><span class="setlabel">Search in</span></div>
     <div class="filterset combat-only" id="f-faction"><span class="setlabel">Faction</span></div>
@@ -2962,6 +3113,9 @@
       to the hostile contacts indexed elsewhere. Each file carries a portrait,
       a full-body reference where one exists, and whether they take a mech into
       the field.</p>
+    <div class="sheet-tools viewtools">
+      <button class="btn" id="newperson" type="button">New personnel file</button>
+    </div>
     <div id="personlist"></div>
   </div>
   <div id="lancerview" hidden>
@@ -5288,6 +5442,7 @@
     rebuildChips("f-tier", "tier", TIERS);
     rebuildChips("f-role", "role", ROLES);
     fillCounts();
+    if (typeof fillNewFrom === "function" && document.getElementById("newfrom")) fillNewFrom();
   }
 
   // Merges the archive's contact rows over the baked list. Rows win by name,
@@ -5300,12 +5455,14 @@
     clearMap(DB_VISUALS);
     clearMap(DB_ICONS);
     clearMap(CONTACT_ROWS);
+    HIDDEN_CONTACTS.length = 0;
     (rows || []).forEach(function (r) {
       if (!r || !r.name) return;
       var base = byLower[r.name.toLowerCase()];
       var at = base ? out.indexOf(base) : -1;
       if (r.hidden) {
         if (at !== -1) out.splice(at, 1);
+        HIDDEN_CONTACTS.push(r);
         return;
       }
       var d = Object.assign({}, r.doc || {});
@@ -5795,6 +5952,14 @@
     }
 
     body.appendChild(noteBlock("contact", d.name));
+
+    var tools = el("div", "sheet-tools");
+    var editBtn = el("button", "btn", "Edit sheet");
+    editBtn.type = "button";
+    editBtn.addEventListener("click", function () { openContactEditor(d); });
+    tools.appendChild(editBtn);
+    body.appendChild(tools);
+    card.dataset.name = d.name;
     det.appendChild(body);
     TARGETS["contact::" + d.name] = { view: "cards", node: card, details: det };
     card.appendChild(det);
@@ -5913,6 +6078,7 @@
 
     emptyMsg.hidden = shown > 0 || currentView !== "cards";
     document.getElementById("t-unique").textContent = String(shown);
+    renderHiddenList();
     booted = true;
   }
 
@@ -6174,6 +6340,28 @@
   searchEl.addEventListener("input", function () {
     state.q = fold(searchEl.value.trim());
     render();
+  });
+
+  // New contact: blank, or a copy of any sheet on file, which is how most
+  // variants start. The list is refilled whenever the index changes.
+  var newFrom = document.getElementById("newfrom");
+  function fillNewFrom() {
+    var newFrom = document.getElementById("newfrom");
+    var keep = newFrom.value;
+    newFrom.textContent = "";
+    var blank = el("option", null, "Blank sheet");
+    blank.value = "";
+    newFrom.appendChild(blank);
+    DATA.slice().sort(function (a, b) { return a.name.localeCompare(b.name); })
+      .forEach(function (d) {
+        var o = el("option", null, "Copy of " + d.name);
+        o.value = d.name;
+        newFrom.appendChild(o);
+      });
+    newFrom.value = BY_NAME[keep] ? keep : "";
+  }
+  document.getElementById("newcontact").addEventListener("click", function () {
+    openContactEditor(null, newFrom.value ? BY_NAME[newFrom.value] : null);
   });
 
   var expandBtn = document.getElementById("expand");
@@ -6503,7 +6691,17 @@
 
     var desc = el("div", "person-desc");
     desc.appendChild(el("h4", null, "File"));
-    desc.appendChild(el("p", "person-empty", "No entry recorded."));
+    if (p.desc && p.desc.length) {
+      p.desc.forEach(function (para) { desc.appendChild(elRich("p", "filepara", para)); });
+    } else {
+      desc.appendChild(el("p", "person-empty", "No entry recorded."));
+    }
+    var tools = el("div", "sheet-tools");
+    var editBtn = el("button", "btn", "Edit file");
+    editBtn.type = "button";
+    editBtn.addEventListener("click", function () { openPersonEditor(p); });
+    tools.appendChild(editBtn);
+    desc.appendChild(tools);
     box.appendChild(desc);
 
     var mech = el("div", "person-mech");
@@ -8021,6 +8219,737 @@
     renderPersonnel();
   }
 
+  // ---- the sheet editor ----------------------------------------------------
+  // Archivist-only. Opens over the page, edits one contact sheet or one
+  // personnel file as a form (with a raw JSON view for the contact sheet),
+  // and saves it to the archive tables above. A baked sheet saved this way
+  // becomes a row that replaces it; the file itself never changes. Buttons
+  // that open the editor sit in the page for everyone but are shown only
+  // under body.archivist, which refreshAll() sets from the account row -
+  // the server refuses the write regardless, so the class is a courtesy.
+
+  var STAT_KEYS = [["hp", "HP"], ["armor", "Armor"], ["structure", "Structure"],
+    ["stress", "Stress"], ["heat", "Heat"], ["speed", "Speed"], ["act", "Activations"],
+    ["save", "Save"], ["evade", "Evasion"], ["edef", "E-Defense"], ["sensor", "Sensors"]];
+  var SKILL_LABELS = [["hull", "Hull"], ["agi", "Agility"], ["sys", "Systems"], ["eng", "Engineering"]];
+  var FEATURE_LISTS = [["weapons", "Weapons"], ["systems", "Systems"], ["traits", "Traits"],
+    ["reactions", "Reactions"], ["parts", "Targetable parts"]];
+  var HIDDEN_CONTACTS = [];   // archive rows marked hidden, for the restore list
+
+  function isArchivist() { return !!(me && me.is_moderator); }
+
+  // A stat cell holds a number, a reading like "~5" or "12-14", or nothing.
+  function parseStat(v) {
+    v = String(v == null ? "" : v).trim();
+    if (!v) return undefined;
+    return /^[+-]?\d+$/.test(v) ? parseInt(v, 10) : v;
+  }
+  function showStat(v) { return v === undefined || v === null ? "" : String(v); }
+  function splitList(s) {
+    return String(s || "").split(",").map(function (x) { return x.trim(); })
+      .filter(Boolean);
+  }
+
+  // What gets saved is the sheet alone: derived fields, the display name and
+  // the old slide number all come off.
+  function cleanDoc(d) {
+    var out = {};
+    Object.keys(d || {}).forEach(function (k) {
+      if (k.charAt(0) === "_" || k === "short" || k === "slide" || k === "addedOn") return;
+      out[k] = d[k];
+    });
+    return JSON.parse(JSON.stringify(out));
+  }
+
+  function edField(label, value, opts) {
+    opts = opts || {};
+    var w = el("label", "acct-field ed-field" + (opts.wide ? " ed-wide" : ""));
+    w.appendChild(el("span", null, label));
+    var i;
+    if (opts.select) {
+      i = el("select", "ed-select");
+      opts.select.forEach(function (o) {
+        var op = el("option", null, o[1]);
+        op.value = o[0];
+        i.appendChild(op);
+      });
+      i.value = value == null ? "" : String(value);
+    } else if (opts.area) {
+      i = el("textarea", "filearea ed-area");
+      i.rows = opts.rows || 3;
+      i.value = value == null ? "" : String(value);
+    } else {
+      i = el("input");
+      i.type = "text";
+      i.value = value == null ? "" : String(value);
+      if (opts.list) i.setAttribute("list", opts.list);
+    }
+    if (opts.ph) i.placeholder = opts.ph;
+    w.appendChild(i);
+    w._input = i;
+    return w;
+  }
+
+  function edCheck(label, on) {
+    var w = el("label", "ed-check");
+    var i = el("input");
+    i.type = "checkbox";
+    i.checked = !!on;
+    w.appendChild(i);
+    w.appendChild(el("span", null, label));
+    w._input = i;
+    return w;
+  }
+
+  // One weapon, system, trait, reaction or part, as a block of inputs with
+  // move and remove controls. Read back by collectItem.
+  function edItem(f, kind) {
+    f = f || {};
+    var box = el("div", "ed-item");
+    var row1 = el("div", "ed-grid");
+    row1.appendChild(edField("Name", f.n, { ph: "??? for an unknown" }));
+    if (kind === "weapons" || kind === "systems" || kind === "parts") {
+      row1.appendChild(edField("Mount", f.mount, { ph: "Main Rifle / Assumed melee" }));
+    }
+    row1.appendChild(edField("Line", f.line, { ph: "Range 10 | 6 Kinetic | +1 attack", wide: true }));
+    box.appendChild(row1);
+    box.appendChild(edField("Rules text", f.txt, { area: true, rows: 3, wide: true }));
+    var row3 = el("div", "ed-grid");
+    row3.appendChild(edField("Tags", f.meta, { ph: "Quick action / Recharge 5+", wide: true }));
+    box.appendChild(row3);
+    var tools = el("div", "ed-itemtools");
+    tools.appendChild(edCheck("Assumed - flickers in the Horrors section", f.ghost));
+    var up = el("button", "pagebtn", "Up"); up.type = "button";
+    var down = el("button", "pagebtn", "Down"); down.type = "button";
+    var rm = el("button", "pagebtn ed-remove", "Remove"); rm.type = "button";
+    up.addEventListener("click", function () {
+      if (box.previousElementSibling) box.parentNode.insertBefore(box, box.previousElementSibling);
+    });
+    down.addEventListener("click", function () {
+      if (box.nextElementSibling) box.parentNode.insertBefore(box.nextElementSibling, box);
+    });
+    rm.addEventListener("click", function () {
+      if (rm.textContent !== "Sure?") { rm.textContent = "Sure?"; return; }
+      box.parentNode.removeChild(box);
+    });
+    tools.appendChild(up); tools.appendChild(down); tools.appendChild(rm);
+    box.appendChild(tools);
+    box._fields = { n: row1.children[0]._input,
+                    mount: row1.children.length === 3 ? row1.children[1]._input : null,
+                    line: row1.children[row1.children.length - 1]._input,
+                    txt: box.children[1]._input,
+                    meta: row3.children[0]._input,
+                    ghost: tools.children[0]._input };
+    return box;
+  }
+
+  function collectItem(box) {
+    var f = box._fields, out = {};
+    var n = f.n.value.trim();
+    out.n = n || "???";
+    if (f.mount && f.mount.value.trim()) out.mount = f.mount.value.trim();
+    if (f.line.value.trim()) out.line = f.line.value.trim();
+    if (f.txt.value.trim()) out.txt = f.txt.value.trim();
+    if (f.meta.value.trim()) out.meta = f.meta.value.trim();
+    if (f.ghost.checked) out.ghost = true;
+    return out;
+  }
+
+  function edList(kind, label, items) {
+    var wrap = el("div", "ed-list");
+    var head = el("div", "ed-listhead");
+    head.appendChild(el("h4", "paneltab", label));
+    var add = el("button", "pagebtn", "Add");
+    add.type = "button";
+    head.appendChild(add);
+    wrap.appendChild(head);
+    var body = el("div", "ed-listbody");
+    (items || []).forEach(function (f) { body.appendChild(edItem(f, kind)); });
+    wrap.appendChild(body);
+    add.addEventListener("click", function () {
+      var it = edItem(null, kind);
+      body.appendChild(it);
+      it._fields.n.focus();
+    });
+    wrap._body = body;
+    return wrap;
+  }
+
+  function collectList(wrap) {
+    return Array.prototype.map.call(wrap._body.children, collectItem);
+  }
+
+  // The overlay itself. One at a time; Escape or the veil closes it.
+  function openEditor(title) {
+    closeEditor();
+    var veil = el("div", "ed-veil");
+    veil.id = "ed-veil";
+    var panel = el("div", "ed-panel");
+    var head = el("div", "ed-head");
+    head.appendChild(el("h3", null, title));
+    var close = el("button", "btn", "Close");
+    close.type = "button";
+    close.addEventListener("click", closeEditor);
+    head.appendChild(close);
+    panel.appendChild(head);
+    var body = el("div", "ed-body");
+    panel.appendChild(body);
+    var foot = el("div", "ed-foot");
+    panel.appendChild(foot);
+    veil.appendChild(panel);
+    veil.addEventListener("click", function (e) { if (e.target === veil) closeEditor(); });
+    document.body.appendChild(veil);
+    document.body.className = (document.body.className + " ed-open").trim();
+    return { veil: veil, body: body, foot: foot, head: head };
+  }
+
+  function closeEditor() {
+    var v = document.getElementById("ed-veil");
+    if (v) v.parentNode.removeChild(v);
+    document.body.className = document.body.className.replace(/\s*ed-open/g, "");
+  }
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && document.getElementById("ed-veil")) closeEditor();
+  });
+
+  // A picture slot: shows what is on file, takes a replacement, or clears it.
+  // Uploads go straight to Storage when chosen, and the path is handed back
+  // through slot.value for the row on save.
+  function edPicture(label, current, edge, bytes) {
+    var w = el("div", "ed-pic");
+    w.appendChild(el("span", "ed-piclabel", label));
+    var fig = el("div", "ed-picframe" + (current ? "" : " ph"));
+    var im = el("img");
+    im.src = current || NO_IMAGE;
+    im.alt = current ? label : "No image data";
+    fig.appendChild(im);
+    w.appendChild(fig);
+    var row = el("div", "acct-row");
+    var pick = el("label", "pagebtn ed-pick");
+    pick.textContent = current ? "Replace" : "Upload";
+    var fileIn = el("input");
+    fileIn.type = "file";
+    fileIn.accept = "image/*";
+    fileIn.hidden = true;
+    pick.appendChild(fileIn);
+    row.appendChild(pick);
+    var clear = el("button", "pagebtn", "Clear");
+    clear.type = "button";
+    row.appendChild(clear);
+    w.appendChild(row);
+    var msg = el("p", "acct-fine");
+    w.appendChild(msg);
+    w.value = null;          // null = leave as is; "" = clear; path = new
+    fileIn.addEventListener("change", async function () {
+      var file = fileIn.files && fileIn.files[0];
+      if (!file) return;
+      msg.textContent = "Shrinking and uploading...";
+      pick.className += " busy";
+      try {
+        var blob = await fitImage(file, edge, bytes);
+        var path = await uploadFile(blob);
+        w.value = path;
+        im.src = publicUrl(path);
+        im.alt = label;
+        fig.className = "ed-picframe";
+        msg.textContent = "Uploaded. Save the sheet to keep it.";
+      } catch (e) {
+        msg.textContent = e.message;
+      }
+      pick.className = pick.className.replace(/\s*busy/g, "");
+      fileIn.value = "";
+    });
+    clear.addEventListener("click", function () {
+      w.value = "";
+      im.src = NO_IMAGE;
+      im.alt = "No image data";
+      fig.className = "ed-picframe ph";
+      msg.textContent = "Cleared. The baked picture, if there is one, shows again after saving.";
+    });
+    return w;
+  }
+
+  // ---- contact sheets --------------------------------------------------
+
+  function openContactEditor(d, copyFrom) {
+    var row = d ? CONTACT_ROWS[d.name] : null;
+    var doc = d ? cleanDoc(d) : (copyFrom ? cleanDoc(copyFrom) : {
+      cls: "", tier: "T1", role: "", size: "1", tmpl: [], flags: [],
+      stats: {}, skills: {}, weapons: [], systems: [], traits: [], reactions: []
+    });
+    if (!d && copyFrom) doc.name = "";
+    var ed = openEditor(d ? "Edit sheet: " + d.name : "New contact");
+    var tabs = el("div", "ed-tabs");
+    var views = {};
+    ["Sheet", "JSON", "Pictures"].forEach(function (t) {
+      var b = el("button", "chip", t);
+      b.type = "button";
+      b.setAttribute("aria-pressed", t === "Sheet" ? "true" : "false");
+      b.addEventListener("click", function () { showTab(t); });
+      tabs.appendChild(b);
+      views[t] = el("div", "ed-view");
+      views[t].hidden = t !== "Sheet";
+      ed.body.appendChild(views[t]);
+    });
+    ed.body.insertBefore(tabs, ed.body.firstChild);
+
+    // -- the sheet form
+    var form = views.Sheet;
+    var idg = el("div", "ed-grid");
+    var fName = edField("Full name", doc.name || (d ? d.name : ""), { ph: "Gongsi Hornet - faction prefix drops off the card" });
+    var fFaction = edField("Faction", doc.faction || (d ? d.faction : "gongsi"),
+      { select: FACTION_ORDER.map(function (k) { return [k, FACTIONS[k].name]; }) });
+    var fCls = edField("Class line", doc.cls, { ph: "Enemy T1 Hornet Mech", wide: true });
+    var fTier = edField("Tier", doc.tier, { list: "ed-tiers", ph: "T1 / T2 / Unknown" });
+    var fRole = edField("Role", doc.role, { list: "ed-roles", ph: "Striker / Unknown" });
+    var fSize = edField("Size", doc.size, { ph: "1/2, 1, 2" });
+    var fTmpl = edField("Templates", (doc.tmpl || []).join(", "), { ph: "Veteran, Horror" });
+    var fFlags = edField("Flags", (doc.flags || []).join(", "), { ph: "Named, Custom, Abominable" });
+    var fStatus = edField("Status", doc.status || "", { select: [["", "In the field"], ["kia", "Killed in action"]] });
+    [fName, fFaction, fCls, fTier, fRole, fSize, fTmpl, fFlags, fStatus].forEach(function (f) { idg.appendChild(f); });
+    form.appendChild(idg);
+    var flags = el("div", "ed-checks");
+    var cUnscanned = edCheck("Unscanned - the summary reads \"No scan on record\"", doc.unscanned);
+    flags.appendChild(cUnscanned);
+    form.appendChild(flags);
+
+    var dl1 = el("datalist"); dl1.id = "ed-tiers";
+    TIERS.forEach(function (t) { var o = el("option"); o.value = t; dl1.appendChild(o); });
+    var dl2 = el("datalist"); dl2.id = "ed-roles";
+    ROLES.forEach(function (t) { var o = el("option"); o.value = t; dl2.appendChild(o); });
+    form.appendChild(dl1); form.appendChild(dl2);
+
+    form.appendChild(el("h4", "paneltab", "Stat line"));
+    form.appendChild(el("p", "acct-fine", "Leave a cell blank for no reading - it shows as a dash or the default. Write ??? for a reading the scan hides, or a note like ~5 or 12-14."));
+    var sg = el("div", "ed-grid ed-stats");
+    var statIn = {};
+    STAT_KEYS.forEach(function (k) {
+      var f = edField(k[1], showStat((doc.stats || {})[k[0]]));
+      statIn[k[0]] = f._input;
+      sg.appendChild(f);
+    });
+    form.appendChild(sg);
+    var kg = el("div", "ed-grid ed-stats");
+    var skillIn = {};
+    SKILL_LABELS.forEach(function (k) {
+      var f = edField(k[1], showStat((doc.skills || {})[k[0]]));
+      skillIn[k[0]] = f._input;
+      kg.appendChild(f);
+    });
+    form.appendChild(kg);
+
+    var lists = {};
+    FEATURE_LISTS.forEach(function (pair) {
+      lists[pair[0]] = edList(pair[0], pair[1], doc[pair[0]]);
+      form.appendChild(lists[pair[0]]);
+    });
+
+    form.appendChild(el("h4", "paneltab", "Prose"));
+    var fNote = edField("Overseer note", doc.note, { area: true, rows: 6, wide: true });
+    var fBrief = edField("Class briefing", doc.brief || (d ? d._brief : ""), { area: true, rows: 5, wide: true, ph: "Background on the chassis. Leave blank for none." });
+    form.appendChild(fNote);
+    form.appendChild(fBrief);
+    var fScaling = edField("Printed tier scaling", (doc.scaling || (d && d._scaling) || [])
+      .map(function (s) { return s.f + " :: " + s.t; }).join("\n"),
+      { area: true, rows: 3, wide: true, ph: "One per line, as  Feature :: what it does at T2 and T3" });
+    form.appendChild(fScaling);
+
+    // -- the JSON view, filled from the form when opened
+    var jsonArea = el("textarea", "filearea ed-json");
+    jsonArea.rows = 28;
+    jsonArea.spellcheck = false;
+    views.JSON.appendChild(el("p", "acct-fine", "The whole sheet, in the shape the page keeps it. Apply copies it back into the form; a mistake here is reported rather than saved."));
+    views.JSON.appendChild(jsonArea);
+    var applyRow = el("div", "acct-row");
+    var applyBtn = el("button", "btn", "Apply to form");
+    applyBtn.type = "button";
+    applyRow.appendChild(applyBtn);
+    views.JSON.appendChild(applyRow);
+    var jsonErr = el("p", "notes-err");
+    views.JSON.appendChild(jsonErr);
+
+    // -- pictures
+    var stillPic = edPicture("Visual contact still", d ? stillOf(d.name) : null, 1024, 900 * 1024);
+    var iconPic = edPicture("Card icon (square crop)", d ? iconOf(d.name) : null, 256, 120 * 1024);
+    views.Pictures.appendChild(el("p", "acct-fine", "Pictures upload to the archive as soon as they are chosen and are kept when the sheet is saved. The still is the full capture; the icon is a small square used for the card thumbnail."));
+    var pg = el("div", "ed-grid ed-pics");
+    pg.appendChild(stillPic); pg.appendChild(iconPic);
+    views.Pictures.appendChild(pg);
+
+    function collect() {
+      var out = {};
+      out.name = fName._input.value.trim();
+      out.faction = fFaction._input.value;
+      out.cls = fCls._input.value.trim();
+      out.tier = fTier._input.value.trim() || "Unknown";
+      out.role = fRole._input.value.trim() || "Unknown";
+      out.size = fSize._input.value.trim() || "1";
+      out.tmpl = splitList(fTmpl._input.value);
+      out.flags = splitList(fFlags._input.value);
+      if (fStatus._input.value) out.status = fStatus._input.value;
+      if (cUnscanned._input.checked) out.unscanned = true;
+      out.stats = {};
+      STAT_KEYS.forEach(function (k) {
+        var v = parseStat(statIn[k[0]].value);
+        if (v !== undefined) out.stats[k[0]] = v;
+      });
+      out.skills = {};
+      SKILL_LABELS.forEach(function (k) {
+        var v = parseStat(skillIn[k[0]].value);
+        if (v !== undefined) out.skills[k[0]] = v;
+      });
+      FEATURE_LISTS.forEach(function (pair) {
+        var items = collectList(lists[pair[0]]);
+        if (items.length || pair[0] !== "parts") out[pair[0]] = items;
+      });
+      if (fNote._input.value.trim()) out.note = fNote._input.value.trim();
+      if (fBrief._input.value.trim()) out.brief = fBrief._input.value.trim();
+      var sc = fScaling._input.value.split("\n").map(function (l) {
+        var i = l.indexOf("::");
+        if (i === -1) return l.trim() ? { f: l.trim(), t: "" } : null;
+        return { f: l.slice(0, i).trim(), t: l.slice(i + 2).trim() };
+      }).filter(Boolean);
+      if (sc.length) out.scaling = sc;
+      // Anything the form does not know about rides through untouched.
+      Object.keys(doc).forEach(function (k) {
+        if (!(k in out) && ["name", "faction", "status", "unscanned", "note", "brief", "scaling", "parts"].indexOf(k) === -1) out[k] = doc[k];
+      });
+      return out;
+    }
+
+    function showTab(t) {
+      if (t === "JSON") {
+        jsonArea.value = JSON.stringify(collect(), null, 2);
+        jsonErr.textContent = "";
+      }
+      Array.prototype.forEach.call(tabs.children, function (b) {
+        b.setAttribute("aria-pressed", String(b.textContent === t));
+      });
+      Object.keys(views).forEach(function (k) { views[k].hidden = k !== t; });
+    }
+
+    applyBtn.addEventListener("click", function () {
+      jsonErr.textContent = "";
+      var parsed;
+      try { parsed = JSON.parse(jsonArea.value); }
+      catch (e) { jsonErr.textContent = "That is not valid JSON: " + e.message; return; }
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        jsonErr.textContent = "The sheet has to be one object.";
+        return;
+      }
+      // Rebuild the editor around the parsed sheet, keeping row identity.
+      var keep = d ? Object.assign({}, d, parsed) : parsed;
+      if (d) keep.name = d.name;
+      closeEditor();
+      openContactEditor(d ? Object.assign(keep, { _brief: parsed.brief, _scaling: parsed.scaling }) : null, d ? null : parsed);
+      if (!d) {
+        var f = document.querySelector("#ed-veil .ed-field input");
+        if (f) f.value = parsed.name || "";
+      }
+    });
+
+    // -- footer: save, hide, delete
+    var err = el("p", "notes-err");
+    var save = el("button", "btn ed-save", d ? "Save sheet" : "Create contact");
+    save.type = "button";
+    save.addEventListener("click", async function () {
+      err.textContent = "";
+      var out = collect();
+      if (!out.name) { err.textContent = "The contact needs a name."; showTab("Sheet"); return; }
+      var clash = DATA.filter(function (x) {
+        return x.name.toLowerCase() === out.name.toLowerCase() && (!d || x.name !== d.name);
+      });
+      if (clash.length) { err.textContent = "There is already a contact called " + clash[0].name + "."; return; }
+      save.disabled = true;
+      save.textContent = "Saving...";
+      try {
+        var payload = {
+          name: out.name, faction: out.faction, doc: out, hidden: false,
+          author: session.user_id, updated_at: new Date().toISOString()
+        };
+        if (stillPic.value !== null) payload.still = stillPic.value || null;
+        if (iconPic.value !== null) payload.icon = iconPic.value || null;
+        if (row) {
+          if (payload.still === undefined) payload.still = row.still;
+          if (payload.icon === undefined) payload.icon = row.icon;
+          await patchRow("contacts", row.id, payload);
+        } else {
+          payload.added_on = d && d._addedOn ? d._addedOn : new Date().toISOString().slice(0, 10);
+          await postRow("contacts", payload);
+        }
+        closeEditor();
+        await loadSheets();
+        await refreshAll();
+        jumpToContact(out.name);
+      } catch (e) {
+        err.textContent = e.message;
+        save.disabled = false;
+        save.textContent = d ? "Save sheet" : "Create contact";
+      }
+    });
+    ed.foot.appendChild(save);
+
+    if (d) {
+      var hide = el("button", "btn ed-danger", "Hide from the index");
+      hide.type = "button";
+      hide.addEventListener("click", async function () {
+        if (hide.textContent !== "Sure?") { hide.textContent = "Sure?"; return; }
+        hide.disabled = true;
+        try {
+          if (row) await patchRow("contacts", row.id, { hidden: true, updated_at: new Date().toISOString() });
+          else await postRow("contacts", { name: d.name, faction: d.faction, doc: cleanDoc(d),
+            hidden: true, author: session.user_id, added_on: d._addedOn || new Date().toISOString().slice(0, 10) });
+          closeEditor();
+          await loadSheets();
+          await refreshAll();
+        } catch (e) { err.textContent = e.message; hide.disabled = false; hide.textContent = "Hide from the index"; }
+      });
+      ed.foot.appendChild(hide);
+      // A row with no baked sheet behind it can go for good; one that stands
+      // in for a baked sheet can only be reverted, which brings the file's
+      // version back.
+      var baked = BASE_DATA.some(function (b) { return b.name.toLowerCase() === d.name.toLowerCase(); });
+      if (row) {
+        var drop = el("button", "btn ed-danger", baked ? "Revert to the baked sheet" : "Delete outright");
+        drop.type = "button";
+        drop.addEventListener("click", async function () {
+          if (drop.textContent !== "Sure?") { drop.textContent = "Sure?"; return; }
+          drop.disabled = true;
+          try {
+            await deleteRow("contacts", row.id);
+            closeEditor();
+            await loadSheets();
+            await refreshAll();
+          } catch (e) { err.textContent = e.message; drop.disabled = false; }
+        });
+        ed.foot.appendChild(drop);
+      }
+    }
+    var cancel = el("button", "btn", "Cancel");
+    cancel.type = "button";
+    cancel.addEventListener("click", closeEditor);
+    ed.foot.appendChild(cancel);
+    ed.foot.appendChild(err);
+    fName._input.focus();
+  }
+
+  function jumpToContact(name) {
+    var want = String(name).toLowerCase();
+    var cards = document.querySelectorAll("#cardview article.card");
+    for (var i = 0; i < cards.length; i++) {
+      if ((cards[i].dataset.name || "").toLowerCase() === want) {
+        cards[i].scrollIntoView({ block: "start" });
+        return;
+      }
+    }
+  }
+
+  // The list of hidden contacts, so a hide can be undone. Rendered at the
+  // foot of the dossiers for the archivist only.
+  function renderHiddenList() {
+    var old = document.getElementById("hiddenlist");
+    if (old) old.parentNode.removeChild(old);
+    if (!HIDDEN_CONTACTS.length) return;
+    var box = el("section", "faction sheet-tools");
+    box.id = "hiddenlist";
+    var fh = el("div", "faction-head");
+    fh.appendChild(el("h2", null, "Hidden"));
+    fh.appendChild(el("span", "blurb", "Contacts taken out of the index. Restore brings one back as it was."));
+    box.appendChild(fh);
+    var ul = el("div", "ed-hiddenrows");
+    HIDDEN_CONTACTS.forEach(function (r) {
+      var li = el("div", "ed-hiddenrow");
+      li.appendChild(el("span", "ed-hiddenname", r.name));
+      var b = el("button", "pagebtn", "Restore");
+      b.type = "button";
+      b.addEventListener("click", async function () {
+        b.disabled = true;
+        try {
+          var baked = BASE_DATA.some(function (x) { return x.name.toLowerCase() === r.name.toLowerCase(); });
+          var empty = !r.doc || !Object.keys(r.doc).length;
+          // A hidden baked sheet with nothing edited just loses its row;
+          // anything else comes back unhidden.
+          if (baked && empty) await deleteRow("contacts", r.id);
+          else await patchRow("contacts", r.id, { hidden: false, updated_at: new Date().toISOString() });
+          await loadSheets();
+          await refreshAll();
+        } catch (e) { b.disabled = false; b.textContent = "Failed"; }
+      });
+      li.appendChild(b);
+      ul.appendChild(li);
+    });
+    box.appendChild(ul);
+    cardview.appendChild(box);
+  }
+
+  // ---- personnel files -------------------------------------------------
+
+  function openPersonEditor(p) {
+    var row = p ? PERSONNEL_ROWS[p.name] : null;
+    var doc = p ? cleanDoc(p) : { role: "", faction: PERSON_ORDER[0], mech: { status: "unknown" } };
+    delete doc.avatar;
+    delete doc.body;
+    var ed = openEditor(p ? "Edit file: " + p.name : "New personnel file");
+    var form = ed.body;
+    var g = el("div", "ed-grid");
+    var fName = edField("Name", p ? p.name : "", { ph: "As it should read on the file" });
+    var fRole = edField("Role", doc.role, { ph: "Pilot / Employer / Facility Commander" });
+    var fFaction = edField("Faction", doc.faction,
+      { select: PERSON_ORDER.map(function (k) { return [k, PERSON_FACTIONS[k].name]; }) });
+    var fState = edField("Status", doc.state ? doc.state.kind : "",
+      { select: [["", "No status"], ["kia", "Killed in action"], ["held", "Held"], ["other", "Other"]] });
+    var fStateLabel = edField("Status wording", doc.state ? doc.state.label : "", { ph: "Captured by the Dachtylo Company" });
+    var fMech = edField("Mech", (doc.mech && doc.mech.status) || "unknown",
+      { select: [["pilot", "Pilots a mech"], ["none", "Does not pilot"], ["unknown", "Not on record"]] });
+    var fMechType = edField("Mech type", doc.mech && doc.mech.type, { ph: "Ace-pattern / Ronin Elite" });
+    var fMechDetail = edField("Mech detail", doc.mech && doc.mech.detail, { area: true, rows: 2, wide: true });
+    [fName, fRole, fFaction, fState, fStateLabel, fMech, fMechType, fMechDetail].forEach(function (f) { g.appendChild(f); });
+    form.appendChild(g);
+    form.appendChild(el("h4", "paneltab", "File"));
+    var fDesc = edField("Entry", (doc.desc || []).join("\n\n"), { area: true, rows: 8, wide: true, ph: "Written in the Overseer's voice. Blank lines separate paragraphs." });
+    form.appendChild(fDesc);
+    form.appendChild(el("h4", "paneltab", "Pictures"));
+    var portrait = edPicture("Portrait", p ? p.avatar : null, 512, 300 * 1024);
+    var body = edPicture("Full body reference", p ? p.body : null, 1024, 900 * 1024);
+    var pg = el("div", "ed-grid ed-pics");
+    pg.appendChild(portrait); pg.appendChild(body);
+    form.appendChild(pg);
+
+    function collect() {
+      var out = {};
+      out.role = fRole._input.value.trim() || "Unknown";
+      out.faction = fFaction._input.value;
+      if (fState._input.value) {
+        out.state = { kind: fState._input.value, label: fStateLabel._input.value.trim() || fState._input.selectedOptions[0].textContent };
+      }
+      out.mech = { status: fMech._input.value };
+      if (out.mech.status === "pilot") {
+        out.mech.type = fMechType._input.value.trim() || "Unidentified frame";
+        if (fMechDetail._input.value.trim()) out.mech.detail = fMechDetail._input.value.trim();
+      }
+      var paras = fDesc._input.value.split(/\n\s*\n/).map(function (s) { return s.trim(); }).filter(Boolean);
+      if (paras.length) out.desc = paras;
+      return out;
+    }
+
+    var err = el("p", "notes-err");
+    var save = el("button", "btn ed-save", p ? "Save file" : "Create file");
+    save.type = "button";
+    save.addEventListener("click", async function () {
+      err.textContent = "";
+      var name = fName._input.value.trim();
+      if (!name) { err.textContent = "The file needs a name."; return; }
+      var clash = PERSONNEL.filter(function (x) {
+        return x.name.toLowerCase() === name.toLowerCase() && (!p || x.name !== p.name);
+      });
+      if (clash.length) { err.textContent = "There is already a file for " + clash[0].name + "."; return; }
+      save.disabled = true;
+      save.textContent = "Saving...";
+      try {
+        var out = collect();
+        var payload = { name: name, faction: out.faction, doc: out, hidden: false,
+                        author: session.user_id, updated_at: new Date().toISOString() };
+        if (portrait.value !== null) payload.portrait = portrait.value || null;
+        if (body.value !== null) payload.body = body.value || null;
+        if (row) {
+          if (payload.portrait === undefined) payload.portrait = row.portrait;
+          if (payload.body === undefined) payload.body = row.body;
+          await patchRow("personnel", row.id, payload);
+        } else {
+          await postRow("personnel", payload);
+        }
+        closeEditor();
+        await loadSheets();
+        await refreshAll();
+      } catch (e) {
+        err.textContent = e.message;
+        save.disabled = false;
+        save.textContent = p ? "Save file" : "Create file";
+      }
+    });
+    ed.foot.appendChild(save);
+    if (p) {
+      var hide = el("button", "btn ed-danger", "Hide this file");
+      hide.type = "button";
+      hide.addEventListener("click", async function () {
+        if (hide.textContent !== "Sure?") { hide.textContent = "Sure?"; return; }
+        hide.disabled = true;
+        try {
+          if (row) await patchRow("personnel", row.id, { hidden: true, updated_at: new Date().toISOString() });
+          else await postRow("personnel", { name: p.name, faction: p.faction, doc: collect(), hidden: true, author: session.user_id });
+          closeEditor();
+          await loadSheets();
+          await refreshAll();
+        } catch (e) { err.textContent = e.message; hide.disabled = false; hide.textContent = "Hide this file"; }
+      });
+      ed.foot.appendChild(hide);
+      if (row) {
+        var baked = BASE_PERSONNEL.some(function (b) { return b.name.toLowerCase() === p.name.toLowerCase(); });
+        var drop = el("button", "btn ed-danger", baked ? "Revert to the baked file" : "Delete outright");
+        drop.type = "button";
+        drop.addEventListener("click", async function () {
+          if (drop.textContent !== "Sure?") { drop.textContent = "Sure?"; return; }
+          drop.disabled = true;
+          try {
+            await deleteRow("personnel", row.id);
+            closeEditor();
+            await loadSheets();
+            await refreshAll();
+          } catch (e) { err.textContent = e.message; drop.disabled = false; }
+        });
+        ed.foot.appendChild(drop);
+      }
+    }
+    var cancel = el("button", "btn", "Cancel");
+    cancel.type = "button";
+    cancel.addEventListener("click", closeEditor);
+    ed.foot.appendChild(cancel);
+    ed.foot.appendChild(err);
+    fName._input.focus();
+  }
+
+  // ---- writes ------------------------------------------------------------
+  // Row-level security filters a write it does not permit rather than
+  // refusing it, so an empty result is the signal that the account may not.
+
+  async function postRow(table, payload) {
+    var t = await token();
+    if (!t) throw new Error("Your session has expired. Sign in again.");
+    var rows = await api("/rest/v1/" + table, {
+      method: "POST", token: t, headers: { Prefer: "return=representation" }, body: payload
+    });
+    if (!rows || !rows.length) throw new Error("The archive did not accept that write.");
+    return rows[0];
+  }
+
+  async function patchRow(table, id, payload) {
+    var t = await token();
+    if (!t) throw new Error("Your session has expired. Sign in again.");
+    var rows = await api("/rest/v1/" + table + "?id=eq." + id, {
+      method: "PATCH", token: t, headers: { Prefer: "return=representation" }, body: payload
+    });
+    if (!rows || !rows.length) throw new Error("You are not able to change that sheet.");
+    return rows[0];
+  }
+
+  async function deleteRow(table, id) {
+    var t = await token();
+    if (!t) throw new Error("Your session has expired. Sign in again.");
+    var rows = await api("/rest/v1/" + table + "?id=eq." + id, {
+      method: "DELETE", token: t, headers: { Prefer: "return=representation" }
+    });
+    if (!rows || !rows.length) throw new Error("You are not able to remove that sheet.");
+  }
+
+  // Shows or hides every editing control at once.
+  function refreshArchivist() {
+    var on = isArchivist() && (contactsOnline || personnelOnline);
+    var has = document.body.className.indexOf("archivist") !== -1;
+    if (on && !has) document.body.className = (document.body.className + " archivist").trim();
+    if (!on && has) document.body.className = document.body.className.replace(/\s*archivist/g, "");
+  }
+
   // ---- dossier galleries ---------------------------------------------------
 
   var IMAGES = {};            // "kind::id" -> rows, oldest first
@@ -8247,6 +9176,7 @@
     refreshVisuals();
     refreshAvatars();
     refreshFiles();
+    refreshArchivist();
     renderRegistry();
     renderCommentLog();
     renderAccount();
@@ -9098,6 +10028,10 @@
     hideBtn.textContent = willHide ? "Show controls" : "Hide controls";
     hideBtn.title = willHide
       ? "Bring the sticky header back" : "Collapse the sticky header";
+  });
+
+  document.getElementById("newperson").addEventListener("click", function () {
+    openPersonEditor(null);
   });
 
   renderVariants();

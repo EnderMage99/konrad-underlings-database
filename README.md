@@ -49,7 +49,19 @@ rather than the page.
 
 ## Updating
 
-Replace `index.html` and commit. Everything lives in that one file:
+The archivist edits in the page. Once `supabase/editing.sql` has run and an
+account carries the moderator flag, every dossier grows an **Edit sheet**
+button, the Combat Index controls gain **New contact** (blank, or a copy of
+any sheet on file), and each personnel file gains **Edit file** with a
+**New personnel file** button above the list. Sheets saved this way live in
+the `contacts` and `personnel` tables and are merged over the baked data at
+load, so a saved sheet replaces the one in the file without the file
+changing. Pictures upload to the same Storage bucket as annotation images.
+A hidden contact can be restored from the list at the foot of the dossiers.
+
+Everything below still applies to the baked data in `index.html`, which is
+the offline copy and the fallback for anything not yet saved through the
+page:
 
 - Contact stat blocks are the `DATA` array. A contact scanned in pieces
   carries a `parts` array alongside its weapons and systems; an unread part is
