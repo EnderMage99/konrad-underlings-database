@@ -60,20 +60,6 @@
   @media (prefers-reduced-motion: reduce) { #cover { display: none; } }
 
   /* ---- variant: Phase out ---- */
-  .tile { position: absolute; background: var(--plate); border: 1px solid rgba(63,216,240,.08);
-          will-change: transform, opacity; }
-  #cover.open .tile { animation: phase .62s steps(1, end) forwards; animation-delay: var(--d); }
-  @keyframes phase {
-    0%   { transform: none; opacity: 1; border-color: rgba(63,216,240,.08); }
-    12%  { transform: translate(-2px, 1px); border-color: rgba(63,216,240,.6); box-shadow: 0 0 0 1px rgba(63,216,240,.4); }
-    24%  { transform: translate(2px, -1px) rotate(var(--r1)); }
-    36%  { transform: translate(-1px, 2px) rotate(var(--r2)); opacity: 1; }
-    48%  { opacity: 0; }
-    60%  { opacity: .75; transform: scale(.94) rotate(var(--r2)); border-color: rgba(63,216,240,.35); }
-    72%  { opacity: 0; }
-    84%  { opacity: .35; transform: scale(.86) rotate(var(--r1)); }
-    100% { opacity: 0; transform: scale(.8); }
-  }
 </style>
 </head>
 <body>
@@ -100,7 +86,7 @@
 </main>
 
 <button class="replay" id="replay" type="button">Replay intro</button>
-<div class="demo-note">Phase out: the crumble rattle, but tiles flicker out in place instead of falling, in rings from behind the gate, so the hole grows outward with a ragged edge.</div>
+<div class="demo-note">Phase out: tiles rattle by a pixel, then blink out in place. The hole spreads from behind the gate at a different pace in each direction, reshuffled every replay.</div>
 
 <script>
 (function () {
@@ -118,28 +104,6 @@
   // Builds the plates for this variant and returns how long their exit takes.
   function build() {
     plates.textContent = "";
-    var cols = 16, rows = 9;
-    var w = 100 / cols, h = 100 / rows;
-    var maxDelay = 0;
-    var seed = Date.now() % 9973;
-    function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
-    for (var r = 0; r < rows; r++) for (var c = 0; c < cols; c++) {
-      var t = document.createElement("div");
-      t.className = "tile";
-      t.style.left = (c * w) + "%"; t.style.top = (r * h) + "%";
-      t.style.width = (w + 0.05) + "%"; t.style.height = (h + 0.05) + "%";
-      // Rings out from behind the gate, one ring per step, with enough
-      // jitter that the edge of the hole is ragged rather than a clean disc.
-      var cx = (c + .5) / cols - .5, cy = ((r + .5) / rows - .5) * (rows / cols) * 1.6;
-      var ring = Math.round(Math.sqrt(cx * cx + cy * cy) * 10);   // 0 at the gate, ~6 at the corners
-      var d = ring * 0.1 + Math.round(rnd() * 3) * 0.05;           // 0.1s a ring, up to 0.15s of jitter
-      t.style.setProperty("--d", d + "s");
-      t.style.setProperty("--r1", (rnd() - .5) * 5 + "deg");
-      t.style.setProperty("--r2", (rnd() - .5) * 9 + "deg");
-      if (d > maxDelay) maxDelay = d;
-      plates.appendChild(t);
-    }
-    return (maxDelay + 0.62) * 1000;
   }
 
   function run() {
