@@ -61,15 +61,14 @@
 
   /* ---- variant: Phase out ---- */
   .tile { position: absolute; background: var(--plate); border: 1px solid rgba(63,216,240,.08);
-          will-change: transform, opacity; }
+          will-change: opacity; }
   #cover.open .tile { animation: phase .62s steps(1, end) forwards; animation-delay: var(--d); }
   @keyframes phase {
-    0%   { transform: none; opacity: 1; border-color: rgba(63,216,240,.08); }
-    14%  { transform: translate(-1px, 0); border-color: rgba(63,216,240,.6); box-shadow: 0 0 0 1px rgba(63,216,240,.4); }
-    28%  { transform: translate(1px, 0) rotate(var(--r1)); }
-    40%  { transform: translate(0, 1px); opacity: 1; }
+    0%   { opacity: 1; border-color: rgba(63,216,240,.08); }
+    14%  { border-color: rgba(63,216,240,.6); box-shadow: 0 0 0 1px rgba(63,216,240,.4); }
+    40%  { opacity: 1; }
     52%  { opacity: 0; }
-    64%  { opacity: .75; transform: rotate(var(--r1)); border-color: rgba(63,216,240,.35); }
+    64%  { opacity: .75; border-color: rgba(63,216,240,.35); }
     76%  { opacity: 0; }
     88%  { opacity: .35; }
     100% { opacity: 0; }
@@ -100,7 +99,7 @@
 </main>
 
 <button class="replay" id="replay" type="button">Replay intro</button>
-<div class="demo-note">Phase out: tiles rattle by a pixel, then blink out in place. The hole spreads from behind the gate at a different pace in each direction, reshuffled every replay.</div>
+<div class="demo-note">Phase out: tiles hold still, their seams flare, and they blink out in place. The hole spreads from behind the gate at a different pace in each direction, reshuffled every replay.</div>
 
 <script>
 (function () {
@@ -144,7 +143,6 @@
       var ring = Math.round(dist * 10 * p);
       var d = ring * 0.1 + Math.round(rnd() * 3) * 0.05;
       t.style.setProperty("--d", d + "s");
-      t.style.setProperty("--r1", (rnd() - .5) * 2 + "deg");
       if (d > maxDelay) maxDelay = d;
       plates.appendChild(t);
     }
