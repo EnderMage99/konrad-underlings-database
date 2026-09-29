@@ -93,7 +93,8 @@ Annotations are attributed to whichever character is speaking at the time.
 The active character is a local choice, so switching costs no round trip.
 
 Schema lives in `supabase/`, as migrations to run in the Supabase SQL editor
-in this order: `characters.sql`, `moderation.sql`, `files.sql`, `images.sql`.
+in this order: `characters.sql`, `moderation.sql`, `files.sql`, `images.sql`,
+`editing.sql`.
 Each is safe to run twice. The page works either side of every one of them -
 it tries the fuller query first and falls back if a table or column is not
 there yet, so a feature simply stays hidden until its migration lands.

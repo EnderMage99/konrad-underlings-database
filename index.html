@@ -4679,28 +4679,19 @@
   // The still, if there is one, still carries the visual contact section.
   var ICONS = {};
 
-  // ---- normalise the scans ---------------------------------------------
-  // Runs before anything reads the stats, so the comparison engine below
-  // sees the filled-in values rather than blanks.
-
-  DATA.forEach(function (d) {
-    // Inside a faction section the faction name is already in the heading, so
-    // carry a short display name with that prefix dropped. The full name stays
-    // the identity used for keys, comparisons and anything cross-faction -
-    // without it "Gongsi Hornet" and "Stormrider Hornet" would collide.
-    var fn = FACTIONS[d.faction].name;
-    d.short = d.name.indexOf(fn + " ") === 0
-      ? d.name.slice(fn.length + 1) : d.name;
-
-    // Every NPC has at least 1 Structure and 1 Stress. COMP/CON only draws the
-    // track once a template pushes it above 1, so a scan showing no track
-    // still means 1 - not none. No armor plate likewise means Armor 0.
-    // Heat is deliberately left blank where absent: biologicals have no heat
-    // track at all, which is a real difference rather than a missing reading.
-    d.stats.structure = d.stats.structure || 1;
-    d.stats.stress = d.stats.stress || 1;
-    d.stats.armor = d.stats.armor || 0;
-  });
+  // ---- the baked index -------------------------------------------------
+  // DATA above is what ships in the file. Rows kept in the archive's
+  // contacts table are merged over it at boot (see applyContactRows): a row
+  // named like a baked contact replaces it, an unknown name is a new contact,
+  // a hidden row drops one. BASE_DATA keeps the untouched baked list so the
+  // merge can be redone from scratch after every save. Everything derived
+  // from the working list - short names, normalised stats, families, the
+  // ledger, search text - is computed by prepareData(), which runs once here
+  // and again whenever the working list changes.
+  var BASE_DATA = DATA.slice();
+  var DB_VISUALS = {};   // name -> still URL from the archive, beats VISUALS
+  var DB_ICONS = {};     // name -> icon URL from the archive, beats ICONS
+  var CONTACT_ROWS = {}; // name -> the archive row a working contact came from
 
   // ---- variant families ------------------------------------------------
   // Contacts that scan almost identically and separate only on a handful of
@@ -5167,58 +5158,173 @@
   }
 
   var BY_NAME = {};
-  DATA.forEach(function (d) { BY_NAME[d.name] = d; });
-
   var GROUP_OF = {};
-  VARIANT_GROUPS.forEach(function (g) {
-    g.entries = g.members.map(function (n) { return BY_NAME[n]; });
-    g.diff = computeDiff(g);
-    g.members.forEach(function (n) { GROUP_OF[n] = g; });
-  });
-
-  // Inside a faction section the faction name is already in the heading, so
-  // carry a short display name with that prefix dropped. The full name stays
-  // the identity used for keys, comparisons and anything cross-faction -
-  // without it "Gongsi Hornet" and "Stormrider Hornet" would collide.
-  DATA.forEach(function (d) {
-    d._scaling = TIER_SCALING[d.name] || null;
-    d._group = GROUP_OF[d.name] || null;
-    if (d._group) {
-      d._kin = d._group.members.filter(function (n) { return n !== d.name; });
-      d._only = d._group.diff.unique[d.name].map(function (u) { return u.name; });
-    }
-  });
-
-  // Arrival order from the ledger: _seq is a single number that sorts by
-  // batch first and position within the batch second, and _new is set for
-  // anything in the last NEW_WINDOW batches. A contact missing from the
-  // ledger sorts first as "oldest" and is flagged in the console so the
-  // omission gets noticed rather than silently accepted.
   var ADDED_SEQ = {};
-  ADDED.forEach(function (b, bi) {
-    b.members.forEach(function (n, mi) {
-      ADDED_SEQ[n] = { seq: bi * 1000 + mi, batch: bi, on: b.on };
-    });
-  });
-  DATA.forEach(function (d) {
-    var a = ADDED_SEQ[d.name];
-    if (!a) console.warn("Not in the ADDED ledger: " + d.name);
-    d._seq = a ? a.seq : -1;
-    d._addedOn = a ? a.on : null;
-    d._new = !!a && a.batch >= ADDED.length - NEW_WINDOW;
-  });
 
   // ---- derived filter vocabularies -------------------------------------
 
   var FACTION_ORDER = ["gongsi", "stormrider", "wildlife", "dachtylo", "horror"];
   var ROLES = [];
   var TIERS = [];
-  DATA.forEach(function (d) {
-    if (ROLES.indexOf(d.role) === -1) ROLES.push(d.role);
-    if (TIERS.indexOf(d.tier) === -1) TIERS.push(d.tier);
-  });
-  ROLES.sort();
-  TIERS.sort();
+
+  function clearMap(m) { Object.keys(m).forEach(function (k) { delete m[k]; }); }
+
+  // Everything the page derives from the working DATA list, in one place so
+  // it can be redone after the archive's rows are merged in or a sheet is
+  // saved. Order matters: normalise before the comparison engine reads the
+  // stats, families before the search text quotes them.
+  function prepareData() {
+    DATA.forEach(function (d) {
+      // Inside a faction section the faction name is already in the heading,
+      // so carry a short display name with that prefix dropped. The full name
+      // stays the identity used for keys, comparisons and anything
+      // cross-faction - without it "Gongsi Hornet" and "Stormrider Hornet"
+      // would collide.
+      var fn = FACTIONS[d.faction].name;
+      d.short = d.name.indexOf(fn + " ") === 0
+        ? d.name.slice(fn.length + 1) : d.name;
+
+      // Every NPC has at least 1 Structure and 1 Stress. COMP/CON only draws
+      // the track once a template pushes it above 1, so a scan showing no
+      // track still means 1 - not none. No armor plate likewise means Armor 0.
+      // Heat is deliberately left blank where absent: biologicals have no heat
+      // track at all, which is a real difference rather than a missing reading.
+      d.stats = d.stats || {};
+      d.skills = d.skills || {};
+      d.stats.structure = d.stats.structure || 1;
+      d.stats.stress = d.stats.stress || 1;
+      d.stats.armor = d.stats.armor || 0;
+    });
+
+    clearMap(BY_NAME);
+    DATA.forEach(function (d) { BY_NAME[d.name] = d; });
+
+    // A family whose members have been hidden down to one has nothing to
+    // compare; it keeps its place in the list but renders nothing.
+    clearMap(GROUP_OF);
+    VARIANT_GROUPS.forEach(function (g) {
+      g.entries = g.members.map(function (n) { return BY_NAME[n]; })
+                           .filter(Boolean);
+      g.diff = g.entries.length >= 2 ? computeDiff(g) : null;
+      if (g.diff) g.entries.forEach(function (d) { GROUP_OF[d.name] = g; });
+    });
+
+    DATA.forEach(function (d) {
+      // A sheet kept in the archive carries its own scaling lines and
+      // briefing; a baked one reads them from the tables keyed by name.
+      d._scaling = d.scaling || TIER_SCALING[d.name] || null;
+      d._brief = d.brief || LORE[d.name] || null;
+      d._group = GROUP_OF[d.name] || null;
+      d._kin = null;
+      d._only = null;
+      if (d._group) {
+        d._kin = d._group.entries.map(function (e) { return e.name; })
+                   .filter(function (n) { return n !== d.name; });
+        d._only = (d._group.diff.unique[d.name] || [])
+                   .map(function (u) { return u.name; });
+      }
+    });
+
+    // Arrival order from the ledger: _seq is a single number that sorts by
+    // batch first and position within the batch second, and _new is set for
+    // anything in the last NEW_WINDOW batches. A contact saved through the
+    // page carries its own added_on date and joins that day's batch, so it
+    // needs no entry in ADDED. A baked contact missing from the ledger sorts
+    // first as "oldest" and is flagged in the console so the omission gets
+    // noticed rather than silently accepted.
+    var ledger = ADDED.map(function (b) {
+      return { on: b.on, members: b.members.slice() };
+    });
+    DATA.forEach(function (d) {
+      var listed = ledger.some(function (b) { return b.members.indexOf(d.name) !== -1; });
+      if (listed || !d.addedOn) return;
+      var day = null;
+      for (var i = ledger.length - 1; i >= 0; i--) {
+        if (ledger[i].on === d.addedOn) { day = ledger[i]; break; }
+      }
+      if (!day) {
+        day = { on: d.addedOn, members: [] };
+        var at = ledger.length;
+        while (at > 0 && ledger[at - 1].on > d.addedOn) at--;
+        ledger.splice(at, 0, day);
+      }
+      day.members.push(d.name);
+    });
+    clearMap(ADDED_SEQ);
+    ledger.forEach(function (b, bi) {
+      b.members.forEach(function (n, mi) {
+        ADDED_SEQ[n] = { seq: bi * 1000 + mi, batch: bi, on: b.on };
+      });
+    });
+    DATA.forEach(function (d) {
+      var a = ADDED_SEQ[d.name];
+      if (!a) console.warn("Not in the ADDED ledger: " + d.name);
+      d._seq = a ? a.seq : -1;
+      d._addedOn = a ? a.on : null;
+      d._new = !!a && a.batch >= ledger.length - NEW_WINDOW;
+    });
+
+    ROLES.length = 0;
+    TIERS.length = 0;
+    DATA.forEach(function (d) {
+      if (ROLES.indexOf(d.role) === -1) ROLES.push(d.role);
+      if (TIERS.indexOf(d.tier) === -1) TIERS.push(d.tier);
+    });
+    ROLES.sort();
+    TIERS.sort();
+
+    DATA.forEach(function (d) {
+      d._hay = haystack(d);
+      d._hayScope = {
+        name: fold([d.name, d.short, d.cls].join(" ")),
+        weapon: featureHay(d, "weapons"),
+        system: featureHay(d, "systems"),
+        trait: featureHay(d, "traits"),
+        reaction: featureHay(d, "reactions"),
+        part: featureHay(d, "parts")
+      };
+    });
+
+    rebuildChips("f-tier", "tier", TIERS);
+    rebuildChips("f-role", "role", ROLES);
+    fillCounts();
+  }
+
+  // Merges the archive's contact rows over the baked list. Rows win by name,
+  // case-insensitively, so a sheet edited in the page replaces the one that
+  // shipped in the file without the file changing.
+  function applyContactRows(rows) {
+    var byLower = {};
+    BASE_DATA.forEach(function (d) { byLower[d.name.toLowerCase()] = d; });
+    var out = BASE_DATA.slice();
+    clearMap(DB_VISUALS);
+    clearMap(DB_ICONS);
+    clearMap(CONTACT_ROWS);
+    (rows || []).forEach(function (r) {
+      if (!r || !r.name) return;
+      var base = byLower[r.name.toLowerCase()];
+      var at = base ? out.indexOf(base) : -1;
+      if (r.hidden) {
+        if (at !== -1) out.splice(at, 1);
+        return;
+      }
+      var d = Object.assign({}, r.doc || {});
+      d.name = r.name;
+      if (r.faction) d.faction = r.faction;
+      if (!FACTIONS[d.faction]) d.faction = "gongsi";
+      if (r.added_on) d.addedOn = r.added_on;
+      d.stats = Object.assign({}, d.stats || {});
+      d.skills = Object.assign({}, d.skills || {});
+      if (at !== -1) out[at] = d; else out.push(d);
+      if (r.still) DB_VISUALS[d.name] = publicUrl(r.still);
+      if (r.icon) DB_ICONS[d.name] = publicUrl(r.icon);
+      CONTACT_ROWS[d.name] = r;
+    });
+    DATA = out;
+  }
+
+  function stillOf(name) { return DB_VISUALS[name] || VISUALS[name] || null; }
+  function iconOf(name) { return DB_ICONS[name] || ICONS[name] || null; }
 
   var state = { q: "", faction: null, tier: null, role: null, only: null,
                 scope: null, sort: null, expand: false };
@@ -5249,7 +5355,7 @@
     put("n-groups", numberWord(groups, true));
     put("n-scaling", numberWord(scaling, true));
   }
-  fillCounts();
+  prepareData();
 
   var booted = false;
 
@@ -5353,7 +5459,7 @@
       (d._only || []).forEach(function (o) { bits.push(o); });
     }
     (d._scaling || []).forEach(function (s) { bits.push("tier scaling", s.f, s.t); });
-    if (LORE[d.name]) bits.push("briefing", LORE[d.name]);
+    if (d._brief) bits.push("briefing", d._brief);
     return fold(bits.join(" "));
   }
 
@@ -5364,18 +5470,6 @@
       return [f.n, f.line || "", f.txt || "", f.meta || "", f.mount || ""].join(" ");
     }).join(" "));
   }
-
-  DATA.forEach(function (d) {
-    d._hay = haystack(d);
-    d._hayScope = {
-      name: fold([d.name, d.short, d.cls].join(" ")),
-      weapon: featureHay(d, "weapons"),
-      system: featureHay(d, "systems"),
-      trait: featureHay(d, "traits"),
-      reaction: featureHay(d, "reactions"),
-      part: featureHay(d, "parts")
-    };
-  });
 
   function matches(d) {
     if (state.faction && d.faction !== state.faction) return false;
@@ -5449,7 +5543,7 @@
 
   function thumbSrc(d) {
     var ups = contactShots(d);
-    return ICONS[d.name] || VISUALS[d.name]
+    return iconOf(d.name) || stillOf(d.name)
       || (ups.length ? publicUrl(ups[0].path) : null);
   }
 
@@ -5480,7 +5574,7 @@
     VIS_MOUNTS.push({ d: d, el: vg });
     vg.appendChild(el("h4", null, "Visual contact"));
 
-    var builtIn = VISUALS[d.name];
+    var builtIn = stillOf(d.name);
     if (!builtIn && !uploads.length) {
       vg.appendChild(el("div", "shot-empty", "No visual contact on file."));
     } else {
@@ -5643,7 +5737,7 @@
     sw.appendChild(st);
     card.appendChild(sw);
 
-    var brief = LORE[d.name];
+    var brief = d._brief;
     if (brief) {
       var ld = el("details", "lore");
       var ls = el("summary", null, "Class briefing");
@@ -5853,6 +5947,7 @@
 
     VARIANT_GROUPS.forEach(function (g) {
       var d = g.diff;
+      if (!d) return;
       var n = g.entries.length;
       var cols = "minmax(7rem, .85fr) repeat(" + n + ", minmax(0, 2fr))";
       var gridMin = Math.max(34, 9 + n * 11) + "rem";
@@ -6009,11 +6104,26 @@
 
   // ---- filter chips ----------------------------------------------------
 
+  // Rebuilds a chip set whose values have changed, keeping the pressed chip
+  // if its value survived and clearing the filter if it did not.
+  function rebuildChips(containerId, key, values, labelFn) {
+    var box = document.getElementById(containerId);
+    Array.prototype.forEach.call(box.querySelectorAll(".chip"), function (c) {
+      box.removeChild(c);
+    });
+    if (state[key] !== null && values.indexOf(state[key]) === -1) state[key] = null;
+    buildChips(containerId, key, values, labelFn);
+    Array.prototype.forEach.call(box.querySelectorAll(".chip"), function (c) {
+      c.setAttribute("aria-pressed", String(c._value === state[key]));
+    });
+  }
+
   function buildChips(containerId, key, values, labelFn) {
     var box = document.getElementById(containerId);
     values.forEach(function (v) {
       var b = el("button", "chip", labelFn ? labelFn(v) : v);
       b.type = "button";
+      b._value = v;
       b.setAttribute("aria-pressed", "false");
       b.addEventListener("click", function () {
         state[key] = state[key] === v ? null : v;
@@ -6047,8 +6157,8 @@
   buildChips("f-scope", "scope", Object.keys(SCOPES), function (v) {
     return SCOPES[v];
   });
-  buildChips("f-tier", "tier", TIERS);
-  buildChips("f-role", "role", ROLES);
+  // Tier and role chips are built by prepareData(), since their values come
+  // from whatever is in the working list.
   buildChips("f-only", "only", ["variants", "scaling", "new"], function (v) {
     return v === "variants" ? "Has variants"
          : v === "scaling"  ? "Scales T1-T3" : "New arrivals";
@@ -7378,7 +7488,7 @@
 
       // The still is the contact's own, so the two files cannot drift apart.
       var media = el("div", "infamy-media");
-      var shot = VISUALS[f.contact];
+      var shot = stillOf(f.contact);
       if (shot) {
         var im = el("img");
         im.src = shot;
@@ -7836,6 +7946,79 @@
     if (!rows || !rows.length) {
       throw new Error("You are not able to write that file.");
     }
+  }
+
+  // ---- sheets kept in the archive ------------------------------------------
+  // Contact sheets and personnel files written through the page live in two
+  // tables and are merged over the baked lists at boot. Both loads tolerate
+  // the table not existing yet: the page then shows the baked data alone and
+  // offers no editing.
+
+  var contactsOnline = false;
+  var personnelOnline = false;
+  var BASE_PERSONNEL = null;
+  var PERSONNEL_ROWS = {};    // name -> the archive row a working file came from
+
+  async function loadContacts() {
+    try {
+      var rows = await api("/rest/v1/contacts?select=id,name,faction,doc,still,icon,added_on,hidden,updated_at&order=added_on.asc,name.asc");
+      applyContactRows(rows);
+      contactsOnline = true;
+    } catch (e) {
+      applyContactRows([]);
+      contactsOnline = false;
+    }
+  }
+
+  // Same merge for personnel: a row named like a baked file replaces it, an
+  // unknown name is a new file, a hidden row drops one.
+  function applyPersonnelRows(rows) {
+    if (!BASE_PERSONNEL) BASE_PERSONNEL = PERSONNEL.slice();
+    var byLower = {};
+    BASE_PERSONNEL.forEach(function (p) { byLower[p.name.toLowerCase()] = p; });
+    var out = BASE_PERSONNEL.slice();
+    clearMap(PERSONNEL_ROWS);
+    (rows || []).forEach(function (r) {
+      if (!r || !r.name) return;
+      var base = byLower[r.name.toLowerCase()];
+      var at = base ? out.indexOf(base) : -1;
+      if (r.hidden) {
+        if (at !== -1) out.splice(at, 1);
+        return;
+      }
+      var p = Object.assign({}, r.doc || {});
+      p.name = r.name;
+      if (r.faction) p.faction = r.faction;
+      if (!PERSON_FACTIONS[p.faction]) p.faction = PERSON_ORDER[0];
+      p.avatar = r.portrait ? publicUrl(r.portrait) : (base ? base.avatar : null);
+      p.body = r.body ? publicUrl(r.body) : (base ? base.body : null);
+      if (at !== -1) out[at] = p; else out.push(p);
+      PERSONNEL_ROWS[p.name] = r;
+    });
+    PERSONNEL = out;
+  }
+
+  async function loadPersonnel() {
+    try {
+      var rows = await api("/rest/v1/personnel?select=id,name,faction,doc,portrait,body,hidden,updated_at&order=name.asc");
+      applyPersonnelRows(rows);
+      personnelOnline = true;
+    } catch (e) {
+      applyPersonnelRows([]);
+      personnelOnline = false;
+    }
+  }
+
+  // Loads both, then redraws whatever they feed. Called at boot and after
+  // every save.
+  async function loadSheets() {
+    await loadContacts();
+    await loadPersonnel();
+    prepareData();
+    render();
+    renderVariants();
+    renderInfamy();
+    renderPersonnel();
   }
 
   // ---- dossier galleries ---------------------------------------------------
@@ -8888,6 +9071,7 @@
       await loadNotes();
       await loadImages();
       await loadFiles();
+      await loadSheets();
       await loadRegistry();
       if (session) {
         await loadMe();
