@@ -2908,8 +2908,8 @@
       assessment.</p>
     <div class="tally">
       <div><span class="n" id="t-unique">49</span><span class="k">Contacts</span></div>
-      <div><span class="n">9</span><span class="k">Variant families</span></div>
-      <div><span class="n">5</span><span class="k">Factions</span></div>
+      <div><span class="n" id="t-groups">9</span><span class="k">Variant families</span></div>
+      <div><span class="n" id="t-factions">5</span><span class="k">Factions</span></div>
     </div>
   </div>
 </header>
@@ -2935,7 +2935,7 @@
 <main class="wrap">
   <div id="cardview"></div>
   <div id="variantview" hidden>
-    <p class="viewnote">Eight families in the index scan almost the same and
+    <p class="viewnote"><span id="n-groups">Eight</span> families in the index scan almost the same and
       separate on only a handful of features. Each is laid out as one aligned
       grid &mdash; a unit holds the same column from the stat line all the way
       down to its rules text, so you can read straight across. Every comparison
@@ -2949,7 +2949,7 @@
     <div id="variantlist"></div>
     <p class="viewnote caveat"><strong>On tiers:</strong> every LANCER NPC class
       is built at a chosen tier, so any contact here could in principle be
-      fielded at T2 or T3. Fourteen of them say so in their own scanned rules
+      fielded at T2 or T3. <span id="n-scaling">Fourteen</span> of them say so in their own scanned rules
       text &mdash; a weapon that gains attacks at T2 and T3, a Reliable value
       written per tier, heat written as 2/3/4. Those exact lines are recorded
       under <em>Printed tier scaling</em> in each dossier, and the
@@ -5223,6 +5223,34 @@
   var state = { q: "", faction: null, tier: null, role: null, only: null,
                 scope: null, sort: null, expand: false };
   var currentView = "cards";
+  // ---- counts that used to be typed by hand -----------------------------
+  // The header tallies and the two view notes quote how many variant
+  // families, factions and tier-scaling contacts there are. Read them off
+  // the data so they cannot drift again (they had: the note said eight
+  // families against nine, and fourteen scaling contacts against nineteen).
+  var NUMBER_WORDS = ["zero", "one", "two", "three", "four", "five", "six",
+    "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen",
+    "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen",
+    "twenty"];
+  function numberWord(n, capital) {
+    var w = n >= 0 && n < NUMBER_WORDS.length ? NUMBER_WORDS[n] : String(n);
+    return capital ? w.charAt(0).toUpperCase() + w.slice(1) : w;
+  }
+  function fillCounts() {
+    var groups = VARIANT_GROUPS.length;
+    var factions = FACTION_ORDER.length;
+    var scaling = DATA.filter(function (d) { return d._scaling; }).length;
+    function put(id, text) {
+      var n = document.getElementById(id);
+      if (n) n.textContent = text;
+    }
+    put("t-groups", String(groups));
+    put("t-factions", String(factions));
+    put("n-groups", numberWord(groups, true));
+    put("n-scaling", numberWord(scaling, true));
+  }
+  fillCounts();
+
   var booted = false;
 
   // Horrors section: whether the dropouts are held off. See render().
