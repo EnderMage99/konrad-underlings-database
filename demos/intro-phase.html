@@ -60,6 +60,20 @@
   @media (prefers-reduced-motion: reduce) { #cover { display: none; } }
 
   /* ---- variant: Phase out ---- */
+  .tile { position: absolute; background: var(--plate); border: 1px solid rgba(63,216,240,.08);
+          will-change: transform, opacity; }
+  #cover.open .tile { animation: phase .62s steps(1, end) forwards; animation-delay: var(--d); }
+  @keyframes phase {
+    0%   { transform: none; opacity: 1; border-color: rgba(63,216,240,.08); }
+    14%  { transform: translate(-1px, 0); border-color: rgba(63,216,240,.6); box-shadow: 0 0 0 1px rgba(63,216,240,.4); }
+    28%  { transform: translate(1px, 0) rotate(var(--r1)); }
+    40%  { transform: translate(0, 1px); opacity: 1; }
+    52%  { opacity: 0; }
+    64%  { opacity: .75; transform: rotate(var(--r1)); border-color: rgba(63,216,240,.35); }
+    76%  { opacity: 0; }
+    88%  { opacity: .35; }
+    100% { opacity: 0; }
+  }
 </style>
 </head>
 <body>
@@ -104,6 +118,37 @@
   // Builds the plates for this variant and returns how long their exit takes.
   function build() {
     plates.textContent = "";
+    var cols = 16, rows = 9;
+    var w = 100 / cols, h = 100 / rows;
+    var maxDelay = 0;
+    var seed = Date.now() % 9973;
+    function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+    // The hole spreads from behind the gate, but not evenly: each of twelve
+    // directions gets its own pace this replay, so it races out one way and
+    // lags another, and every tile adds a little jitter of its own.
+    var SECTORS = 12, pace = [];
+    for (var s = 0; s < SECTORS; s++) pace.push(0.55 + rnd() * 1.1);   // 0.55x to 1.65x
+    for (var r = 0; r < rows; r++) for (var c = 0; c < cols; c++) {
+      var t = document.createElement("div");
+      t.className = "tile";
+      t.style.left = (c * w) + "%"; t.style.top = (r * h) + "%";
+      t.style.width = (w + 0.05) + "%"; t.style.height = (h + 0.05) + "%";
+      var cx = (c + .5) / cols - .5, cy = ((r + .5) / rows - .5) * (rows / cols) * 1.6;
+      var dist = Math.sqrt(cx * cx + cy * cy);
+      var ang = Math.atan2(cy, cx);
+      var sector = Math.floor(((ang + Math.PI) / (2 * Math.PI)) * SECTORS) % SECTORS;
+      // Blend with the neighbouring sector so the pace changes gradually
+      // round the circle rather than in wedges.
+      var frac = ((ang + Math.PI) / (2 * Math.PI)) * SECTORS - sector;
+      var p = pace[sector] * (1 - frac) + pace[(sector + 1) % SECTORS] * frac;
+      var ring = Math.round(dist * 10 * p);
+      var d = ring * 0.1 + Math.round(rnd() * 3) * 0.05;
+      t.style.setProperty("--d", d + "s");
+      t.style.setProperty("--r1", (rnd() - .5) * 2 + "deg");
+      if (d > maxDelay) maxDelay = d;
+      plates.appendChild(t);
+    }
+    return (maxDelay + 0.62) * 1000;
   }
 
   function run() {
