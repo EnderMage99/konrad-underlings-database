@@ -8,21 +8,21 @@ faction, tier and battlefield role.
 
 ## What's in it
 
-- **55 contacts** across five factions - Gongsi (41), Stormrider (3),
-  Wildlife (4), Dachtylo Company (1), Horrors (6).
-- Full stat lines plus every weapon, system, trait and reaction, recorded
-  verbatim from the scans.
-- **Eight views** - Dossiers, Variants, a Stat table that puts all 55 side by
-  side, Personnel, Lancers, the Hall of Infamy, Registry and the Comment log.
+- **Every hostile contact** met so far, filed by faction, with the full stat
+  line and every weapon, system, trait and reaction recorded verbatim from
+  the scans. The live counts are on the page itself.
+- **Two indexes.** The Combat Index holds the Dossiers, the Variants and a
+  Stat table that puts every contact side by side. The Record Index holds
+  Personnel, Lancers, the Hall of Infamy, the Registry and the Comment log.
 - **Horrors** - contacts that carry the Abominable trait, so a scan returns
   nothing but the word. Their dossiers hold "???" for every reading and
   describe only what they were seen doing in combat, with assumed weapons and
   traits marked as such. The section renders in COMP/CON's HORUS glitch
   style, slowed and muted so it does not strobe, and goes still under
   prefers-reduced-motion.
-- **Nine variant families** — contacts that scan almost identically and split
-  on only a handful of features, laid out as an aligned comparison. The two
-  Cataphracts differ on *zero* of sixteen stats, as do Witch and Hornet.
+- **Variant families** — contacts that scan almost identically and split on
+  only a handful of features, laid out as an aligned comparison computed
+  from the stat blocks.
 - **A Hall of Infamy** for the contacts that cost the squad something, with
   the account of the engagement the scan itself cannot record.
 - **Targetable parts** for a contact big enough to have them, each part with
@@ -92,10 +92,11 @@ callsign, title and picture, and switch between them from the account panel.
 Annotations are attributed to whichever character is speaking at the time.
 The active character is a local choice, so switching costs no round trip.
 
-Schema lives in `supabase/characters.sql`. Run it in the Supabase SQL editor;
-it is safe to run twice. The page works either side of that migration - it
-tries the character-aware query first and falls back to account-level
-attribution if the table is not there yet.
+Schema lives in `supabase/`, as migrations to run in the Supabase SQL editor
+in this order: `characters.sql`, `moderation.sql`, `files.sql`, `images.sql`.
+Each is safe to run twice. The page works either side of every one of them -
+it tries the fuller query first and falls back if a table or column is not
+there yet, so a feature simply stays hidden until its migration lands.
 
 ## A note on the stat blocks
 
