@@ -673,8 +673,8 @@
   #intro .pw-v { font-family: var(--mono); font-size: 1.05rem; letter-spacing: .28em; color: var(--ink); min-height: 1.4em; display: flex; align-items: center; }
   #intro .caret { display: inline-block; width: .55em; height: 1.1em; background: var(--accent); margin-left: .1em; animation: intro-blink .9s steps(1) infinite; }
   @keyframes intro-blink { 50% { opacity: 0; } }
-  #intro .status { font-family: var(--mono); font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--ink-faint); margin-top: .7rem; min-height: 1.2em; }
-  #intro .status.ok { color: var(--moss); }
+  #intro .gate-status { font-family: var(--mono); font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--ink-faint); margin-top: .7rem; min-height: 1.2em; }
+  #intro .gate-status.ok { color: var(--moss); }
   @media (prefers-reduced-motion: reduce) { #intro { display: none; } }
 
   /* ---------- the sheet editor ---------- */
@@ -3102,7 +3102,7 @@
       <div class="gate-k">Overseer archive</div>
       <div class="gate-t">Restricted &mdash; field intelligence</div>
       <div class="pw"><span class="pw-k">Access code</span><span class="pw-v"><span class="dots"></span><span class="caret"></span></span></div>
-      <div class="status">Awaiting credentials</div>
+      <div class="gate-status">Awaiting credentials</div>
     </div>
   </div>
 </div>
@@ -3124,7 +3124,7 @@
   var plates = intro.querySelector(".plates");
   var gate = intro.querySelector(".gate");
   var dots = intro.querySelector(".dots");
-  var status = intro.querySelector(".status");
+  var status = intro.querySelector(".gate-status");
   var CODE_LEN = 8, TYPE_MS = 750, HOLD_MS = 220;
 
   // The hole spreads from behind the box, but not evenly: each of twelve
@@ -3157,7 +3157,7 @@
   for (var i = 1; i <= CODE_LEN; i++) {
     (function (n) { setTimeout(function () { dots.textContent = new Array(n + 1).join("*"); }, step * n); })(i);
   }
-  setTimeout(function () { status.textContent = "Access granted"; status.className = "status ok"; }, TYPE_MS + 40);
+  setTimeout(function () { status.textContent = "Access granted"; status.className = "gate-status ok"; }, TYPE_MS + 40);
   setTimeout(function () { gate.className = "gate away"; intro.className = "open"; }, TYPE_MS + HOLD_MS);
   setTimeout(function () {
     intro.className = "open done";
