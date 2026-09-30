@@ -130,6 +130,25 @@
   body.pv-on .hud-foot { left: auto; right: 2rem; bottom: auto; top: 10.2rem; }
   body.pv-on .legend { display: none; }
 
+  /* editing controls, archivist only */
+  .edtool { display: none; margin-top: .6rem; }
+  body.archivist .edtool { display: flex; }
+  .stats .edtool { margin: 0; align-self: center; padding: 0 .6rem; }
+  .stats.editing { display: flex; flex-direction: column; gap: .5rem; padding: .8rem 1rem; width: min(28rem, calc(100% - 4rem)); }
+  .ed-field { display: flex; flex-direction: column; gap: .2rem; margin-bottom: .5rem; }
+  .ed-field > span { font-family: var(--mono); font-size: 9px; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-faint); }
+  .ed-field input, .ed-field textarea { font-family: var(--body); font-size: .85rem; line-height: 1.5; padding: .4rem .5rem; background: var(--ground-2); color: var(--ink); border: 1px solid var(--rule); resize: vertical; }
+  .ed-field input:focus-visible, .ed-field textarea:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
+  .ed-pair { display: grid; grid-template-columns: 1fr 1.4fr; gap: .5rem; }
+  .ed-pair .ed-field { margin: 0; }
+  .ed-list { display: flex; flex-direction: column; gap: .5rem; margin-bottom: .5rem; }
+  .ed-item { padding: .6rem; background: var(--ground-2); border-left: 2px solid var(--accent-dim); }
+  .ed-row { display: flex; gap: .4rem; margin-top: .6rem; }
+  .ed-save { color: var(--accent); border-color: var(--accent-dim); }
+  .ed-danger { color: var(--alert); border-color: rgba(242,85,90,.5); }
+  .ed-err { margin: .4rem 0 0; font-family: var(--mono); font-size: 10px; color: var(--alert); }
+  .lore h4 { margin: .6rem 0 .3rem; font-family: var(--mono); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-faint); }
+
   @media (max-width: 760px) {
     #pv { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
     .rail { max-height: 34vh; padding: 1rem; }
@@ -1180,13 +1199,14 @@
   }
 
   function renderStats(p) {
-    var box = document.getElementById("pvstats"); box.textContent = "";
+    var box = document.getElementById("pvstats"); box.textContent = ""; box.className = "panel stats";
     (p.stats || []).forEach(function (s) {
       var d = document.createElement("div");
       var k = document.createElement("span"); k.className = "k"; k.textContent = s[0];
       var v = document.createElement("span"); v.className = "v"; v.textContent = s[1];
       d.appendChild(k); d.appendChild(v); box.appendChild(d);
     });
+    box.appendChild(editTools(function () { openStatsEditor(p); }));
   }
 
   function renderChips(p) {
@@ -1233,6 +1253,7 @@
       });
       c.appendChild(ul); lore.appendChild(c);
     }
+    lore.appendChild(editTools(function () { openRegionEditor(current, r); }));
     requestAnimationFrame(drawLead);
   }
 
@@ -1259,8 +1280,194 @@
   }
   window.addEventListener("resize", function () { if (current) requestAnimationFrame(drawLead); });
 
+  // ---- editing, for the archivist ---------------------------------------
+  // The chart's text lives in the archive's files table, one row per world
+  // and one per region, as JSON in the body: a world row carries its stat
+  // panel, a region row its lore paragraphs and mission conditions. Rows
+  // are merged over the baked data at load. Writing needs the moderator
+  // flag; the session is the one the main archive keeps in localStorage,
+  // so signing in there signs in here.
+  var SB_URL = "https://pbvfrdmpieniedgxpogb.supabase.co";
+  var SB_KEY = "sb_publishable_dfQX7xZJSfR5xLPUWda2Cg_tzwXfxuC";
+  var SB_STORE = "overseer.session";
+  var session = null, archivist = false, filesOnline = false;
+
+  function loadSession() {
+    try { session = JSON.parse(localStorage.getItem(SB_STORE) || "null"); } catch (e) { session = null; }
+  }
+  function saveSession(s) {
+    session = s;
+    try { if (s) localStorage.setItem(SB_STORE, JSON.stringify(s)); else localStorage.removeItem(SB_STORE); } catch (e) {}
+  }
+  async function api(path, opts) {
+    opts = opts || {};
+    var headers = { apikey: SB_KEY, "Content-Type": "application/json" };
+    headers.Authorization = "Bearer " + (opts.token || SB_KEY);
+    Object.keys(opts.headers || {}).forEach(function (k) { headers[k] = opts.headers[k]; });
+    var res = await fetch(SB_URL + path, { method: opts.method || "GET", headers: headers, body: opts.body ? JSON.stringify(opts.body) : undefined });
+    var txt = await res.text(), data = null;
+    try { data = txt ? JSON.parse(txt) : null; } catch (e) { data = txt; }
+    if (!res.ok) {
+      var m = (data && (data.message || data.error_description || data.msg || data.error)) || ("HTTP " + res.status);
+      var err = new Error(m); err.status = res.status; throw err;
+    }
+    return data;
+  }
+  // refreshes shortly before expiry, and hands the refreshed session back to
+  // the main archive's store so both pages stay signed in together
+  async function token() {
+    if (!session) return null;
+    if (session.expires_at && session.expires_at * 1000 < Date.now() + 30000) {
+      try {
+        var r = await api("/auth/v1/token?grant_type=refresh_token", { method: "POST", body: { refresh_token: session.refresh_token } });
+        saveSession({ access_token: r.access_token, refresh_token: r.refresh_token, expires_at: r.expires_at, user_id: r.user.id });
+      } catch (e) { saveSession(null); return null; }
+    }
+    return session ? session.access_token : null;
+  }
+
+  function fileId(p, r) { return system.id + "/" + p.id + (r ? "/" + r.id : ""); }
+
+  function applyOverride(row) {
+    var parts = String(row.target_id).split("/");
+    if (parts[0] !== system.id) return;
+    var p = system.planets.filter(function (q) { return q.id === parts[1]; })[0];
+    if (!p) return;
+    var body; try { body = JSON.parse(row.body); } catch (e) { return; }
+    if (row.target_kind === "world") {
+      if (Array.isArray(body.stats)) p.stats = body.stats;
+    } else if (row.target_kind === "region") {
+      var r = (p.regions || []).filter(function (q) { return q.id === parts[2]; })[0];
+      if (!r) return;
+      if (Array.isArray(body.lore)) r.lore = body.lore;
+      r.conditions = Array.isArray(body.conditions) && body.conditions.length ? body.conditions : undefined;
+    }
+  }
+  async function loadOverrides() {
+    try {
+      var rows = await api("/rest/v1/files?select=target_kind,target_id,body&target_kind=in.(world,region)");
+      (rows || []).forEach(applyOverride);
+      filesOnline = true;
+    } catch (e) { filesOnline = false; }
+  }
+  async function saveOverride(kind, id, obj) {
+    var t = await token();
+    if (!t) throw new Error("Sign in on the main archive first, then reload this page.");
+    var rows = await api("/rest/v1/files?on_conflict=target_kind,target_id", {
+      method: "POST", token: t,
+      headers: { Prefer: "resolution=merge-duplicates,return=representation" },
+      body: { target_kind: kind, target_id: id, body: JSON.stringify(obj), author: session.user_id, updated_at: new Date().toISOString() }
+    });
+    if (!rows || !rows.length) throw new Error("The archive did not accept that write.");
+  }
+  async function checkArchivist() {
+    archivist = false;
+    if (session) {
+      try {
+        var t = await token();
+        var rows = t ? await api("/rest/v1/profiles?select=is_moderator&id=eq." + session.user_id, { token: t }) : null;
+        archivist = !!(rows && rows[0] && rows[0].is_moderator) && filesOnline;
+      } catch (e) { archivist = false; }
+    }
+    document.body.className = document.body.className.replace(/\s*archivist/g, "") + (archivist ? " archivist" : "");
+  }
+
+  // -- form pieces
+  function edField(label, value, area, rows) {
+    var w = document.createElement("label"); w.className = "ed-field";
+    var k = document.createElement("span"); k.textContent = label; w.appendChild(k);
+    var i = document.createElement(area ? "textarea" : "input");
+    if (area) i.rows = rows || 3; else i.type = "text";
+    i.value = value == null ? "" : String(value);
+    w.appendChild(i); w._input = i;
+    return w;
+  }
+  function edButton(label, cls) {
+    var b = document.createElement("button"); b.type = "button"; b.className = "btn " + (cls || ""); b.textContent = label; return b;
+  }
+  function editTools(onEdit) {
+    var t = document.createElement("div"); t.className = "edtool";
+    var b = edButton("Edit"); b.addEventListener("click", onEdit); t.appendChild(b);
+    return t;
+  }
+
+  // -- region: lore paragraphs and mission conditions
+  function openRegionEditor(p, r) {
+    var lore = document.getElementById("pvlore"); lore.textContent = "";
+    var k = document.createElement("span"); k.className = "k"; k.textContent = "Editing " + r.name; lore.appendChild(k);
+    var fLore = edField("Lore - blank lines separate paragraphs", (r.lore || []).filter(function (x) { return x !== PH; }).join("\n\n"), true, 7);
+    lore.appendChild(fLore);
+    var h = document.createElement("h4"); h.textContent = "Mission conditions"; lore.appendChild(h);
+    var list = document.createElement("div"); list.className = "ed-list";
+    function addRow(c) {
+      c = c || {};
+      var row = document.createElement("div"); row.className = "ed-item";
+      var fn = edField("Name", c.n), ft = edField("Rules text", c.txt, true, 3), fm = edField("Tags", c.meta);
+      row.appendChild(fn); row.appendChild(ft); row.appendChild(fm);
+      var rm = edButton("Remove", "ed-danger"); rm.addEventListener("click", function () { list.removeChild(row); });
+      row.appendChild(rm);
+      row._f = { n: fn._input, txt: ft._input, meta: fm._input };
+      list.appendChild(row);
+    }
+    (r.conditions || []).forEach(addRow);
+    lore.appendChild(list);
+    var add = edButton("Add a condition"); add.addEventListener("click", function () { addRow(); }); lore.appendChild(add);
+    var err = document.createElement("p"); err.className = "ed-err";
+    var rowB = document.createElement("div"); rowB.className = "ed-row";
+    var save = edButton("Save", "ed-save"), cancel = edButton("Cancel");
+    save.addEventListener("click", async function () {
+      err.textContent = ""; save.disabled = true;
+      var paras = fLore._input.value.split(/\n\s*\n/).map(function (s) { return s.trim(); }).filter(Boolean);
+      var conds = Array.prototype.map.call(list.children, function (row) {
+        var f = row._f, c = { n: f.n.value.trim() || "???" };
+        if (f.txt.value.trim()) c.txt = f.txt.value.trim();
+        if (f.meta.value.trim()) c.meta = f.meta.value.trim();
+        return c;
+      });
+      try {
+        await saveOverride("region", fileId(p, r), { lore: paras, conditions: conds });
+        r.lore = paras.length ? paras : [PH]; r.conditions = conds.length ? conds : undefined;
+        selectRegion(r);
+      } catch (e) { err.textContent = e.message; save.disabled = false; }
+    });
+    cancel.addEventListener("click", function () { selectRegion(r); });
+    rowB.appendChild(save); rowB.appendChild(cancel); lore.appendChild(rowB); lore.appendChild(err);
+    fLore._input.focus();
+  }
+
+  // -- world: the stat panel, up to four label and value pairs
+  function openStatsEditor(p) {
+    var box = document.getElementById("pvstats"); box.textContent = ""; box.className = "panel stats editing";
+    var rows = [];
+    for (var i = 0; i < 4; i++) {
+      var s = (p.stats || [])[i] || ["", ""];
+      var d = document.createElement("div"); d.className = "ed-pair";
+      var fk = edField("Label", s[0]), fv = edField("Value", s[1]);
+      d.appendChild(fk); d.appendChild(fv); box.appendChild(d);
+      rows.push({ k: fk._input, v: fv._input });
+    }
+    var err = document.createElement("p"); err.className = "ed-err";
+    var rowB = document.createElement("div"); rowB.className = "ed-row";
+    var save = edButton("Save", "ed-save"), cancel = edButton("Cancel");
+    save.addEventListener("click", async function () {
+      err.textContent = ""; save.disabled = true;
+      var stats = rows.map(function (r) { return [r.k.value.trim(), r.v.value.trim()]; }).filter(function (s) { return s[0] || s[1]; });
+      try {
+        await saveOverride("world", fileId(p), { stats: stats });
+        p.stats = stats; renderStats(p);
+      } catch (e) { err.textContent = e.message; save.disabled = false; }
+    });
+    cancel.addEventListener("click", function () { renderStats(p); });
+    rowB.appendChild(save); rowB.appendChild(cancel); box.appendChild(rowB); box.appendChild(err);
+  }
+
   // ---- boot ----------------------------------------------------------------
   system.planets.forEach(function (p) { if (p.visited) settleRegions(p); });
+  // pick up the archive's session, merge the saved text, then decide who is editing
+  loadSession();
+  loadOverrides().then(checkArchivist).then(function () {
+    if (current) { renderStats(current); renderChips(current); selectRegion(region); }
+  });
   resize();
   requestAnimationFrame(frame);
   // Bake ahead of need, one item per idle slice, so the first click on a
