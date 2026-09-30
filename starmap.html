@@ -1,0 +1,612 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Star Chart</title>
+<meta name="description" content="The systems the campaign has moved through, as a chart you can turn, with a file on every world the squad has set foot on.">
+<style>
+  /* Palette and type, copied from the index so this page can stand alone. */
+  :root {
+    --ground: #05090E; --ground-2: #0A1520; --surface: #0B1822; --surface-alt: #10242F; --plate: #04080C;
+    --ink: #D2ECF6; --ink-soft: #90B6C8; --ink-faint: #5B7F92;
+    --rule: #1B3E4E; --accent: #3FD8F0; --accent-dim: #1E7E96; --brass: #F5B33C; --moss: #45E0A0;
+    --steel: #7FA6BE; --violet: #A78BFA; --alert: #F2555A;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    --body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --cut: 10px;
+    --chamfer: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--ground); color: var(--ink); font-family: var(--body); overflow: hidden; }
+  button { font: inherit; }
+
+  /* ---------- the chart ---------- */
+  #stars, #chart { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  #chart { cursor: grab; touch-action: none; }
+  #chart.grabbing { cursor: grabbing; }
+  #chart.over { cursor: pointer; }
+
+  .hud { position: fixed; z-index: 3; pointer-events: none; }
+  .hud > * { pointer-events: auto; }
+  .hud-title { left: 1.4rem; top: 1.2rem; }
+  .kicker { font-family: var(--mono); font-size: 10px; letter-spacing: .24em; text-transform: uppercase; color: var(--accent); }
+  .hud-title h1 { margin: .15rem 0 0; font-size: 1.9rem; letter-spacing: .04em; text-shadow: 0 0 22px rgba(63,216,240,.35); }
+  .hud-title .sys { font-family: var(--mono); font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-faint); margin-top: .35rem; }
+  .hud-help { right: 1.4rem; top: 1.4rem; text-align: right; font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); line-height: 1.8; }
+  .hud-foot { left: 1.4rem; bottom: 1.2rem; display: flex; gap: .5rem; align-items: center; }
+  .btn {
+    font-family: var(--mono); font-size: 10px; letter-spacing: .16em; text-transform: uppercase;
+    padding: .45rem .8rem; background: var(--surface); color: var(--ink-soft); border: 1px solid var(--rule); cursor: pointer;
+  }
+  .btn:hover, .btn[aria-pressed="true"] { color: var(--accent); border-color: var(--accent-dim); }
+  .legend { display: flex; gap: .8rem; margin-left: .6rem; font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: -1px; margin-right: .35rem; }
+
+  /* hover label on the chart */
+  .tip { position: fixed; z-index: 4; pointer-events: none; transform: translate(-50%, calc(-100% - 14px)); display: none;
+         font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink);
+         background: rgba(11,24,34,.92); border: 1px solid var(--accent-dim); padding: .35rem .6rem; white-space: nowrap; }
+  .tip.show { display: block; }
+  .tip .sub { display: block; font-size: 9px; color: var(--ink-faint); margin-top: .15rem; }
+
+  /* ---------- the planet view ---------- */
+  #pv { position: fixed; inset: 0; z-index: 10; display: grid; grid-template-columns: minmax(16rem, 22rem) 1fr; opacity: 0; pointer-events: none; transition: opacity .35s ease; }
+  #pv.on { opacity: 1; pointer-events: auto; }
+  .rail { background: rgba(5,9,14,.86); border-right: 1px solid var(--rule); padding: 1.6rem 1.4rem; overflow-y: auto; backdrop-filter: blur(6px); }
+  .rail h2 { margin: 0; font-size: 1.25rem; font-weight: 600; }
+  .rail .lede { margin: .3rem 0 1.4rem; font-size: .8rem; color: var(--ink-faint); }
+  .dest { display: grid; grid-template-columns: 4.2rem 1fr auto; align-items: center; gap: .9rem; width: 100%; text-align: left;
+          background: none; border: 0; border-top: 1px solid rgba(27,62,78,.6); padding: .9rem 0; color: var(--ink); cursor: pointer; }
+  .dest:last-child { border-bottom: 1px solid rgba(27,62,78,.6); }
+  .dest canvas { width: 4.2rem; height: 4.2rem; display: block; }
+  .dest .nm { font-size: 1rem; }
+  .dest .dist { font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-faint); margin-top: .2rem; }
+  .dest .go { font-family: var(--mono); color: var(--accent); opacity: 0; transition: opacity .2s; }
+  .dest:hover .go, .dest[aria-current="true"] .go { opacity: 1; }
+  .dest[aria-current="true"] .nm { color: var(--accent); }
+  .dest.locked { cursor: default; color: var(--ink-faint); }
+  .dest.locked canvas { opacity: .35; filter: grayscale(1); }
+  .dest.locked .nm::after { content: " \00b7 not yet visited"; font-family: var(--mono); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; }
+  .rail .back { margin-top: 1.4rem; }
+
+  .stage { position: relative; overflow: hidden; }
+  .stage::before { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at 60% 45%, rgba(63,216,240,.06), transparent 55%); pointer-events: none; }
+  .stage h2 { position: absolute; right: 2rem; top: 1.4rem; margin: 0; font-size: 2.4rem; font-weight: 500; letter-spacing: .02em; text-shadow: 0 0 22px rgba(63,216,240,.3); z-index: 2; }
+  .stage .back { position: absolute; left: 1.4rem; top: 1.6rem; z-index: 3; }
+  #globe { position: absolute; left: 50%; top: 50%; width: min(66vh, 60vw); height: min(66vh, 60vw); transform: translate(-46%, -52%); }
+  #globe canvas { width: 100%; height: 100%; display: block; }
+  .mark { position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; transform: rotate(45deg); border: 1px solid var(--ink); background: rgba(5,9,14,.8); cursor: pointer; transition: transform .2s, border-color .2s; z-index: 2; }
+  .mark:hover, .mark.on { border-color: var(--accent); transform: rotate(45deg) scale(1.35); box-shadow: 0 0 12px rgba(63,216,240,.6); }
+  .mark.on { background: var(--accent); }
+  #lead { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+  #lead line { stroke: var(--ink); stroke-width: 1; opacity: .8; }
+
+  /* callout panels */
+  .panel { position: absolute; z-index: 2; background: rgba(11,24,34,.9); border: 1px solid var(--accent-dim); backdrop-filter: blur(4px);
+           clip-path: var(--chamfer); }
+  .panel::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--accent); }
+  .stats { right: 2rem; top: 5.6rem; display: flex; }
+  .stats div { padding: .8rem 1.3rem; border-right: 1px solid var(--rule); }
+  .stats div:last-child { border-right: 0; }
+  .k { display: block; font-family: var(--mono); font-size: 9px; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-faint); }
+  .v { display: block; font-size: 1.05rem; margin-top: .15rem; }
+  .lore { left: 2rem; bottom: 2rem; width: min(30rem, calc(100% - 4rem)); padding: 1rem 1.3rem 1.1rem; max-height: 55vh; overflow-y: auto; }
+  .lore .k { color: var(--accent); }
+  .lore h3 { margin: .2rem 0 .5rem; font-size: 1.3rem; font-weight: 500; }
+  .lore p { margin: 0 0 .6rem; font-size: .88rem; line-height: 1.6; color: var(--ink-soft); }
+  .lore p.ph { color: var(--ink-faint); font-style: italic; }
+  .cond { margin-top: .8rem; border: 1px solid rgba(245,179,60,.5); background: rgba(245,179,60,.06); padding: .7rem .9rem; }
+  .cond .k { color: var(--brass); }
+  .cond ul { margin: .4rem 0 0; padding-left: 1.1rem; font-size: .85rem; line-height: 1.55; color: var(--ink); }
+  .cond li { margin-bottom: .25rem; }
+  .chips { position: absolute; right: 2rem; bottom: 2rem; display: flex; flex-wrap: wrap; gap: .4rem; justify-content: flex-end; max-width: 40%; z-index: 2; }
+  .chip { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; padding: .45rem .7rem;
+          background: rgba(11,24,34,.9); color: var(--ink-soft); border: 1px solid var(--rule); cursor: pointer; }
+  .chip:hover { border-color: var(--accent-dim); color: var(--ink); }
+  .chip[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+  .chip .kind { display: block; font-size: 8px; color: var(--ink-faint); letter-spacing: .12em; margin-top: .15rem; }
+  .link { color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--accent-dim); }
+
+  /* while a file is open the chart and its controls step aside; the
+     starfield stays behind the world */
+  body.pv-on #chart, body.pv-on .hud, body.pv-on .tip { visibility: hidden; }
+  #globe { transform: translate(-38%, -54%); }
+
+  @media (max-width: 760px) {
+    #pv { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+    .rail { max-height: 34vh; padding: 1rem; }
+    .stage h2 { font-size: 1.5rem; right: 1rem; top: 1rem; }
+    .stats { position: static; margin: 3.6rem 1rem 0; flex-wrap: wrap; }
+    #globe { width: 58vw; height: 58vw; transform: translate(-50%, -60%); }
+    .lore { left: 1rem; bottom: 1rem; width: calc(100% - 2rem); max-height: 40vh; }
+    .chips { right: 1rem; bottom: auto; top: 50%; max-width: 45%; }
+  }
+  @media (prefers-reduced-motion: reduce) { #pv, .mark, .dest .go { transition: none; } }
+</style>
+</head>
+<body>
+
+<canvas id="stars"></canvas>
+<canvas id="chart"></canvas>
+
+<div class="hud hud-title">
+  <div class="kicker">Overseer &mdash; navigation</div>
+  <h1>Star Chart</h1>
+  <div class="sys" id="sysname"></div>
+</div>
+<div class="hud hud-help">drag to turn &middot; wheel to zoom<br>click a world for its file</div>
+<div class="hud hud-foot">
+  <button class="btn" id="drift" type="button" aria-pressed="true">Orbits: moving</button>
+  <button class="btn" id="reset" type="button">Reset view</button>
+  <div class="legend"><span><i style="background:#45E0A0"></i>visited</span><span><i style="background:#2A3D48"></i>not yet</span></div>
+</div>
+<div class="tip" id="tip"></div>
+
+<div id="pv" aria-hidden="true">
+  <aside class="rail">
+    <h2>Available destinations</h2>
+    <p class="lede">Select a world to open its file. Greyed worlds have not been visited.</p>
+    <div id="dests"></div>
+    <button class="btn back" id="back" type="button">&larr; Back to the chart</button>
+  </aside>
+  <section class="stage">
+    <h2 id="pvname"></h2>
+    <div id="globe"><canvas id="globec" width="900" height="900"></canvas></div>
+    <svg id="lead"><line id="leadline" x1="0" y1="0" x2="0" y2="0"></line></svg>
+    <div class="panel stats" id="pvstats"></div>
+    <div class="panel lore" id="pvlore"></div>
+    <div class="chips" id="pvchips"></div>
+  </section>
+</div>
+
+<script>
+(function () {
+  // ---- data ----------------------------------------------------------------
+  // One entry per system. A planet's orbit is in chart units, its period a
+  // multiple of the innermost world's year. Only visited worlds carry a
+  // palette, stats and regions; the rest render as dim silhouettes and are
+  // not selectable. Region text marked placeholder is waiting on the GM.
+  var PH = "[Placeholder - lore to be written.]";
+  var SYSTEMS = [
+    {
+      id: "invideis", name: "Invideis", star: { color: "#FFF4D6", glow: "#F5B33C", size: 22 },
+      planets: [
+        { id: "i",   name: "Invideis-I",   orbit: 60,  period: 1.0,  size: 4.5, visited: false, phase: 0.8 },
+        { id: "ii",  name: "Invideis-II",  orbit: 95,  period: 1.9,  size: 8,   visited: true,  phase: 3.9,
+          ring: "#45E0A0",
+          palette: { sea: "#1B4F7A", land: ["#2E8B57", "#3C9D62", "#C2A56B", "#8C8F93", "#6B7F8E"], cloud: "rgba(255,255,255,.18)" },
+          dist: "0.00 ly - here",
+          stats: [["Biomes", "Woods, mountains, desert"], ["Principal city", "Vintatem"], ["Field of operations", "Dictis"], ["Contract", "Active"]],
+          regions: [
+            { id: "woods", name: "Woods", kind: "Biome", at: [0.36, 0.34],
+              lore: [PH] },
+            { id: "mountains", name: "Mountains", kind: "Biome", at: [0.62, 0.30],
+              lore: [PH],
+              conditions: ["[Placeholder - mountain mission condition.]", "[Placeholder - second condition, if any.]"] },
+            { id: "desert", name: "Desert", kind: "Biome", at: [0.58, 0.66],
+              lore: [PH],
+              conditions: ["[Placeholder - desert mission condition.]"] },
+            { id: "dictis", name: "Dictis", kind: "City", at: [0.42, 0.56],
+              lore: ["Where the squad's missions have been taking place. A short way from Vintatem, the larger city it sits in the shadow of.", PH] },
+            { id: "vintatem", name: "Vintatem", kind: "City", at: [0.47, 0.62],
+              lore: ["The larger city near Dictis.", PH] }
+          ] },
+        { id: "iii", name: "Invideis-III", orbit: 130, period: 3.1,  size: 6,   visited: false, phase: 1.7 },
+        { id: "iv",  name: "Invideis-IV",  orbit: 172, period: 4.7,  size: 9,   visited: true,  phase: 5.2,
+          ring: "#3FD8F0",
+          palette: { sea: "#173E4A", land: ["#1F6B3A", "#246F3C", "#2E8B57", "#3B7A4B", "#4E6B3B"], cloud: "rgba(220,255,235,.14)" },
+          dist: "0.31 ly from Invideis-II",
+          stats: [["Development", "Sparse"], ["Fauna", "Large"], ["Trade", "Little offworld"], ["Settlements", "A few small cities"]],
+          regions: [
+            { id: "woods4", name: "Woods", kind: "Biome", at: [0.45, 0.42],
+              lore: ["A planet largely taken back by nature: little trade reaches it from other worlds, its fauna runs large, and only a few very small cities hold out against the green.",
+                     "Within the woods stands Dendetz Zephyr's Outpost. Zephyr is a monster hunter working this planet on contract, and has been hiring the squad. See the personnel file on the main site: <a class=\"link\" href=\"./#personnel::Dendetz Zephyr\">Dendetz Zephyr</a>.",
+                     PH] }
+          ] },
+        { id: "v",   name: "Invideis-V",   orbit: 215, period: 6.6,  size: 12,  visited: false, phase: 2.6 },
+        { id: "vi",  name: "Invideis-VI",  orbit: 262, period: 8.9,  size: 10,  visited: false, phase: 4.4 },
+        { id: "vii", name: "Invideis-VII", orbit: 305, period: 11.2, size: 5,   visited: false, phase: 0.3 }
+      ]
+    }
+  ];
+  var system = SYSTEMS[0];
+  document.getElementById("sysname").textContent = system.name + " system · " + system.planets.length + " worlds";
+
+  // ---- the chart -----------------------------------------------------------
+  var chart = document.getElementById("chart"), cx = chart.getContext("2d");
+  var starsC = document.getElementById("stars"), sx = starsC.getContext("2d");
+  var W = 0, H = 0, DPR = Math.min(2, window.devicePixelRatio || 1);
+  var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  var HOME = { yaw: -0.65, pitch: 0.62, dist: 720 };
+  var cam = { yaw: HOME.yaw, pitch: HOME.pitch, dist: HOME.dist };
+  var FOCAL = 780;
+  var drifting = !reduced;
+  var t0 = performance.now(), simT = 0;
+
+  // Rotates a chart point by the camera and projects it. The orbit plane is
+  // y = 0; the camera sits back along the view axis at cam.dist.
+  function project(x, y, z) {
+    var cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw);
+    var x1 = x * cy - z * sy, z1 = x * sy + z * cy;
+    var cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+    var y2 = y * cp - z1 * sp, z2 = y * sp + z1 * cp;
+    var depth = cam.dist + z2;
+    var s = FOCAL / Math.max(depth, 40);
+    return { x: W / 2 + x1 * s, y: H / 2 + y2 * s, s: s, depth: depth };
+  }
+
+  function planetPos(p) {
+    var a = p.phase + (drifting ? simT * (2 * Math.PI) / (p.period * 40) : 0);
+    return { x: Math.cos(a) * p.orbit, z: Math.sin(a) * p.orbit, a: a };
+  }
+
+  // A sphere lit from the star: a base gradient toward the light, a soft
+  // terminator, and a rim. Visited worlds get their palette painted as
+  // latitude bands with seeded noise; the rest are dim slate.
+  function drawSphere(ctx, x, y, r, p, lightAngle) {
+    var seed = 0;
+    for (var i = 0; i < p.id.length; i++) seed = (seed * 31 + p.id.charCodeAt(i)) % 9973;
+    function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+    ctx.save();
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.clip();
+    var pal = p.palette;
+    ctx.fillStyle = pal ? pal.sea : "#1C2A33";
+    ctx.fillRect(x - r, y - r, r * 2, r * 2);
+    if (pal) {
+      // land: a few dozen blobs per band, bigger toward the middle latitudes
+      var bands = 7;
+      for (var b = 0; b < bands; b++) {
+        var yy = y - r + (b + .5) * (2 * r / bands);
+        var col = pal.land[Math.floor(rnd() * pal.land.length)];
+        var n = 5 + Math.floor(rnd() * 5);
+        for (var k = 0; k < n; k++) {
+          var bx = x - r + rnd() * 2 * r, by = yy + (rnd() - .5) * (r / bands);
+          var bw = r * (0.12 + rnd() * 0.32), bh = r * (0.05 + rnd() * 0.12);
+          ctx.fillStyle = pal.land[(Math.floor(rnd() * pal.land.length) + (k % 2 ? 1 : 0)) % pal.land.length];
+          ctx.beginPath(); ctx.ellipse(bx, by, bw, bh, (rnd() - .5) * .6, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+      // cloud streaks
+      ctx.fillStyle = pal.cloud;
+      for (var c = 0; c < 9; c++) {
+        var cyy = y - r + rnd() * 2 * r;
+        ctx.beginPath(); ctx.ellipse(x - r + rnd() * 2 * r, cyy, r * (0.2 + rnd() * .4), r * .03, 0, 0, Math.PI * 2); ctx.fill();
+      }
+    } else {
+      ctx.fillStyle = "rgba(255,255,255,.04)";
+      for (var q = 0; q < 6; q++) { ctx.beginPath(); ctx.ellipse(x - r + rnd() * 2 * r, y - r + rnd() * 2 * r, r * .3, r * .08, rnd(), 0, Math.PI * 2); ctx.fill(); }
+    }
+    // lighting: highlight toward the star, shadow away from it
+    var lx = x + Math.cos(lightAngle) * r * .55, ly = y + Math.sin(lightAngle) * r * .55;
+    var g = ctx.createRadialGradient(lx, ly, r * .1, x, y, r * 1.05);
+    g.addColorStop(0, "rgba(255,255,255,.22)");
+    g.addColorStop(.45, "rgba(255,255,255,0)");
+    g.addColorStop(.75, "rgba(0,0,0,.35)");
+    g.addColorStop(1, "rgba(0,0,0,.85)");
+    ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2);
+    ctx.restore();
+    // rim
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.strokeStyle = p.visited ? "rgba(63,216,240,.35)" : "rgba(127,166,190,.18)"; ctx.lineWidth = 1; ctx.stroke();
+  }
+
+  var hits = [];    // projected planets this frame, for hover and click
+  var hover = null;
+
+  function drawChart() {
+    cx.clearRect(0, 0, W, H);
+    // grid plane, fading with distance from the star
+    var R = 360, step = 40;
+    cx.lineWidth = 1;
+    for (var g = -R; g <= R; g += step) {
+      for (var pass = 0; pass < 2; pass++) {
+        cx.beginPath();
+        for (var u = -R; u <= R; u += 20) {
+          var pt = pass ? project(g, 0, u) : project(u, 0, g);
+          if (u === -R) cx.moveTo(pt.x, pt.y); else cx.lineTo(pt.x, pt.y);
+        }
+        cx.strokeStyle = "rgba(63,216,240," + (0.05 + 0.06 * (1 - Math.abs(g) / R)) + ")";
+        cx.stroke();
+      }
+    }
+    // a soft disc under the star so the plane reads as lit
+    var sp = project(0, 0, 0);
+    var halo = cx.createRadialGradient(sp.x, sp.y, 0, sp.x, sp.y, 220 * sp.s);
+    halo.addColorStop(0, "rgba(245,179,60,.10)"); halo.addColorStop(1, "rgba(245,179,60,0)");
+    cx.fillStyle = halo; cx.fillRect(0, 0, W, H);
+
+    // orbits: dashed rings in the plane, brighter for visited worlds
+    system.planets.forEach(function (p) {
+      var col = p.visited ? (p.ring || "#45E0A0") : "#2A3D48";
+      var on = hover === p;
+      cx.setLineDash(p.visited ? [10, 7] : [4, 8]);
+      cx.lineWidth = on ? 2 : 1.2;
+      cx.strokeStyle = col;
+      cx.globalAlpha = p.visited ? (on ? 1 : .8) : .55;
+      cx.beginPath();
+      for (var i = 0; i <= 160; i++) {
+        var a = i / 160 * Math.PI * 2;
+        var pt = project(Math.cos(a) * p.orbit, 0, Math.sin(a) * p.orbit);
+        if (i === 0) cx.moveTo(pt.x, pt.y); else cx.lineTo(pt.x, pt.y);
+      }
+      cx.stroke();
+      cx.setLineDash([]); cx.globalAlpha = 1;
+    });
+
+    // bodies, back to front
+    var items = system.planets.map(function (p) {
+      var pos = planetPos(p); var pr = project(pos.x, 0, pos.z);
+      return { p: p, pr: pr, pos: pos };
+    });
+    items.push({ star: true, pr: sp });
+    items.sort(function (a, b) { return b.pr.depth - a.pr.depth; });
+    hits = [];
+    items.forEach(function (it) {
+      if (it.star) {
+        var r = system.star.size * it.pr.s;
+        var gg = cx.createRadialGradient(it.pr.x, it.pr.y, 0, it.pr.x, it.pr.y, r * 3.2);
+        gg.addColorStop(0, "rgba(255,244,214,1)"); gg.addColorStop(.18, "rgba(255,236,190,.95)");
+        gg.addColorStop(.32, "rgba(245,179,60,.45)"); gg.addColorStop(1, "rgba(245,179,60,0)");
+        cx.fillStyle = gg; cx.beginPath(); cx.arc(it.pr.x, it.pr.y, r * 3.2, 0, Math.PI * 2); cx.fill();
+        return;
+      }
+      var p = it.p, r = Math.max(2.5, p.size * it.pr.s * 1.15);
+      var light = Math.atan2(sp.y - it.pr.y, sp.x - it.pr.x);
+      drawSphere(cx, it.pr.x, it.pr.y, r, p, light);
+      if (p.visited || hover === p) {
+        cx.font = "10px " + getComputedStyle(document.body).getPropertyValue("--mono");
+        cx.fillStyle = p.visited ? "rgba(210,236,246,.9)" : "rgba(91,127,146,.9)";
+        cx.textAlign = "center";
+        cx.fillText(p.name.toUpperCase().replace(/ /g, " "), it.pr.x, it.pr.y + r + 14);
+      }
+      hits.push({ p: p, x: it.pr.x, y: it.pr.y, r: r + 6 });
+    });
+  }
+
+  // starfield: fixed points that slide a little with the camera for parallax
+  var STARS = [];
+  for (var i = 0; i < 420; i++) STARS.push({ x: Math.random(), y: Math.random(), z: Math.random(), b: Math.random() });
+  function drawStars() {
+    sx.clearRect(0, 0, W, H);
+    STARS.forEach(function (s) {
+      var px = ((s.x + cam.yaw * 0.02 * s.z) % 1 + 1) % 1 * W;
+      var py = ((s.y + cam.pitch * 0.02 * s.z) % 1 + 1) % 1 * H;
+      var a = 0.25 + s.b * 0.6;
+      sx.fillStyle = s.b > .93 ? "rgba(63,216,240," + a + ")" : "rgba(210,236,246," + a + ")";
+      sx.fillRect(px, py, s.b > .8 ? 1.6 : 1, s.b > .8 ? 1.6 : 1);
+    });
+  }
+
+  function resize() {
+    W = window.innerWidth; H = window.innerHeight;
+    [chart, starsC].forEach(function (c) {
+      c.width = W * DPR; c.height = H * DPR;
+      c.getContext("2d").setTransform(DPR, 0, 0, DPR, 0, 0);
+    });
+    drawStars(); drawChart();
+  }
+  window.addEventListener("resize", resize);
+
+  // camera controls: drag to turn, wheel or pinch to zoom
+  var drag = null, moved = 0;
+  chart.addEventListener("pointerdown", function (e) {
+    drag = { x: e.clientX, y: e.clientY, yaw: cam.yaw, pitch: cam.pitch }; moved = 0;
+    chart.setPointerCapture(e.pointerId); chart.className = "grabbing";
+  });
+  chart.addEventListener("pointermove", function (e) {
+    if (drag) {
+      var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+      moved += Math.abs(dx) + Math.abs(dy);
+      cam.yaw = drag.yaw + dx * 0.006;
+      cam.pitch = Math.max(0.12, Math.min(1.45, drag.pitch + dy * 0.005));
+      drawStars();
+      return;
+    }
+    var h = hitAt(e.clientX, e.clientY);
+    if (h !== hover) { hover = h; chart.className = h ? "over" : ""; }
+    showTip(h, e.clientX, e.clientY);
+  });
+  chart.addEventListener("pointerup", function (e) {
+    chart.className = hover ? "over" : "";
+    var wasDrag = drag && moved > 6; drag = null;
+    if (wasDrag) return;
+    var h = hitAt(e.clientX, e.clientY);
+    if (h && h.visited) openPlanet(h);
+  });
+  chart.addEventListener("pointerleave", function () { hover = null; showTip(null); });
+  chart.addEventListener("wheel", function (e) {
+    e.preventDefault();
+    cam.dist = Math.max(260, Math.min(1500, cam.dist * (e.deltaY > 0 ? 1.08 : 0.93)));
+  }, { passive: false });
+
+  function hitAt(x, y) {
+    for (var i = hits.length - 1; i >= 0; i--) {
+      var h = hits[i]; var d = Math.hypot(x - h.x, y - h.y);
+      if (d <= h.r) return h.p;
+    }
+    return null;
+  }
+  var tip = document.getElementById("tip");
+  function showTip(p, x, y) {
+    if (!p) { tip.className = "tip"; return; }
+    tip.innerHTML = p.name + "<span class=\"sub\">" + (p.visited ? "open file" : "not yet visited") + "</span>";
+    tip.style.left = x + "px"; tip.style.top = y + "px";
+    tip.className = "tip show";
+  }
+
+  document.getElementById("drift").addEventListener("click", function () {
+    drifting = !drifting;
+    this.setAttribute("aria-pressed", String(drifting));
+    this.textContent = drifting ? "Orbits: moving" : "Orbits: held";
+  });
+  document.getElementById("reset").addEventListener("click", function () { glide(HOME); });
+
+  // eases the camera to a target over half a second
+  var gliding = null;
+  function glide(to, then) {
+    if (reduced) { cam.yaw = to.yaw; cam.pitch = to.pitch; cam.dist = to.dist; if (then) then(); return; }
+    gliding = { from: { yaw: cam.yaw, pitch: cam.pitch, dist: cam.dist }, to: to, t: performance.now(), then: then };
+  }
+
+  function frame(now) {
+    var dt = (now - t0) / 1000; t0 = now;
+    if (drifting) simT += dt;
+    if (gliding) {
+      var k = Math.min(1, (now - gliding.t) / 520), e = 1 - Math.pow(1 - k, 3);
+      cam.yaw = gliding.from.yaw + (gliding.to.yaw - gliding.from.yaw) * e;
+      cam.pitch = gliding.from.pitch + (gliding.to.pitch - gliding.from.pitch) * e;
+      cam.dist = gliding.from.dist + (gliding.to.dist - gliding.from.dist) * e;
+      if (k >= 1) { var fn = gliding.then; gliding = null; if (fn) fn(); }
+      drawStars();
+    }
+    drawChart();
+    requestAnimationFrame(frame);
+  }
+
+  // ---- the planet view -----------------------------------------------------
+  var pv = document.getElementById("pv");
+  var current = null, region = null;
+
+  function openPlanet(p) {
+    var pos = planetPos(p);
+    // turn toward the world and close in, then raise the file
+    var yaw = Math.atan2(pos.x, pos.z) + Math.PI;
+    glide({ yaw: yaw, pitch: 0.5, dist: 420 }, function () { showPlanet(p); });
+  }
+  function showPlanet(p) {
+    current = p; region = null;
+    pv.className = "on"; pv.setAttribute("aria-hidden", "false");
+    document.body.className = "pv-on";
+    document.getElementById("pvname").textContent = p.name;
+    renderRail(); renderGlobe(p); renderStats(p); renderChips(p);
+    selectRegion(p.regions && p.regions[0] ? p.regions[0] : null);
+  }
+  document.getElementById("back").addEventListener("click", function () {
+    pv.className = ""; pv.setAttribute("aria-hidden", "true"); current = null;
+    document.body.className = "";
+    glide(HOME);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && current) document.getElementById("back").click();
+  });
+
+  function renderRail() {
+    var box = document.getElementById("dests"); box.textContent = "";
+    system.planets.forEach(function (p) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "dest" + (p.visited ? "" : " locked");
+      if (p === current) b.setAttribute("aria-current", "true");
+      var c = document.createElement("canvas"); c.width = 120; c.height = 120;
+      drawSphere(c.getContext("2d"), 60, 60, 52, p, -Math.PI * .75);
+      b.appendChild(c);
+      var t = document.createElement("div");
+      var nm = document.createElement("div"); nm.className = "nm"; nm.textContent = p.name; t.appendChild(nm);
+      var d = document.createElement("div"); d.className = "dist"; d.textContent = p.visited ? p.dist : "no file"; t.appendChild(d);
+      b.appendChild(t);
+      var go = document.createElement("span"); go.className = "go"; go.textContent = "›"; b.appendChild(go);
+      if (p.visited) b.addEventListener("click", function () { if (p !== current) showPlanet(p); });
+      else b.disabled = true;
+      box.appendChild(b);
+    });
+  }
+
+  var globe = document.getElementById("globe"), globec = document.getElementById("globec");
+  function renderGlobe(p) {
+    var g = globec.getContext("2d");
+    g.clearRect(0, 0, 900, 900);
+    // atmosphere glow
+    var glow = g.createRadialGradient(450, 450, 380, 450, 450, 450);
+    glow.addColorStop(0, "rgba(63,216,240,.28)"); glow.addColorStop(1, "rgba(63,216,240,0)");
+    g.fillStyle = glow; g.fillRect(0, 0, 900, 900);
+    drawSphere(g, 450, 450, 400, p, -Math.PI * .7);
+    // markers
+    Array.prototype.forEach.call(globe.querySelectorAll(".mark"), function (m) { m.parentNode.removeChild(m); });
+    (p.regions || []).forEach(function (r) {
+      var m = document.createElement("button");
+      m.type = "button"; m.className = "mark"; m.title = r.name;
+      m.style.left = (r.at[0] * 100) + "%"; m.style.top = (r.at[1] * 100) + "%";
+      m.addEventListener("click", function () { selectRegion(r); });
+      m._region = r;
+      globe.appendChild(m);
+    });
+  }
+
+  function renderStats(p) {
+    var box = document.getElementById("pvstats"); box.textContent = "";
+    (p.stats || []).forEach(function (s) {
+      var d = document.createElement("div");
+      var k = document.createElement("span"); k.className = "k"; k.textContent = s[0];
+      var v = document.createElement("span"); v.className = "v"; v.textContent = s[1];
+      d.appendChild(k); d.appendChild(v); box.appendChild(d);
+    });
+  }
+
+  function renderChips(p) {
+    var box = document.getElementById("pvchips"); box.textContent = "";
+    (p.regions || []).forEach(function (r) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "chip";
+      b.textContent = r.name;
+      var k = document.createElement("span"); k.className = "kind"; k.textContent = r.kind; b.appendChild(k);
+      b.addEventListener("click", function () { selectRegion(r); });
+      b._region = r;
+      box.appendChild(b);
+    });
+  }
+
+  function selectRegion(r) {
+    region = r;
+    Array.prototype.forEach.call(document.querySelectorAll("#pvchips .chip"), function (b) {
+      b.setAttribute("aria-pressed", String(b._region === r));
+    });
+    Array.prototype.forEach.call(globe.querySelectorAll(".mark"), function (m) {
+      m.className = "mark" + (m._region === r ? " on" : "");
+    });
+    var lore = document.getElementById("pvlore"); lore.textContent = "";
+    if (!r) { lore.innerHTML = "<span class=\"k\">File</span><p class=\"ph\">Nothing on record for this world yet.</p>"; drawLead(); return; }
+    var k = document.createElement("span"); k.className = "k"; k.textContent = r.kind; lore.appendChild(k);
+    var h = document.createElement("h3"); h.textContent = r.name; lore.appendChild(h);
+    (r.lore || []).forEach(function (para) {
+      var pEl = document.createElement("p");
+      if (para === PH) pEl.className = "ph";
+      pEl.innerHTML = para;
+      lore.appendChild(pEl);
+    });
+    if (r.conditions && r.conditions.length) {
+      var c = document.createElement("div"); c.className = "cond";
+      var ck = document.createElement("span"); ck.className = "k"; ck.textContent = "Mission conditions"; c.appendChild(ck);
+      var ul = document.createElement("ul");
+      r.conditions.forEach(function (line) { var li = document.createElement("li"); li.textContent = line; ul.appendChild(li); });
+      c.appendChild(ul); lore.appendChild(c);
+    }
+    requestAnimationFrame(drawLead);
+  }
+
+  // a leader line from the selected marker to the lore panel's top edge
+  function drawLead() {
+    var line = document.getElementById("leadline");
+    var m = globe.querySelector(".mark.on"), lore = document.getElementById("pvlore");
+    var stage = pv.querySelector(".stage").getBoundingClientRect();
+    if (!m || !region) { line.setAttribute("x1", 0); line.setAttribute("y1", 0); line.setAttribute("x2", 0); line.setAttribute("y2", 0); return; }
+    var a = m.getBoundingClientRect(), b = lore.getBoundingClientRect();
+    line.setAttribute("x1", a.left + a.width / 2 - stage.left); line.setAttribute("y1", a.top + a.height / 2 - stage.top);
+    line.setAttribute("x2", Math.min(b.right - 24, Math.max(b.left + 24, a.left + a.width / 2)) - stage.left);
+    line.setAttribute("y2", b.top - stage.top);
+  }
+  window.addEventListener("resize", function () { if (current) requestAnimationFrame(drawLead); });
+
+  // ---- boot ----------------------------------------------------------------
+  resize();
+  requestAnimationFrame(frame);
+  // ?planet=ii opens a world straight away, for testing and for links
+  var want = (location.search.match(/[?&]planet=([a-z0-9-]+)/i) || [])[1];
+  if (want) {
+    var p = system.planets.filter(function (q) { return q.id === want.toLowerCase() && q.visited; })[0];
+    if (p) { cam.dist = 420; showPlanet(p); }
+  }
+})();
+</script>
+</body>
+</html>
