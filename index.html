@@ -678,6 +678,32 @@
   #intro .gate-status.ok { color: var(--moss); }
   @media (prefers-reduced-motion: reduce) { #intro { display: none; } }
 
+  /* ---------- crossing between pages ---------- */
+  /* Leaving: the page blurs and swells behind a scanline wipe that sweeps
+     down, then the next page loads. Arriving: the same wipe clears off the
+     new page as it settles into focus. Both pages carry this block, and a
+     flag in sessionStorage tells the new page it was arrived at. */
+  #warp {
+    position: fixed; inset: 0; z-index: 400; pointer-events: none; opacity: 0;
+    background: repeating-linear-gradient(0deg, rgba(63,216,240,.09) 0 1px, transparent 1px 3px), var(--ground);
+  }
+  #warp::after {
+    content: ""; position: absolute; left: 0; right: 0; height: 22vh; top: -24vh;
+    background: linear-gradient(180deg, transparent, rgba(63,216,240,.5), rgba(234,248,255,.95), rgba(63,216,240,.5), transparent);
+  }
+  html.leaving #warp { animation: warp-in .55s ease-in forwards; }
+  html.leaving #warp::after { animation: warp-sweep .55s ease-in forwards; }
+  html.leaving body { animation: warp-leave .55s ease-in forwards; }
+  html.arriving #warp { animation: warp-out .6s ease-out forwards; }
+  html.arriving #warp::after { animation: warp-sweep .6s ease-out forwards; }
+  html.arriving body { animation: warp-arrive .6s ease-out forwards; }
+  @keyframes warp-in { from { opacity: 0; } 60% { opacity: .85; } to { opacity: 1; } }
+  @keyframes warp-out { from { opacity: 1; } 40% { opacity: .85; } to { opacity: 0; } }
+  @keyframes warp-sweep { from { top: -24vh; } to { top: 112vh; } }
+  @keyframes warp-leave { to { transform: scale(1.035); filter: blur(5px) brightness(.5); } }
+  @keyframes warp-arrive { from { transform: scale(1.035); filter: blur(5px) brightness(.5); } to { transform: none; filter: none; } }
+  @media (prefers-reduced-motion: reduce) { #warp { display: none; } html.leaving body, html.arriving body { animation: none; } }
+
   /* ---------- the sheet editor ---------- */
   /* Editing controls are in the page for everyone and shown only under
      body.archivist, which the account row sets. The server refuses the
@@ -3162,6 +3188,27 @@
     intro.className = "open done";
     document.documentElement.className = document.documentElement.className.replace(/\s*intro-on/g, "");
   }, TYPE_MS + HOLD_MS + exitMs + 60);
+})();
+</script>
+<script>
+// The crossing to and from the star chart. Runs before the page paints so
+// an arrival starts covered and clears off, rather than flashing first.
+(function () {
+  var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var warp = document.createElement("div"); warp.id = "warp"; document.body.appendChild(warp);
+  var came = false;
+  try { came = sessionStorage.getItem("overseer.warp") === "1"; sessionStorage.removeItem("overseer.warp"); } catch (e) {}
+  var gate = document.getElementById("intro");
+  if (came && !reduced && (!gate || gate.className.indexOf("done") !== -1)) {
+    document.documentElement.classList.add("arriving");
+    setTimeout(function () { document.documentElement.classList.remove("arriving"); }, 700);
+  }
+  window.warpTo = function (href) {
+    if (reduced) { location.href = href; return; }
+    try { sessionStorage.setItem("overseer.warp", "1"); } catch (e) {}
+    document.documentElement.classList.add("leaving");
+    setTimeout(function () { location.href = href; }, 560);
+  };
 })();
 </script>
 
@@ -6532,6 +6579,11 @@
       if (v.href) {
         var a = el("a", "btn", v.label);
         a.href = v.href;
+        a.addEventListener("click", function (e) {
+          if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;   // new tab: let it through
+          e.preventDefault();
+          window.warpTo(v.href);
+        });
         seg.appendChild(a);
         return;
       }
