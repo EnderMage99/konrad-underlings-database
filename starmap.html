@@ -189,47 +189,47 @@
       id: "invideis", name: "Invideis", star: { color: "#FFF4D6", glow: "#F5B33C", size: 22 },
       planets: [
         { id: "i",   name: "Invideis-I",   orbit: 55,  period: 1.0,  size: 4.5, visited: false, phase: 0.8 },
-        { id: "ii",  name: "Invideis-II",  orbit: 95,  period: 2.3,  size: 8,   visited: true,  phase: 3.9,
+        { id: "ii",  name: "Invideis-II",  orbit: 125, period: 3.4,  size: 8,   visited: true,  phase: 3.9,
           ring: "#45E0A0",
           palette: { sea: "#1B4F7A", land: ["#2E8B57", "#3C9D62", "#C2A56B", "#8C8F93", "#6B7F8E"], cloud: "rgba(255,255,255,.18)" },
           dist: "0.00 ly - here",
           stats: [["Biomes", "Woods, mountains, desert"], ["Principal city", "Vintatem"], ["Field of operations", "Dictis"], ["Contract", "Active"]],
           regions: [
-            { id: "woods", name: "Woods", kind: "Biome", lat: 24, lon: -48,
+            { id: "woods", name: "Woods", kind: "Biome", lat: 24, lon: -48, want: "green",
               lore: [PH] },
-            { id: "mountains", name: "Mountains", kind: "Biome", lat: 34, lon: 22,
+            { id: "mountains", name: "Mountains", kind: "Biome", lat: 34, lon: 22, want: ["peak", "ice"],
               lore: [PH],
               conditions: [
                 { n: "Frozen Ground",
                   txt: "Trigger: a character ends their turn without having moved. Effect: they freeze to the ground and become Immobilized until they pass a Hull check against 12, which they may attempt at the start of each of their turns.",
                   meta: "Region condition / Every character in the mountains" }
               ] },
-            { id: "desert", name: "Desert", kind: "Biome", lat: -14, lon: 60,
+            { id: "desert", name: "Desert", kind: "Biome", lat: -14, lon: 60, want: "desert",
               lore: [PH],
               conditions: [
                 { n: "Scorching",
                   txt: "Any Heat gained within this region is doubled, no matter the source - weapons, systems, Overcharging or the environment alike.",
                   meta: "Region condition / Every character in the desert" }
               ] },
-            { id: "dictis", name: "Dictis", kind: "City", lat: -6, lon: -12,
+            { id: "dictis", name: "Dictis", kind: "City", lat: -6, lon: -12, want: "desert",
               lore: ["Where the squad's missions have been taking place. A short way from Vintatem, the larger city it sits in the shadow of.", PH] },
-            { id: "vintatem", name: "Vintatem", kind: "City", lat: -13, lon: -3,
+            { id: "vintatem", name: "Vintatem", kind: "City", lat: -13, lon: -3, want: "desert",
               lore: ["The larger city near Dictis.", PH] }
           ] },
-        { id: "iii", name: "Invideis-III", orbit: 150, period: 4.5,  size: 6,   visited: false, phase: 1.7 },
-        { id: "iv",  name: "Invideis-IV",  orbit: 225, period: 8.3,  size: 9,   visited: true,  phase: 5.2,
+        { id: "iii", name: "Invideis-III", orbit: 180, period: 5.9,  size: 6,   visited: false, phase: 1.7 },
+        { id: "iv",  name: "Invideis-IV",  orbit: 250, period: 9.7,  size: 9,   visited: true,  phase: 5.2,
           ring: "#3FD8F0",
           palette: { sea: "#173E4A", land: ["#1F6B3A", "#246F3C", "#2E8B57", "#3B7A4B", "#4E6B3B"], cloud: "rgba(220,255,235,.14)" },
           dist: "0.31 ly from Invideis-II",
           stats: [["Development", "Sparse"], ["Fauna", "Large"], ["Trade", "Little offworld"], ["Settlements", "A few small cities"]],
           regions: [
-            { id: "woods4", name: "Woods", kind: "Biome", lat: 12, lon: 8,
+            { id: "woods4", name: "Woods", kind: "Biome", lat: 12, lon: 8, want: "green",
               lore: ["A planet largely taken back by nature: little trade reaches it from other worlds, its fauna runs large, and only a few very small cities hold out against the green.",
                      "Within the woods stands Dendetz Zephyr's Outpost. Zephyr is a monster hunter working this planet on contract, and has been hiring the squad. See the personnel file on the main site: <a class=\"link\" href=\"./#personnel::Dendetz Zephyr\">Dendetz Zephyr</a>.",
                      PH] }
           ] },
-        { id: "v",   name: "Invideis-V",   orbit: 340, period: 15.4, size: 12,  visited: false, phase: 2.6 },
-        { id: "vi",  name: "Invideis-VI",  orbit: 480, period: 25.8, size: 10,  visited: false, phase: 4.4 },
+        { id: "v",   name: "Invideis-V",   orbit: 360, period: 17.1, size: 12,  visited: false, phase: 2.6 },
+        { id: "vi",  name: "Invideis-VI",  orbit: 490, period: 26.6, size: 10,  visited: false, phase: 4.4 },
         { id: "vii", name: "Invideis-VII", orbit: 640, period: 39.7, size: 5,   visited: false, phase: 0.3 }
       ]
     }
@@ -333,8 +333,8 @@
   // The look of each world. Unvisited worlds get a rocky or banded default
   // from their size so the chart still reads as a real system.
   var LOOKS = {
-    ii: { seed: 21, sea: 0.52, scale: 3.3, deep: "#0B2A4E", shallow: "#1E6C8E", low: "#2A7F4E", mid: "#4F8A3A",
-          high: "#B08E52", peak: "#7E8287", ice: 0.84, clouds: 0.38, atmo: "#6FD3FF", detail: 7, dry: true },
+    ii: { seed: 21, sea: 0.50, scale: 3.3, deep: "#0B2A4E", shallow: "#1E6C8E", low: "#C9A96B", mid: "#B8925A",
+          high: "#B9AB94", peak: "#E4E6E8", ice: 0.84, clouds: 0.34, atmo: "#6FD3FF", detail: 7, dry: true, oasis: true },
     iv: { seed: 47, sea: 0.40, scale: 2.8, deep: "#0A262B", shallow: "#155A4A", low: "#175E2E", mid: "#2A8452",
           high: "#3F6E33", peak: "#5E7356", ice: 0.9, clouds: 0.3, atmo: "#7CF2C4", detail: 7 }
   };
@@ -349,11 +349,15 @@
   }
 
   // Colour of the surface at a unit vector, with the world turned by lon0.
+  // Also leaves the kind of ground in SURF_CLASS - sea, green, desert, peak
+  // or ice - so region markers can be placed on the right terrain.
+  var SURF_CLASS = "";
   function surfaceAt(look, nx, ny, nz, lon0) {
     var cl = Math.cos(lon0), sl = Math.sin(lon0);
     var x = nx * cl - nz * sl, z = nx * sl + nz * cl, y = ny;
     var s = look.scale;
     if (look.gas) {
+      SURF_CLASS = "gas";
       var warp = fbm(x * 2, y * 2, z * 2, look.seed, 3, .5) - .5;
       var band = Math.sin((y + warp * .35) * look.bands * Math.PI) * .5 + .5;
       var fine = fbm(x * 6, y * 18, z * 6, look.seed + 5, 3, .5);
@@ -365,19 +369,62 @@
     var lat = Math.abs(y);
     var col;
     if (h < look.sea) {
+      SURF_CLASS = "sea";
       var d = (look.sea - h) / Math.max(look.sea, .001);
       col = mix(hex(look.shallow), hex(look.deep), Math.min(1, d * 1.6));
     } else {
       var t = (h - look.sea) / Math.max(1 - look.sea, .001);
-      if (t < .3) col = mix(hex(look.low), hex(look.mid), t / .3);
-      else if (t < .65) col = mix(hex(look.mid), hex(look.high), (t - .3) / .35);
-      else col = mix(hex(look.high), hex(look.peak), (t - .65) / .35);
-      // drier and paler toward the tropics on a diverse world
-      if (look.dry) col = mix(col, hex(look.high), Math.max(0, .3 - lat) * .45);
+      if (t < .25) col = mix(hex(look.low), hex(look.mid), t / .25);
+      else if (t < .42) col = mix(hex(look.mid), hex(look.high), (t - .25) / .17);
+      else col = mix(hex(look.high), hex(look.peak), Math.min(1, (t - .42) / .25));
+      SURF_CLASS = t > .45 ? "peak" : (look.dry ? "desert" : "green");
+      // a dry world keeps its green to a few wet patches
+      if (look.oasis && t < .42) {
+        var moist = fbm(x * 2.2 + 31, y * 2.2 - 17, z * 2.2 + 5, look.seed + 53, 4, .5);
+        var g = Math.max(0, Math.min(1, (moist - .56) * 7));
+        if (g > 0) col = mix(col, [58, 132, 70], g * .9);
+        if (g > .5) SURF_CLASS = "green";
+      }
     }
     var iceEdge = look.ice + (fbm(x * 4, y * 4, z * 4, look.seed + 7, 3, .5) - .5) * .12;
-    if (lat > iceEdge) col = mix(col, [236, 244, 248], Math.min(1, (lat - iceEdge) / .06));
+    if (lat > iceEdge) {
+      var f = Math.min(1, (lat - iceEdge) / .06);
+      col = mix(col, [236, 244, 248], f);
+      if (f > .5) SURF_CLASS = "ice";
+    }
     return col;
+  }
+
+  // Ground kind at a latitude and longitude on the baked map.
+  function groundAt(p, latDeg, lonDeg) {
+    var lat = latDeg * Math.PI / 180, lon = lonDeg * Math.PI / 180, cl = Math.cos(lat);
+    surfaceAt(lookFor(p), cl * Math.sin(lon), -Math.sin(lat), cl * Math.cos(lon), 0);
+    return SURF_CLASS;
+  }
+
+  // Moves each region marker to the nearest spot of the ground it wants,
+  // searching outward from where it was written. The surfaces are seeded,
+  // so this lands in the same place every load.
+  function settleRegions(p) {
+    (p.regions || []).forEach(function (r) {
+      if (!r.want) return;
+      // each wanted ground is tried in turn, nearest first, so a marker that
+      // would take ice only takes it when no peak is within reach
+      var wants = [].concat(r.want);
+      for (var w = 0; w < wants.length; w++) {
+        var want = wants[w];
+        if (groundAt(p, r.lat, r.lon) === want) return;
+        for (var ring = 1; ring <= 26; ring++) {
+          var step = ring * 3;
+          for (var a = 0; a < 16; a++) {
+            var ang = a / 16 * Math.PI * 2;
+            var lat = Math.max(-70, Math.min(70, r.lat + Math.sin(ang) * step));
+            var lon = r.lon + Math.cos(ang) * step;
+            if (groundAt(p, lat, lon) === want) { r.lat = lat; r.lon = lon; return; }
+          }
+        }
+      }
+    });
   }
 
   // Draws the lit sphere into a square canvas of the given size.
@@ -491,31 +538,48 @@
   // is worked out once per size: for each pixel, the texel row, the
   // longitude as a fraction of a turn, the normal, and the edge softening.
   // Per frame that leaves one texel fetch and a dot product per pixel.
+  // The world's axis stands on the orbit plane, so tilting the camera tilts
+  // the world: from above you see its pole. The pixel geometry that depends
+  // on the tilt (which texel row, which meridian) is recomputed only when
+  // the pitch changes; yaw and spin are just an offset along the map.
   var LUTS = {};
-  function spinLUT(S) {
-    if (LUTS[S]) return LUTS[S];
-    var n = S * S;
-    var lut = { inside: new Uint8Array(n), row: new Int32Array(n), uf: new Float32Array(n),
-                nx: new Float32Array(n), ny: new Float32Array(n), nz: new Float32Array(n),
-                fres: new Float32Array(n), alpha: new Uint8Array(n) };
-    var half = S / 2, inv = 1 / (half - .5), TW = 1024, TH = 512;
-    for (var py = 0; py < S; py++) {
-      var yy = (py + .5 - half) * inv, yy2 = yy * yy;
-      for (var px = 0; px < S; px++) {
-        var xx = (px + .5 - half) * inv, rr = xx * xx + yy2, k = py * S + px;
-        if (rr > 1) continue;
-        var zz = Math.sqrt(1 - rr);
-        lut.inside[k] = 1;
-        var v = (0.5 - Math.asin(-yy) / Math.PI) * TH | 0;
-        lut.row[k] = (v >= TH ? TH - 1 : v) * TW;
-        lut.uf[k] = Math.atan2(xx, zz) / (2 * Math.PI) + 0.5;
-        lut.nx[k] = xx; lut.ny[k] = yy; lut.nz[k] = zz;
-        lut.fres[k] = Math.pow(1 - zz, 2.6);
-        var edge = Math.max(0, (rr - .86) / .14);
-        lut.alpha[k] = 255 * (1 - edge * edge * .9);
+  function spinLUT(S, pitch) {
+    var lut = LUTS[S];
+    if (!lut) {
+      var n = S * S;
+      lut = { inside: new Uint8Array(n), row: new Int32Array(n), uf: new Float32Array(n),
+              nx: new Float32Array(n), ny: new Float32Array(n), nz: new Float32Array(n),
+              fres: new Float32Array(n), alpha: new Uint8Array(n), pitch: null };
+      var half = S / 2, inv = 1 / (half - .5);
+      for (var py = 0; py < S; py++) {
+        var yy = (py + .5 - half) * inv, yy2 = yy * yy;
+        for (var px = 0; px < S; px++) {
+          var xx = (px + .5 - half) * inv, rr = xx * xx + yy2, k = py * S + px;
+          if (rr > 1) continue;
+          var zz = Math.sqrt(1 - rr);
+          lut.inside[k] = 1;
+          lut.nx[k] = xx; lut.ny[k] = yy; lut.nz[k] = zz;
+          lut.fres[k] = Math.pow(1 - zz, 2.6);
+          var edge = Math.max(0, (rr - .86) / .14);
+          lut.alpha[k] = 255 * (1 - edge * edge * .9);
+        }
       }
+      LUTS[S] = lut;
     }
-    LUTS[S] = lut;
+    var q = Math.round(pitch * 200) / 200;
+    if (lut.pitch !== q) {
+      // undo the camera's pitch to find where on the world each pixel lands
+      var cp = Math.cos(q), sp = Math.sin(q), TW = 1024, TH = 512;
+      for (var k2 = 0, n2 = S * S; k2 < n2; k2++) {
+        if (!lut.inside[k2]) continue;
+        var vx = lut.nx[k2], vy = lut.ny[k2], vz = -lut.nz[k2];   // depth runs away from the viewer
+        var wy = vy * cp + vz * sp, wz = -vy * sp + vz * cp;
+        var v = (0.5 - Math.asin(-wy) / Math.PI) * TH | 0;
+        lut.row[k2] = (v >= TH ? TH - 1 : v) * TW;
+        lut.uf[k2] = Math.atan2(vx, wz) / (2 * Math.PI) + 0.5;
+      }
+      lut.pitch = q;
+    }
     return lut;
   }
 
@@ -524,11 +588,12 @@
     var tex = textureFor(p), look = lookFor(p), atmo = hex(look.atmo);
     var S = Math.max(8, Math.min(384, Math.round(r * 2)));   // capped; scaled up when closer
     if (spinC.width !== S) { spinC.width = S; spinC.height = S; spinImg = spinG.createImageData(S, S); }
-    var lut = spinLUT(S);
+    var lut = spinLUT(S, cam.pitch);
     var d = spinImg.data, td = tex.data, TW = tex.w;
     var Lx = light.x, Ly = light.y, Lz = light.z;
     var ll = Math.hypot(Lx, Ly, Lz) || 1; Lx /= ll; Ly /= ll; Lz /= ll;
-    var turn = spin / (2 * Math.PI);
+    // yaw turns the world under the camera the same way spin does
+    var turn = (spin + cam.yaw) / (2 * Math.PI);
     var a0 = atmo[0] * .9, a1 = atmo[1] * .9, a2 = atmo[2] * .9;
     var inside = lut.inside, row = lut.row, uf = lut.uf, nx = lut.nx, ny = lut.ny, nz = lut.nz, fr = lut.fres, al = lut.alpha;
     for (var k = 0, n = S * S; k < n; k++) {
@@ -554,13 +619,17 @@
     ctx.drawImage(spinC, x - r, y - r, r * 2, r * 2);
   }
 
-  // Where a point of the surface sits on screen at the current spin, and
-  // whether it faces the viewer.
+  // Where a point of the surface sits on screen at the current spin and
+  // camera, and whether it faces the viewer. Same rotation as project().
   function surfacePoint(latDeg, lonDeg, spin, fs) {
     var lat = latDeg * Math.PI / 180, lon = lonDeg * Math.PI / 180 - spin;
     var cl = Math.cos(lat);
-    var x = cl * Math.sin(lon), y = -Math.sin(lat), z = cl * Math.cos(lon);
-    return { x: fs.x + x * fs.r, y: fs.y + y * fs.r, front: z > 0.08, z: z };
+    var wx = cl * Math.sin(lon), wy = -Math.sin(lat), wz = cl * Math.cos(lon);
+    var cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw);
+    var x1 = wx * cy - wz * sy, z1 = wx * sy + wz * cy;
+    var cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+    var y2 = wy * cp - z1 * sp, z2 = wy * sp + z1 * cp;
+    return { x: fs.x + x1 * fs.r, y: fs.y + y2 * fs.r, front: -z2 > 0.08, z: -z2 };
   }
 
   // Unlit surface sprites, one per world per size.
@@ -619,20 +688,6 @@
 
   function drawChart() {
     cx.clearRect(0, 0, W, H);
-    // grid plane, fading with distance from the star
-    var R = 720, step = 60;
-    cx.lineWidth = 1;
-    for (var g = -R; g <= R; g += step) {
-      for (var pass = 0; pass < 2; pass++) {
-        cx.beginPath();
-        for (var u = -R; u <= R; u += 20) {
-          var pt = pass ? project(g, 0, u) : project(u, 0, g);
-          if (u === -R || pt.depth < 12) cx.moveTo(pt.x, pt.y); else cx.lineTo(pt.x, pt.y);
-        }
-        cx.strokeStyle = "rgba(63,216,240," + (0.05 + 0.06 * (1 - Math.abs(g) / R)) + ")";
-        cx.stroke();
-      }
-    }
     // a soft disc under the star so the plane reads as lit
     var sp = project(0, 0, 0);
     var halo = cx.createRadialGradient(sp.x, sp.y, 0, sp.x, sp.y, 220 * sp.s);
@@ -690,18 +745,103 @@
     if (current) { placeMarks(); drawLead(); }
   }
 
-  // starfield: fixed points that slide a little with the camera for parallax
-  var STARS = [];
-  for (var i = 0; i < 420; i++) STARS.push({ x: Math.random(), y: Math.random(), z: Math.random(), b: Math.random() });
+  // ---- the deep field ------------------------------------------------------
+  // Painted once, larger than the screen, then slid a little with the camera
+  // for parallax: a band of the galaxy running corner to corner, blue and
+  // teal nebula with a violet patch, dust, thousands of faint stars thickest
+  // along the band, and a few bright ones with a glow.
+  var SKY = null, SKY2 = null, SKY_W = 0, SKY_H = 0, skyT0 = performance.now();
+  function noise2(x, y, seed) { return noise3(x, y, 0.37, seed); }
+  function fbm2(x, y, seed, oct) {
+    var v = 0, amp = 1, f = 1, norm = 0;
+    for (var i = 0; i < oct; i++) { v += noise2(x * f, y * f, seed + i * 13) * amp; norm += amp; amp *= .5; f *= 2.1; }
+    return v / norm;
+  }
+  function paintSky() {
+    SKY_W = Math.round(W * 1.25); SKY_H = Math.round(H * 1.25);
+    SKY = document.createElement("canvas"); SKY.width = SKY_W; SKY.height = SKY_H;
+    var g = SKY.getContext("2d");
+    var seed = 4021;
+    function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+    g.fillStyle = "#03060B"; g.fillRect(0, 0, SKY_W, SKY_H);
+
+    // nebula at quarter resolution, scaled up so it blurs
+    var nw = Math.max(64, SKY_W >> 2), nh = Math.max(64, SKY_H >> 2);
+    var nc = document.createElement("canvas"); nc.width = nw; nc.height = nh;
+    var ng = nc.getContext("2d"), img = ng.createImageData(nw, nh), d = img.data;
+    var ang = -0.55, ca = Math.cos(ang), sa = Math.sin(ang);
+    for (var y = 0; y < nh; y++) for (var x = 0; x < nw; x++) {
+      var u = x / nw - .5, v = y / nh - .5;
+      // distance from the band's centre line, in a rotated frame
+      var along = u * ca - v * sa, across = u * sa + v * ca;
+      var band = Math.exp(-(across * across) / 0.028);
+      var n1 = fbm2(u * 3.2 + 9, v * 3.2 + 3, 11, 5);
+      var n2 = fbm2(u * 6.5 - 2, v * 6.5 + 7, 29, 4);
+      var dust = Math.pow(Math.max(0, n1 - .36) * 2.4, 1.3) * band;
+      var wisp = Math.pow(Math.max(0, n2 - .44) * 2.6, 1.5) * (0.3 + 0.7 * band);
+      var violet = Math.exp(-((u + .18) * (u + .18) + (v - .32) * (v - .32)) / 0.03) * Math.max(0, n2 - .3) * 2.2;
+      var teal = Math.exp(-((u - .22) * (u - .22) + (v + .28) * (v + .28)) / 0.06) * Math.max(0, n1 - .34) * 2.6;
+      var i = (y * nw + x) * 4;
+      var r = 40 * dust + 90 * wisp + 150 * violet + 15 * teal;
+      var gg = 85 * dust + 130 * wisp + 70 * violet + 170 * teal;
+      var b = 170 * dust + 200 * wisp + 210 * violet + 190 * teal;
+      d[i] = Math.min(255, r); d[i + 1] = Math.min(255, gg); d[i + 2] = Math.min(255, b);
+      d[i + 3] = Math.min(255, (dust * 1.4 + wisp * .9 + violet * .9 + teal * .9) * 255);
+    }
+    ng.putImageData(img, 0, 0);
+    g.imageSmoothingEnabled = true;
+    g.drawImage(nc, 0, 0, SKY_W, SKY_H);
+
+    // stars: thick along the band, thin elsewhere
+    var count = Math.round(SKY_W * SKY_H / 380);
+    for (var k = 0; k < count; k++) {
+      var sx0 = rnd(), sy0 = rnd();
+      var uu = sx0 - .5, vv = sy0 - .5, acr = uu * sa + vv * ca;
+      var inBand = Math.exp(-(acr * acr) / 0.03);
+      if (rnd() > 0.18 + 0.82 * inBand) continue;
+      var m = rnd(), bright = m * m * m;
+      var size = 0.6 + bright * 1.6;
+      var tint = rnd();
+      var col = tint < .12 ? "63,216,240" : tint < .2 ? "170,190,255" : tint < .24 ? "255,200,230" : "220,236,246";
+      g.fillStyle = "rgba(" + col + "," + (0.25 + bright * .7) + ")";
+      g.fillRect(sx0 * SKY_W, sy0 * SKY_H, size, size);
+    }
+    // the near layer: brighter stars and the glowing ones, on their own
+    // canvas so they can slide faster than the nebula behind them
+    SKY2 = document.createElement("canvas"); SKY2.width = SKY_W; SKY2.height = SKY_H;
+    var g2 = SKY2.getContext("2d");
+    for (var k3 = 0; k3 < count / 6; k3++) {
+      var m3 = rnd(), br3 = 0.5 + m3 * m3 * 1.4, tint3 = rnd();
+      var col3 = tint3 < .15 ? "63,216,240" : tint3 < .25 ? "170,190,255" : "230,240,250";
+      g2.fillStyle = "rgba(" + col3 + "," + (0.45 + m3 * .5) + ")";
+      g2.fillRect(rnd() * SKY_W, rnd() * SKY_H, br3, br3);
+    }
+    g = g2;
+    for (var b2 = 0; b2 < 14; b2++) {
+      var bx = rnd() * SKY_W, by = rnd() * SKY_H, br = 6 + rnd() * 16;
+      var tint2 = rnd();
+      var col2 = tint2 < .5 ? "190,225,255" : tint2 < .8 ? "63,216,240" : "255,215,240";
+      var glow = g.createRadialGradient(bx, by, 0, bx, by, br);
+      glow.addColorStop(0, "rgba(" + col2 + ",.95)"); glow.addColorStop(.25, "rgba(" + col2 + ",.35)"); glow.addColorStop(1, "rgba(" + col2 + ",0)");
+      g.fillStyle = glow; g.beginPath(); g.arc(bx, by, br, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "rgba(255,255,255,.95)"; g.fillRect(bx - .8, by - .8, 1.6, 1.6);
+    }
+  }
+
   function drawStars() {
+    if (!SKY) paintSky();
     sx.clearRect(0, 0, W, H);
-    STARS.forEach(function (s) {
-      var px = ((s.x + cam.yaw * 0.02 * s.z) % 1 + 1) % 1 * W;
-      var py = ((s.y + cam.pitch * 0.02 * s.z) % 1 + 1) % 1 * H;
-      var a = 0.25 + s.b * 0.6;
-      sx.fillStyle = s.b > .93 ? "rgba(63,216,240," + a + ")" : "rgba(210,236,246," + a + ")";
-      sx.fillRect(px, py, s.b > .8 ? 1.6 : 1, s.b > .8 ? 1.6 : 1);
-    });
+    // the painted field is 25% larger than the screen. The nebula slides a
+    // little with the camera, the near stars more, and both creep slowly
+    // on their own so the sky is never quite still.
+    var t = (performance.now() - skyT0) / 1000;
+    var mx = SKY_W - W, my = SKY_H - H;
+    var px = Math.sin(cam.yaw), py = Math.sin(cam.pitch);
+    var wrapX = function (v) { return ((v % mx) + mx) % mx; };
+    var ox = -wrapX(mx / 2 + px * mx * 0.3 + t * 1.5), oy = -my / 2 - py * my * 0.3;
+    sx.drawImage(SKY, ox, oy);
+    var ox2 = -wrapX(mx / 2 + px * mx * 0.8 + t * 4), oy2 = -my / 2 - py * my * 0.7;
+    sx.drawImage(SKY2, ox2, oy2);
   }
 
   function resize() {
@@ -710,6 +850,7 @@
       c.width = W * DPR; c.height = H * DPR;
       c.getContext("2d").setTransform(DPR, 0, 0, DPR, 0, 0);
     });
+    SKY = null;
     drawStars(); drawChart();
   }
   window.addEventListener("resize", resize);
@@ -804,6 +945,7 @@
       if (k >= 1) { var fn = gliding.then; gliding = null; if (fn) fn(); }
       drawStars();
     }
+    drawStars();
     drawChart();
     requestAnimationFrame(frame);
   }
@@ -967,6 +1109,7 @@
   window.addEventListener("resize", function () { if (current) requestAnimationFrame(drawLead); });
 
   // ---- boot ----------------------------------------------------------------
+  system.planets.forEach(function (p) { if (p.visited) settleRegions(p); });
   resize();
   requestAnimationFrame(frame);
   // Bake ahead of need, one item per idle slice, so the first click on a
