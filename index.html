@@ -362,6 +362,7 @@
   }
 
   .btn:hover { color: var(--accent); border-color: var(--accent-dim); }
+  a.btn { text-decoration: none; display: inline-block; }
   .btn[aria-pressed="true"] {
     background: var(--accent);
     color: var(--ground);
@@ -6506,7 +6507,8 @@
       { id: "lancers",   label: "Lancers",    el: "lancerview" },
       { id: "infamy",    label: "Hall of Infamy", el: "infamyview" },
       { id: "registry",  label: "Registry",   el: "registryview" },
-      { id: "log",       label: "Comment log", el: "logview" }
+      { id: "log",       label: "Comment log", el: "logview" },
+      { id: "chart",     label: "Star chart", href: "starmap.html" }
     ] }
   ];
 
@@ -6526,6 +6528,13 @@
     seg.setAttribute("role", "group");
     seg.setAttribute("aria-label", ix.label);
     ix.views.forEach(function (v) {
+      // a view that lives on another page is a plain link in the same row
+      if (v.href) {
+        var a = el("a", "btn", v.label);
+        a.href = v.href;
+        seg.appendChild(a);
+        return;
+      }
       var b = el("button", "btn", v.label);
       b.type = "button";
       b.dataset.view = v.id;

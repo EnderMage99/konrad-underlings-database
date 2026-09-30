@@ -130,6 +130,19 @@
   body.pv-on .hud-foot { left: auto; right: 2rem; bottom: auto; top: 10.2rem; }
   body.pv-on .legend { display: none; }
 
+  /* the ship's panel: details for everyone, orders for the archivist */
+  .shippanel { position: fixed; left: 1.4rem; bottom: 4.6rem; z-index: 6; width: min(22rem, calc(100vw - 2.8rem)); padding: .9rem 1.1rem 1rem; }
+  .shippanel[hidden] { display: none; }
+  body.pv-on .shippanel { left: auto; right: 2rem; bottom: 7.5rem; }
+  .sp-head { display: flex; align-items: center; justify-content: space-between; gap: .6rem; }
+  .shippanel h3 { margin: .2rem 0 .3rem; font-size: 1.25rem; font-weight: 500; }
+  .sp-status { margin: 0 0 .7rem; font-size: .85rem; color: var(--ink-soft); line-height: 1.5; }
+  .sp-orders { display: none; flex-wrap: wrap; gap: .35rem; }
+  body.archivist .sp-orders { display: flex; }
+  .sp-orders .lbl { flex-basis: 100%; font-family: var(--mono); font-size: 9px; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-faint); }
+  .sp-orders .chip[disabled] { opacity: .35; cursor: default; }
+  .sp-err { margin: .4rem 0 0; font-family: var(--mono); font-size: 10px; color: var(--alert); }
+
   /* editing controls, archivist only */
   .edtool { display: none; margin-top: .6rem; }
   body.archivist .edtool { display: flex; }
@@ -147,7 +160,7 @@
   .ed-save { color: var(--accent); border-color: var(--accent-dim); }
   .ed-danger { color: var(--alert); border-color: rgba(242,85,90,.5); }
   .ed-err { margin: .4rem 0 0; font-family: var(--mono); font-size: 10px; color: var(--alert); }
-  .lore h4 { margin: .6rem 0 .3rem; font-family: var(--mono); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-faint); }
+  .lore h4.ed-h { margin: .6rem 0 .3rem; font-family: var(--mono); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-faint); background: none; padding: 0; clip-path: none; }
 
   @media (max-width: 760px) {
     #pv { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
@@ -178,6 +191,14 @@
 </div>
 <div class="tip" id="tip"></div>
 
+<div class="panel shippanel" id="shippanel" hidden>
+  <div class="sp-head"><span class="k" id="sp-kind"></span><button class="btn" id="sp-close" type="button">Close</button></div>
+  <h3 id="sp-name"></h3>
+  <p class="sp-status" id="sp-status"></p>
+  <div class="sp-orders" id="sp-orders"></div>
+  <p class="sp-err" id="sp-err"></p>
+</div>
+
 <div id="pv" aria-hidden="true">
   <aside class="rail">
     <h2>Available destinations</h2>
@@ -206,15 +227,17 @@
   var SYSTEMS = [
     {
       id: "invideis", name: "Invideis", star: { color: "#FFF4D6", glow: "#F5B33C", size: 22 },
+      // Ships belong to the system and carry the id of the world they are
+      // orbiting; the archivist can send one to another world.
+      ships: [
+        { id: "aliakmon", name: "Aliakmon", kind: "Mothership", host: "ii", orbit: 18, period: 0.32, incl: 0.3, size: 9, phase: 1.1 }
+      ],
       planets: [
         { id: "i",   name: "Invideis-I",   orbit: 55,  period: 1.0,  size: 4.5, visited: false, phase: 0.8 },
         { id: "ii",  name: "Invideis-II",  orbit: 125, period: 3.4,  size: 8,   visited: true,  phase: 3.9,
           ring: "#45E0A0",
           palette: { sea: "#1B4F7A", land: ["#2E8B57", "#3C9D62", "#C2A56B", "#8C8F93", "#6B7F8E"], cloud: "rgba(255,255,255,.18)" },
           dist: "0.00 ly - here",
-          ships: [
-            { id: "aliakmon", name: "Aliakmon", orbit: 18, period: 0.32, incl: 0.3, size: 9, phase: 1.1 }
-          ],
           stats: [["Biomes", "Woods, mountains, desert"], ["Principal city", "Vintatem"], ["Field of operations", "Dictis"], ["Contract", "Active"]],
           regions: [
             { id: "woods", name: "Woods", kind: "Biome", lat: 24, lon: -48, want: "green",
@@ -739,21 +762,114 @@
   }
 
   // Where a ship is right now, and which way it points, in chart space.
-  function shipState(p, s) {
-    var pos = planetPos(p);
+  function hostOf(s) { return system.planets.filter(function (p) { return p.id === s.host; })[0]; }
+  function planetById(id) { return system.planets.filter(function (p) { return p.id === id; })[0]; }
+  // where a world will be at a chart time other than now
+  function planetPosAt(p, t) {
+    var a = p.phase + (drifting ? t * (2 * Math.PI) / (p.period * 40) : 0);
+    return { x: Math.cos(a) * p.orbit, z: Math.sin(a) * p.orbit, a: a };
+  }
+
+  // a frame - heading, right and up - from a heading vector, upright to the plane
+  function frameFrom(fx, fy, fz) {
+    var fl = Math.hypot(fx, fy, fz) || 1; fx /= fl; fy /= fl; fz /= fl;
+    var rx = fz, ry = 0, rz = -fx;                     // f x (0,-1,0), flattened
+    var rl = Math.hypot(rx, ry, rz) || 1; rx /= rl; rz /= rl;
+    var ux = ry * fz - rz * fy, uy = rz * fx - rx * fz, uz = rx * fy - ry * fx;   // r x f
+    return { f: [fx, fy, fz], r: [rx, ry, rz], u: [-ux, -uy, -uz] };
+  }
+
+  function shipState(s) {
+    if (s.transit) return transitState(s);
+    var p = hostOf(s), pos = planetPos(p);
     var a = s.phase + (drifting ? simT * (2 * Math.PI) / (s.period * 40) : 0);
     var ci = Math.cos(s.incl || 0), si = Math.sin(s.incl || 0);
     // a tilted circle round the world
     var ox = Math.cos(a) * s.orbit, oz = Math.sin(a) * s.orbit * ci, oy = Math.sin(a) * s.orbit * si;
-    var x = pos.x + ox, z = pos.z + oz, y = oy;
-    // heading: the tangent of that circle
-    var fx = -Math.sin(a), fz = Math.cos(a) * ci, fy = Math.cos(a) * si;
-    var fl = Math.hypot(fx, fy, fz) || 1; fx /= fl; fy /= fl; fz /= fl;
-    // right-hand side and up, from the heading and the plane's normal
-    var rx = fz, ry = 0, rz = -fx;                     // f x (0,-1,0), flattened
-    var rl = Math.hypot(rx, ry, rz) || 1; rx /= rl; rz /= rl;
-    var ux = ry * fz - rz * fy, uy = rz * fx - rx * fz, uz = rx * fy - ry * fx;   // r x f
-    return { x: x, y: y, z: z, f: [fx, fy, fz], r: [rx, ry, rz], u: [-ux, -uy, -uz], a: a };
+    var fr = frameFrom(-Math.sin(a), Math.cos(a) * si, Math.cos(a) * ci);
+    return { x: pos.x + ox, y: oy, z: pos.z + oz, f: fr.f, r: fr.r, u: fr.u, a: a };
+  }
+
+  // ---- sending a ship ------------------------------------------------------
+  // The route from one world to another is a sweep round the star: it never
+  // comes inside SAFE_SUN of the star, it climbs a little above the plane on
+  // the way, and any other world it would pass close to pushes it outward.
+  // The destination's position is predicted for the arrival time, so the
+  // ship meets the world rather than the place it left.
+  var SAFE_SUN = 78, SHIP_SPEED = 46, PATH_N = 64;
+  function planRoute(s, from, to) {
+    var t = simT, dur = 6;
+    var end = null;
+    for (var pass = 0; pass < 3; pass++) {
+      var dest = planetPosAt(to, t + dur);
+      var r1 = Math.hypot(from.x, from.z), a1 = Math.atan2(from.z, from.x);
+      var r2 = Math.hypot(dest.x, dest.z), a2 = Math.atan2(dest.z, dest.x);
+      var sweep = a2 - a1; while (sweep > Math.PI) sweep -= 2 * Math.PI; while (sweep < -Math.PI) sweep += 2 * Math.PI;
+      var pts = [], len = 0;
+      for (var i = 0; i <= PATH_N; i++) {
+        var u = i / PATH_N, e = u * u * (3 - 2 * u);
+        var r = r1 + (r2 - r1) * e, a = a1 + sweep * e;
+        // never inside the keep-out round the star; swing wide in the middle
+        var floor = SAFE_SUN + 22 * Math.sin(Math.PI * u);
+        if (r < floor) r = floor;
+        var x = Math.cos(a) * r, z = Math.sin(a) * r;
+        // other worlds along the way push the route outward
+        system.planets.forEach(function (q) {
+          if (q === to || q === hostOf(s)) return;
+          var qp = planetPosAt(q, t + dur * u);
+          var keep = q.size * 4 + 8, d = Math.hypot(x - qp.x, z - qp.z);
+          if (d < keep) { var out = (keep - d + 4); var rr = Math.hypot(x, z) + out; x = Math.cos(a) * rr; z = Math.sin(a) * rr; }
+        });
+        pts.push({ x: x, y: -Math.sin(Math.PI * u) * 14, z: z });
+        if (i) len += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y, pts[i].z - pts[i - 1].z);
+      }
+      // the last leg bends onto the destination's orbit ring
+      var last = pts[PATH_N], dest2 = dest;
+      var inx = last.x - dest2.x, inz = last.z - dest2.z, il = Math.hypot(inx, inz) || 1;
+      end = { x: dest2.x + inx / il * s.orbit, y: 0, z: dest2.z + inz / il * s.orbit, arrive: Math.atan2(inz / il, inx / il) };
+      pts[PATH_N] = { x: end.x, y: end.y, z: end.z };
+      dur = Math.max(3.5, Math.min(14, len / SHIP_SPEED));
+      s._route = { pts: pts, len: len };
+    }
+    return { pts: s._route.pts, dur: dur, arrive: end.arrive };
+  }
+
+  function sendShip(s, to, startedAgo) {
+    if (s.transit || !to || to.id === s.host) return;
+    var st = shipState(s);
+    var route = planRoute(s, { x: st.x, z: st.z }, to);
+    // cumulative lengths for even motion along the route
+    var cum = [0]; for (var i = 1; i < route.pts.length; i++) {
+      var a = route.pts[i - 1], b = route.pts[i];
+      cum.push(cum[i - 1] + Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z));
+    }
+    s.transit = { from: s.host, to: to.id, pts: route.pts, cum: cum, len: cum[cum.length - 1], t0: simT - (startedAgo || 0), dur: route.dur, arrive: route.arrive };
+  }
+
+  function transitState(s) {
+    var tr = s.transit;
+    var u = Math.min(1, Math.max(0, (simT - tr.t0) / tr.dur));
+    var e = u < .5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;   // ease in and out
+    var d = e * tr.len, i = 1;
+    while (i < tr.cum.length - 1 && tr.cum[i] < d) i++;
+    var a = tr.pts[i - 1], b = tr.pts[i], seg = (tr.cum[i] - tr.cum[i - 1]) || 1, k = (d - tr.cum[i - 1]) / seg;
+    var x = a.x + (b.x - a.x) * k, y = a.y + (b.y - a.y) * k, z = a.z + (b.z - a.z) * k;
+    var fr = frameFrom(b.x - a.x, b.y - a.y, b.z - a.z);
+    return { x: x, y: y, z: z, f: fr.f, r: fr.r, u: fr.u, a: 0, progress: u };
+  }
+
+  // called every frame: a ship that has arrived settles into orbit
+  function settleShips() {
+    system.ships.forEach(function (s) {
+      if (!s.transit) return;
+      if (simT - s.transit.t0 >= s.transit.dur) {
+        s.host = s.transit.to;
+        var a = s.transit.arrive;
+        s.phase = a - (drifting ? simT * (2 * Math.PI) / (s.period * 40) : 0);
+        s.transit = null;
+        if (shipPanelFor === s) openShipPanel(s);
+      }
+    });
   }
 
   var SHIP_TRIS = [];
@@ -828,6 +944,18 @@
     return centre;
   }
 
+  // the route a ship in transit is flying, as a faint dotted line
+  function drawRoute(s) {
+    var pts = s.transit.pts;
+    cx.setLineDash([2, 7]); cx.lineWidth = 1; cx.strokeStyle = "rgba(63,216,240,.45)";
+    cx.beginPath();
+    for (var i = 0; i < pts.length; i++) {
+      var pt = project(pts[i].x, pts[i].y, pts[i].z);
+      if (i === 0 || pt.depth < 12) cx.moveTo(pt.x, pt.y); else cx.lineTo(pt.x, pt.y);
+    }
+    cx.stroke(); cx.setLineDash([]);
+  }
+
   // the ship's own orbit round its world, as a faint ring
   function drawShipRing(p, s) {
     var pos = planetPos(p), ci = Math.cos(s.incl || 0), si = Math.sin(s.incl || 0);
@@ -877,16 +1005,20 @@
       return { p: p, pr: pr, pos: pos };
     });
     items.push({ star: true, pr: sp });
-    system.planets.forEach(function (p) {
-      (p.ships || []).forEach(function (s) {
-        var st = shipState(p, s), pr = project(st.x, st.y, st.z);
-        items.push({ ship: s, host: p, st: st, pr: pr });
-      });
+    settleShips();
+    (system.ships || []).forEach(function (s) {
+      var st = shipState(s), pr = project(st.x, st.y, st.z);
+      items.push({ ship: s, host: hostOf(s), st: st, pr: pr });
     });
     items.sort(function (a, b) { return b.pr.depth - a.pr.depth; });
     hits = [];
     items.forEach(function (it) {
-      if (it.ship) { drawShipRing(it.host, it.ship); drawShip(it.host, it.ship, it.st, sp); return; }
+      if (it.ship) {
+        if (it.ship.transit) drawRoute(it.ship); else drawShipRing(it.host, it.ship);
+        var c = drawShip(it.host, it.ship, it.st, sp);
+        hits.push({ p: it.ship, x: c.x, y: c.y, r: Math.max(10, it.ship.size * c.s * .5) });
+        return;
+      }
       if (it.star) {
         var r = system.star.size * it.pr.s;
         var gg = cx.createRadialGradient(it.pr.x, it.pr.y, 0, it.pr.x, it.pr.y, r * 3.2);
@@ -1054,7 +1186,8 @@
     var wasDrag = drag && moved > 6; drag = null;
     if (wasDrag) return;
     var h = hitAt(e.clientX, e.clientY);
-    if (h && h.visited) openPlanet(h);
+    if (h && h.host) openShipPanel(h);
+    else if (h && h.visited) openPlanet(h);
   });
   chart.addEventListener("pointerleave", function () { hover = null; showTip(null); });
   chart.addEventListener("wheel", function (e) {
@@ -1073,7 +1206,8 @@
   var tip = document.getElementById("tip");
   function showTip(p, x, y) {
     if (!p) { tip.className = "tip"; return; }
-    tip.innerHTML = p.name + "<span class=\"sub\">" + (p.visited ? "open file" : "not yet visited") + "</span>";
+    var sub = p.host ? (p.kind || "ship") + " · " + (archivist ? "orders" : "details") : (p.visited ? "open file" : "not yet visited");
+    tip.innerHTML = p.name + "<span class=\"sub\">" + sub + "</span>";
     tip.style.left = x + "px"; tip.style.top = y + "px";
     tip.className = "tip show";
   }
@@ -1343,10 +1477,26 @@
       r.conditions = Array.isArray(body.conditions) && body.conditions.length ? body.conditions : undefined;
     }
   }
+  // A ship row says where a ship is. If it was sent within the last few
+  // seconds the flight is replayed, so anyone loading mid-way sees it go.
+  function applyShipRow(row) {
+    var parts = String(row.target_id).split("/");
+    if (parts[0] !== system.id) return;
+    var s = (system.ships || []).filter(function (q) { return q.id === parts[1]; })[0];
+    if (!s) return;
+    var body; try { body = JSON.parse(row.body); } catch (e) { return; }
+    var ago = body.at ? (Date.now() - body.at) / 1000 : 1e9;
+    if (body.from && body.to && ago < 14 && planetById(body.from) && planetById(body.to)) {
+      s.host = body.from; s.transit = null;
+      sendShip(s, planetById(body.to), ago);
+    } else if (body.host && planetById(body.host)) {
+      s.host = body.host; s.transit = null;
+    }
+  }
   async function loadOverrides() {
     try {
-      var rows = await api("/rest/v1/files?select=target_kind,target_id,body&target_kind=in.(world,region)");
-      (rows || []).forEach(applyOverride);
+      var rows = await api("/rest/v1/files?select=target_kind,target_id,body&target_kind=in.(world,region,ship)");
+      (rows || []).forEach(function (row) { if (row.target_kind === "ship") applyShipRow(row); else applyOverride(row); });
       filesOnline = true;
     } catch (e) { filesOnline = false; }
   }
@@ -1370,6 +1520,43 @@
       } catch (e) { archivist = false; }
     }
     document.body.className = document.body.className.replace(/\s*archivist/g, "") + (archivist ? " archivist" : "");
+  }
+
+  // -- the ship's panel and orders
+  var shipPanelFor = null;
+  function openShipPanel(s) {
+    shipPanelFor = s;
+    var panel = document.getElementById("shippanel");
+    panel.hidden = false;
+    document.getElementById("sp-kind").textContent = s.kind || "Ship";
+    document.getElementById("sp-name").textContent = s.name;
+    var status = document.getElementById("sp-status");
+    if (s.transit) {
+      status.textContent = "En route from " + planetById(s.transit.from).name + " to " + planetById(s.transit.to).name + ".";
+    } else {
+      status.textContent = "In orbit round " + hostOf(s).name + ".";
+    }
+    var orders = document.getElementById("sp-orders"); orders.textContent = "";
+    var lbl = document.createElement("span"); lbl.className = "lbl"; lbl.textContent = s.transit ? "Under way - orders after arrival" : "Send to"; orders.appendChild(lbl);
+    system.planets.forEach(function (p) {
+      var b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.textContent = p.name;
+      b.disabled = !!s.transit || p.id === s.host;
+      b.addEventListener("click", function () { orderShip(s, p); });
+      orders.appendChild(b);
+    });
+    document.getElementById("sp-err").textContent = "";
+  }
+  document.getElementById("sp-close").addEventListener("click", function () {
+    shipPanelFor = null; document.getElementById("shippanel").hidden = true;
+  });
+  async function orderShip(s, to) {
+    var err = document.getElementById("sp-err"); err.textContent = "";
+    if (!archivist) { err.textContent = "Only the archivist can give orders."; return; }
+    try {
+      await saveOverride("ship", system.id + "/" + s.id, { host: to.id, from: s.host, to: to.id, at: Date.now() });
+      sendShip(s, to, 0);
+      openShipPanel(s);
+    } catch (e) { err.textContent = e.message; }
   }
 
   // -- form pieces
@@ -1397,7 +1584,7 @@
     var k = document.createElement("span"); k.className = "k"; k.textContent = "Editing " + r.name; lore.appendChild(k);
     var fLore = edField("Lore - blank lines separate paragraphs", (r.lore || []).filter(function (x) { return x !== PH; }).join("\n\n"), true, 7);
     lore.appendChild(fLore);
-    var h = document.createElement("h4"); h.textContent = "Mission conditions"; lore.appendChild(h);
+    var h = document.createElement("h4"); h.className = "ed-h"; h.textContent = "Mission conditions"; lore.appendChild(h);
     var list = document.createElement("div"); list.className = "ed-list";
     function addRow(c) {
       c = c || {};
