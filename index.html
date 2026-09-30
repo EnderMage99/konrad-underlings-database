@@ -626,6 +626,57 @@
     filter: none;
   }
 
+  /* ---------- the opening gate ---------- */
+  /* First visit only: a cover over the page with an access-code box in the
+     middle. The code fills in as asterisks over 0.75s, then the cover breaks
+     up - each tile holds still, its seams flare, and it blinks out in place,
+     spreading from behind the box at a different pace in each direction.
+     The script under the markup decides whether to play; the rule at the
+     foot of the sheet keeps it off under prefers-reduced-motion. */
+  #intro { position: fixed; inset: 0; z-index: 120; overflow: hidden; background: var(--ground); }
+  #intro.done { display: none; }
+  html.intro-on, html.intro-on body { overflow: hidden; }
+  #intro .plates { position: absolute; inset: 0; }
+  #intro .plates::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .35;
+    background-image: linear-gradient(rgba(63,216,240,.06) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(63,216,240,.06) 1px, transparent 1px);
+    background-size: 48px 48px; transition: opacity .3s; }
+  #intro.open .plates::after { opacity: 0; }
+  #intro .tile { position: absolute; background: var(--plate); border: 1px solid rgba(63,216,240,.08); will-change: opacity; }
+  #intro.open .tile { animation: intro-phase .62s steps(1, end) forwards; animation-delay: var(--d); }
+  @keyframes intro-phase {
+    0%   { opacity: 1; border-color: rgba(63,216,240,.08); }
+    14%  { border-color: rgba(63,216,240,.6); box-shadow: 0 0 0 1px rgba(63,216,240,.4); }
+    40%  { opacity: 1; }
+    52%  { opacity: 0; }
+    64%  { opacity: .75; border-color: rgba(63,216,240,.35); }
+    76%  { opacity: 0; }
+    88%  { opacity: .35; }
+    100% { opacity: 0; }
+  }
+  #intro .gate { position: absolute; inset: 0; display: grid; place-items: center; z-index: 2; transition: opacity .18s ease; }
+  #intro .gate.away { opacity: 0; pointer-events: none; }
+  #intro .gate-box {
+    width: min(26rem, calc(100vw - 2rem));
+    background: var(--surface);
+    border: 1px solid var(--accent-dim);
+    box-shadow: 0 0 60px -12px rgba(63,216,240,.55), inset 0 0 0 1px rgba(63,216,240,.08);
+    padding: 1.1rem 1.3rem 1.2rem;
+    position: relative;
+    clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+  }
+  #intro .gate-box::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent); }
+  #intro .gate-k { font-family: var(--mono); font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: var(--ink-faint); }
+  #intro .gate-t { font-family: var(--mono); font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); margin: .25rem 0 .9rem; }
+  #intro .pw { display: flex; align-items: center; gap: .6rem; background: var(--ground-2); border: 1px solid var(--rule); padding: .55rem .7rem; }
+  #intro .pw-k { font-family: var(--mono); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-faint); white-space: nowrap; }
+  #intro .pw-v { font-family: var(--mono); font-size: 1.05rem; letter-spacing: .28em; color: var(--ink); min-height: 1.4em; display: flex; align-items: center; }
+  #intro .caret { display: inline-block; width: .55em; height: 1.1em; background: var(--accent); margin-left: .1em; animation: intro-blink .9s steps(1) infinite; }
+  @keyframes intro-blink { 50% { opacity: 0; } }
+  #intro .status { font-family: var(--mono); font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--ink-faint); margin-top: .7rem; min-height: 1.2em; }
+  #intro .status.ok { color: var(--moss); }
+  @media (prefers-reduced-motion: reduce) { #intro { display: none; } }
+
   /* ---------- the sheet editor ---------- */
   /* Editing controls are in the page for everyone and shown only under
      body.archivist, which the account row sets. The server refuses the
@@ -3043,6 +3094,77 @@
     .vgroup.flash { box-shadow: 0 0 0 2px var(--accent), var(--glow); }
   }
 </style>
+
+<div id="intro" aria-hidden="true">
+  <div class="plates"></div>
+  <div class="gate">
+    <div class="gate-box">
+      <div class="gate-k">Overseer archive</div>
+      <div class="gate-t">Restricted &mdash; field intelligence</div>
+      <div class="pw"><span class="pw-k">Access code</span><span class="pw-v"><span class="dots"></span><span class="caret"></span></span></div>
+      <div class="status">Awaiting credentials</div>
+    </div>
+  </div>
+</div>
+<script>
+// Runs before the rest of the page parses, so a returning reader never sees
+// the cover at all. Plays once per browser; add ?intro to the address to
+// see it again.
+(function () {
+  var intro = document.getElementById("intro");
+  var KEY = "overseer.intro";
+  var seen = false;
+  try { seen = localStorage.getItem(KEY) === "1"; } catch (e) {}
+  var forced = /[?&]intro\b/.test(location.search);
+  var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if ((seen && !forced) || still) { intro.className = "done"; return; }
+  try { localStorage.setItem(KEY, "1"); } catch (e) {}
+  document.documentElement.className += " intro-on";
+
+  var plates = intro.querySelector(".plates");
+  var gate = intro.querySelector(".gate");
+  var dots = intro.querySelector(".dots");
+  var status = intro.querySelector(".status");
+  var CODE_LEN = 8, TYPE_MS = 750, HOLD_MS = 220;
+
+  // The hole spreads from behind the box, but not evenly: each of twelve
+  // directions gets its own pace, blended round the circle, and every tile
+  // adds a little jitter of its own.
+  var cols = 16, rows = 9, w = 100 / cols, h = 100 / rows, maxDelay = 0;
+  var seed = Date.now() % 9973;
+  function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+  var SECTORS = 12, pace = [];
+  for (var s = 0; s < SECTORS; s++) pace.push(0.55 + rnd() * 1.1);
+  for (var r = 0; r < rows; r++) for (var c = 0; c < cols; c++) {
+    var t = document.createElement("div");
+    t.className = "tile";
+    t.style.left = (c * w) + "%"; t.style.top = (r * h) + "%";
+    t.style.width = (w + 0.05) + "%"; t.style.height = (h + 0.05) + "%";
+    var cx = (c + .5) / cols - .5, cy = ((r + .5) / rows - .5) * (rows / cols) * 1.6;
+    var dist = Math.sqrt(cx * cx + cy * cy);
+    var ang = Math.atan2(cy, cx);
+    var pos = ((ang + Math.PI) / (2 * Math.PI)) * SECTORS;
+    var sector = Math.floor(pos) % SECTORS, frac = pos - Math.floor(pos);
+    var p = pace[sector] * (1 - frac) + pace[(sector + 1) % SECTORS] * frac;
+    var d = Math.round(dist * 10 * p) * 0.1 + Math.round(rnd() * 3) * 0.05;
+    t.style.setProperty("--d", d + "s");
+    if (d > maxDelay) maxDelay = d;
+    plates.appendChild(t);
+  }
+  var exitMs = (maxDelay + 0.62) * 1000;
+
+  var step = TYPE_MS / CODE_LEN;
+  for (var i = 1; i <= CODE_LEN; i++) {
+    (function (n) { setTimeout(function () { dots.textContent = new Array(n + 1).join("*"); }, step * n); })(i);
+  }
+  setTimeout(function () { status.textContent = "Access granted"; status.className = "status ok"; }, TYPE_MS + 40);
+  setTimeout(function () { gate.className = "gate away"; intro.className = "open"; }, TYPE_MS + HOLD_MS);
+  setTimeout(function () {
+    intro.className = "open done";
+    document.documentElement.className = document.documentElement.className.replace(/\s*intro-on/g, "");
+  }, TYPE_MS + HOLD_MS + exitMs + 60);
+})();
+</script>
 
 <header class="masthead">
   <div class="wrap">
