@@ -51,8 +51,12 @@
   .tip .sub { display: block; font-size: 9px; color: var(--ink-faint); margin-top: .15rem; }
 
   /* ---------- the planet view ---------- */
+  /* The file is an overlay on the live chart: the rail and the panels take
+     the pointer, the rest of the stage lets it through so the chart can
+     still be dragged and its worlds clicked. */
   #pv { position: fixed; inset: 0; z-index: 10; display: grid; grid-template-columns: minmax(16rem, 22rem) 1fr; opacity: 0; pointer-events: none; transition: opacity .35s ease; }
-  #pv.on { opacity: 1; pointer-events: auto; }
+  #pv.on { opacity: 1; }
+  #pv.on .rail, #pv.on .stage > .panel, #pv.on .stage > .chips, #pv.on .stage > .back, #pv.on .stage > h2 { pointer-events: auto; }
   .rail { background: rgba(5,9,14,.86); border-right: 1px solid var(--rule); padding: 1.6rem 1.4rem; overflow-y: auto; backdrop-filter: blur(6px); }
   .rail h2 { margin: 0; font-size: 1.25rem; font-weight: 600; }
   .rail .lede { margin: .3rem 0 1.4rem; font-size: .8rem; color: var(--ink-faint); }
@@ -74,12 +78,13 @@
   .stage::before { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at 60% 45%, rgba(63,216,240,.06), transparent 55%); pointer-events: none; }
   .stage h2 { position: absolute; right: 2rem; top: 1.4rem; margin: 0; font-size: 2.4rem; font-weight: 500; letter-spacing: .02em; text-shadow: 0 0 22px rgba(63,216,240,.3); z-index: 2; }
   .stage .back { position: absolute; left: 1.4rem; top: 1.6rem; z-index: 3; }
-  #globe { position: absolute; left: 50%; top: 50%; width: min(66vh, 60vw); height: min(66vh, 60vw); transform: translate(-46%, -52%); }
-  #globe canvas { width: 100%; height: 100%; display: block; }
-  .mark { position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; transform: rotate(45deg); border: 1px solid var(--ink); background: rgba(5,9,14,.8); cursor: pointer; transition: transform .2s, border-color .2s; z-index: 2; }
-  .mark:hover, .mark.on { border-color: var(--accent); transform: rotate(45deg) scale(1.35); box-shadow: 0 0 12px rgba(63,216,240,.6); }
-  .mark.on { background: var(--accent); }
-  #lead { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+  #marks { position: fixed; inset: 0; pointer-events: none; z-index: 12; }
+  .mark { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; border: 1.5px solid var(--ink);
+          background: rgba(5,9,14,.35); box-shadow: inset 0 0 0 3px rgba(5,9,14,.5); cursor: pointer; transition: transform .2s, border-color .2s; pointer-events: auto; }
+  .mark::after { content: ""; position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: var(--ink); }
+  .mark:hover, .mark.on { border-color: var(--accent); transform: scale(1.2); box-shadow: inset 0 0 0 3px rgba(5,9,14,.5), 0 0 14px rgba(63,216,240,.6); }
+  .mark.on::after { background: var(--accent); }
+  #lead { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 11; }
   #lead line { stroke: var(--ink); stroke-width: 1; opacity: .8; }
 
   /* callout panels */
@@ -121,15 +126,15 @@
 
   /* while a file is open the chart and its controls step aside; the
      starfield stays behind the world */
-  body.pv-on #chart, body.pv-on .hud, body.pv-on .tip { visibility: hidden; }
-  #globe { transform: translate(-36%, -52%); }
+  body.pv-on .hud-title, body.pv-on .hud-help { visibility: hidden; }
+  body.pv-on .hud-foot { left: auto; right: 2rem; bottom: auto; top: 10.2rem; }
+  body.pv-on .legend { display: none; }
 
   @media (max-width: 760px) {
     #pv { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
     .rail { max-height: 34vh; padding: 1rem; }
     .stage h2 { font-size: 1.5rem; right: 1rem; top: 1rem; }
     .stats { position: static; margin: 3.6rem 1rem 0; flex-wrap: wrap; }
-    #globe { width: 58vw; height: 58vw; transform: translate(-50%, -60%); }
     .lore { left: 1rem; bottom: 1rem; width: calc(100% - 2rem); max-height: 40vh; }
     .chips { right: 1rem; bottom: auto; top: 50%; max-width: 45%; }
   }
@@ -163,7 +168,7 @@
   </aside>
   <section class="stage">
     <h2 id="pvname"></h2>
-    <div id="globe"><canvas id="globec" width="900" height="900"></canvas></div>
+    <div id="marks"></div>
     <svg id="lead"><line id="leadline" x1="0" y1="0" x2="0" y2="0"></line></svg>
     <div class="panel stats" id="pvstats"></div>
     <div class="panel lore" id="pvlore"></div>
@@ -190,25 +195,25 @@
           dist: "0.00 ly - here",
           stats: [["Biomes", "Woods, mountains, desert"], ["Principal city", "Vintatem"], ["Field of operations", "Dictis"], ["Contract", "Active"]],
           regions: [
-            { id: "woods", name: "Woods", kind: "Biome", at: [0.36, 0.34],
+            { id: "woods", name: "Woods", kind: "Biome", lat: 24, lon: -48,
               lore: [PH] },
-            { id: "mountains", name: "Mountains", kind: "Biome", at: [0.62, 0.30],
+            { id: "mountains", name: "Mountains", kind: "Biome", lat: 34, lon: 22,
               lore: [PH],
               conditions: [
                 { n: "Frozen Ground",
                   txt: "Trigger: a character ends their turn without having moved. Effect: they freeze to the ground and become Immobilized until they pass a Hull check against 12, which they may attempt at the start of each of their turns.",
                   meta: "Region condition / Every character in the mountains" }
               ] },
-            { id: "desert", name: "Desert", kind: "Biome", at: [0.58, 0.66],
+            { id: "desert", name: "Desert", kind: "Biome", lat: -14, lon: 60,
               lore: [PH],
               conditions: [
                 { n: "Scorching",
                   txt: "Any Heat gained within this region is doubled, no matter the source - weapons, systems, Overcharging or the environment alike.",
                   meta: "Region condition / Every character in the desert" }
               ] },
-            { id: "dictis", name: "Dictis", kind: "City", at: [0.42, 0.56],
+            { id: "dictis", name: "Dictis", kind: "City", lat: -6, lon: -12,
               lore: ["Where the squad's missions have been taking place. A short way from Vintatem, the larger city it sits in the shadow of.", PH] },
-            { id: "vintatem", name: "Vintatem", kind: "City", at: [0.47, 0.62],
+            { id: "vintatem", name: "Vintatem", kind: "City", lat: -13, lon: -3,
               lore: ["The larger city near Dictis.", PH] }
           ] },
         { id: "iii", name: "Invideis-III", orbit: 130, period: 3.1,  size: 6,   visited: false, phase: 1.7 },
@@ -218,7 +223,7 @@
           dist: "0.31 ly from Invideis-II",
           stats: [["Development", "Sparse"], ["Fauna", "Large"], ["Trade", "Little offworld"], ["Settlements", "A few small cities"]],
           regions: [
-            { id: "woods4", name: "Woods", kind: "Biome", at: [0.45, 0.42],
+            { id: "woods4", name: "Woods", kind: "Biome", lat: 12, lon: 8,
               lore: ["A planet largely taken back by nature: little trade reaches it from other worlds, its fauna runs large, and only a few very small cities hold out against the green.",
                      "Within the woods stands Dendetz Zephyr's Outpost. Zephyr is a monster hunter working this planet on contract, and has been hiring the squad. See the personnel file on the main site: <a class=\"link\" href=\"./#personnel::Dendetz Zephyr\">Dendetz Zephyr</a>.",
                      PH] }
@@ -239,21 +244,43 @@
   var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   var HOME = { yaw: -0.65, pitch: 0.62, dist: 720 };
+  var FOCUS = { pitch: 0.42, dist: 300 };
   var cam = { yaw: HOME.yaw, pitch: HOME.pitch, dist: HOME.dist };
   var FOCAL = 780;
   var drifting = !reduced;
   var t0 = performance.now(), simT = 0;
 
+  // What the camera looks at: the star, or a followed world, which it keeps
+  // centred as the world moves along its orbit. A change of target eases
+  // over from wherever the camera was looking. While a file is open the
+  // target sits in the middle of the stage beside the rail rather than the
+  // middle of the screen.
+  var target = { x: 0, z: 0 };
+  var focus = null;      // the followed world, if any
+  var spin = 0;          // how far the followed world has turned
+  var tween = null;      // { x, z, t }: where the target was when it last changed
+  var focusScreen = null;
+  function eye() {
+    if (!current) return { x: W / 2, y: H / 2 };
+    var rail = document.querySelector("#pv .rail");
+    var rw = rail ? rail.getBoundingClientRect().width : 0;
+    return { x: rw + (W - rw) * 0.5, y: H * 0.46 };
+  }
+
   // Rotates a chart point by the camera and projects it. The orbit plane is
-  // y = 0; the camera sits back along the view axis at cam.dist.
+  // y = 0; the camera sits back along the view axis at cam.dist from the
+  // target. Points that come round behind the camera get a small depth so
+  // callers can skip them.
   function project(x, y, z) {
+    x -= target.x; z -= target.z;
     var cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw);
     var x1 = x * cy - z * sy, z1 = x * sy + z * cy;
     var cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
     var y2 = y * cp - z1 * sp, z2 = y * sp + z1 * cp;
     var depth = cam.dist + z2;
     var s = FOCAL / Math.max(depth, 40);
-    return { x: W / 2 + x1 * s, y: H / 2 + y2 * s, s: s, depth: depth };
+    var e = eye();
+    return { x: e.x + x1 * s, y: e.y + y2 * s, s: s, depth: depth };
   }
 
   function planetPos(p) {
@@ -391,6 +418,85 @@
     return c;
   }
 
+  // ---- a world that turns -------------------------------------------------
+  // For the followed world the surface is baked once into a flat map, then
+  // re-projected onto the sphere every frame at the current spin, lit from
+  // the star. That is what lets the surface and its markers actually turn.
+  var MAPS = {};
+  function textureFor(p) {
+    if (MAPS[p.id]) return MAPS[p.id];
+    var look = lookFor(p), TW = 1024, TH = 512;
+    var c = document.createElement("canvas"); c.width = TW; c.height = TH;
+    var g = c.getContext("2d"), img = g.createImageData(TW, TH), d = img.data;
+    for (var v = 0; v < TH; v++) {
+      var lat = (0.5 - (v + .5) / TH) * Math.PI, cl = Math.cos(lat), sl = Math.sin(lat);
+      for (var u = 0; u < TW; u++) {
+        var lon = ((u + .5) / TW) * 2 * Math.PI - Math.PI;
+        var x = cl * Math.sin(lon), y = -sl, z = cl * Math.cos(lon);
+        var col = surfaceAt(look, x, y, z, 0);
+        if (look.clouds > 0) {
+          var cv = fbm(x * 3.1 + 7, y * 3.1, z * 3.1 - 3, look.seed + 31, 4, .55);
+          var ca = Math.max(0, cv - (1 - look.clouds) * .9) * 1.9;
+          col = mix(col, [250, 252, 255], Math.min(.75, ca));
+        }
+        var i = (v * TW + u) * 4;
+        d[i] = col[0]; d[i + 1] = col[1]; d[i + 2] = col[2]; d[i + 3] = 255;
+      }
+    }
+    g.putImageData(img, 0, 0);
+    MAPS[p.id] = { data: d, w: TW, h: TH };
+    return MAPS[p.id];
+  }
+
+  var spinC = document.createElement("canvas"), spinG = spinC.getContext("2d"), spinImg = null;
+  function drawSpinning(ctx, x, y, r, p, spin, lightAngle) {
+    var tex = textureFor(p), look = lookFor(p), atmo = hex(look.atmo);
+    var S = Math.max(8, Math.round(r * 2));
+    if (spinC.width !== S) { spinC.width = S; spinC.height = S; spinImg = spinG.createImageData(S, S); }
+    var d = spinImg.data, td = tex.data, TW = tex.w, TH = tex.h;
+    var Lx = Math.cos(lightAngle), Ly = Math.sin(lightAngle), Lz = 0.45;
+    var ll = Math.hypot(Lx, Ly, Lz); Lx /= ll; Ly /= ll; Lz /= ll;
+    var half = S / 2, inv = 1 / (half - .5);
+    for (var py = 0; py < S; py++) {
+      var yy = (py + .5 - half) * inv, yy2 = yy * yy;
+      for (var px = 0; px < S; px++) {
+        var xx = (px + .5 - half) * inv, rr = xx * xx + yy2, i = (py * S + px) * 4;
+        if (rr > 1) { d[i + 3] = 0; continue; }
+        var zz = Math.sqrt(1 - rr);
+        var lat = Math.asin(-yy), lon = Math.atan2(xx, zz) + spin;
+        var u = ((lon / (2 * Math.PI) + 0.5) % 1 + 1) % 1 * TW | 0;
+        var v = (0.5 - lat / Math.PI) * TH | 0;
+        if (v >= TH) v = TH - 1;
+        var ti = (v * TW + u) * 4;
+        var ndl = xx * Lx + yy * Ly + zz * Lz;
+        var light = Math.max(0, Math.min(1, (ndl + .12) / .42));
+        light = light * light * (3 - 2 * light);
+        var lit = .06 + .94 * light;
+        var fres = Math.pow(1 - zz, 2.6) * (0.25 + 0.75 * light);
+        var edge = Math.max(0, (rr - .86) / .14);
+        d[i]     = Math.min(255, td[ti] * lit + atmo[0] * fres * .9);
+        d[i + 1] = Math.min(255, td[ti + 1] * lit + atmo[1] * fres * .9);
+        d[i + 2] = Math.min(255, td[ti + 2] * lit + atmo[2] * fres * .9);
+        d[i + 3] = 255 * (1 - edge * edge * .9);
+      }
+    }
+    spinG.putImageData(spinImg, 0, 0);
+    var glow = ctx.createRadialGradient(x, y, r * .9, x, y, r * 1.28);
+    glow.addColorStop(0, "rgba(" + atmo.join(",") + ",.32)");
+    glow.addColorStop(1, "rgba(" + atmo.join(",") + ",0)");
+    ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(x, y, r * 1.28, 0, Math.PI * 2); ctx.fill();
+    ctx.drawImage(spinC, x - r, y - r, r * 2, r * 2);
+  }
+
+  // Where a point of the surface sits on screen at the current spin, and
+  // whether it faces the viewer.
+  function surfacePoint(latDeg, lonDeg, spin, fs) {
+    var lat = latDeg * Math.PI / 180, lon = lonDeg * Math.PI / 180 - spin;
+    var cl = Math.cos(lat);
+    var x = cl * Math.sin(lon), y = -Math.sin(lat), z = cl * Math.cos(lon);
+    return { x: fs.x + x * fs.r, y: fs.y + y * fs.r, front: z > 0.08, z: z };
+  }
+
   var SPRITES = {};
   function spriteFor(p, size) {
     var key = p.id + "@" + size;
@@ -429,7 +535,7 @@
         cx.beginPath();
         for (var u = -R; u <= R; u += 20) {
           var pt = pass ? project(g, 0, u) : project(u, 0, g);
-          if (u === -R) cx.moveTo(pt.x, pt.y); else cx.lineTo(pt.x, pt.y);
+          if (u === -R || pt.depth < 60) cx.moveTo(pt.x, pt.y); else cx.lineTo(pt.x, pt.y);
         }
         cx.strokeStyle = "rgba(63,216,240," + (0.05 + 0.06 * (1 - Math.abs(g) / R)) + ")";
         cx.stroke();
@@ -453,7 +559,7 @@
       for (var i = 0; i <= 160; i++) {
         var a = i / 160 * Math.PI * 2;
         var pt = project(Math.cos(a) * p.orbit, 0, Math.sin(a) * p.orbit);
-        if (i === 0) cx.moveTo(pt.x, pt.y); else cx.lineTo(pt.x, pt.y);
+        if (i === 0 || pt.depth < 60) cx.moveTo(pt.x, pt.y); else cx.lineTo(pt.x, pt.y);
       }
       cx.stroke();
       cx.setLineDash([]); cx.globalAlpha = 1;
@@ -477,9 +583,14 @@
         return;
       }
       var p = it.p, r = Math.max(2.5, p.size * it.pr.s * 1.15);
+      // the followed world is shown large whatever the perspective says,
+      // so its file has something to point at
+      if (p === focus) r = Math.max(r, Math.min(W, H) * 0.2);
       var light = Math.atan2(sp.y - it.pr.y, sp.x - it.pr.x);
-      drawSphere(cx, it.pr.x, it.pr.y, r, p, light);
-      if (p.visited || hover === p) {
+      if (p === focus) drawSpinning(cx, it.pr.x, it.pr.y, r, p, spin, light);
+      else drawSphere(cx, it.pr.x, it.pr.y, r, p, light);
+      if (p === focus) focusScreen = { x: it.pr.x, y: it.pr.y, r: r };
+      if ((p.visited || hover === p) && p !== focus) {
         cx.font = "10px " + getComputedStyle(document.body).getPropertyValue("--mono");
         cx.fillStyle = p.visited ? "rgba(210,236,246,.9)" : "rgba(91,127,146,.9)";
         cx.textAlign = "center";
@@ -487,6 +598,7 @@
       }
       hits.push({ p: p, x: it.pr.x, y: it.pr.y, r: r + 6 });
     });
+    if (current) { placeMarks(); drawLead(); }
   }
 
   // starfield: fixed points that slide a little with the camera for parallax
@@ -516,13 +628,17 @@
   // camera controls: drag to turn, wheel or pinch to zoom
   var drag = null, moved = 0;
   chart.addEventListener("pointerdown", function (e) {
-    drag = { x: e.clientX, y: e.clientY, yaw: cam.yaw, pitch: cam.pitch }; moved = 0;
+    // dragging on the followed world spins the world; dragging anywhere
+    // else turns the camera
+    var onWorld = focus && hitAt(e.clientX, e.clientY) === focus;
+    drag = { x: e.clientX, y: e.clientY, yaw: cam.yaw, pitch: cam.pitch, spin: onWorld, spin0: spin }; moved = 0;
     chart.setPointerCapture(e.pointerId); chart.className = "grabbing";
   });
   chart.addEventListener("pointermove", function (e) {
     if (drag) {
       var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
       moved += Math.abs(dx) + Math.abs(dy);
+      if (drag.spin) { spin = drag.spin0 + dx * 0.008; return; }
       cam.yaw = drag.yaw + dx * 0.006;
       cam.pitch = Math.max(0.12, Math.min(1.45, drag.pitch + dy * 0.005));
       drawStars();
@@ -542,7 +658,8 @@
   chart.addEventListener("pointerleave", function () { hover = null; showTip(null); });
   chart.addEventListener("wheel", function (e) {
     e.preventDefault();
-    cam.dist = Math.max(260, Math.min(1500, cam.dist * (e.deltaY > 0 ? 1.08 : 0.93)));
+    var lo = focus ? 140 : 260, hi = focus ? 800 : 1500;
+    cam.dist = Math.max(lo, Math.min(hi, cam.dist * (e.deltaY > 0 ? 1.08 : 0.93)));
   }, { passive: false });
 
   function hitAt(x, y) {
@@ -565,7 +682,9 @@
     this.setAttribute("aria-pressed", String(drifting));
     this.textContent = drifting ? "Orbits: moving" : "Orbits: held";
   });
-  document.getElementById("reset").addEventListener("click", function () { glide(HOME); });
+  document.getElementById("reset").addEventListener("click", function () {
+    if (current) document.getElementById("back").click(); else glide(HOME);
+  });
 
   // eases the camera to a target over half a second
   var gliding = null;
@@ -577,6 +696,16 @@
   function frame(now) {
     var dt = (now - t0) / 1000; t0 = now;
     if (drifting) simT += dt;
+    // follow the target: a world on its orbit, or the star
+    var want = focus ? planetPos(focus) : { x: 0, z: 0 };
+    if (tween) {
+      var k2 = Math.min(1, (now - tween.t) / 700), e2 = 1 - Math.pow(1 - k2, 3);
+      target.x = tween.x + (want.x - tween.x) * e2;
+      target.z = tween.z + (want.z - tween.z) * e2;
+      if (k2 >= 1) tween = null;
+    } else { target.x = want.x; target.z = want.z; }
+    // a followed world keeps turning unless the reader has hold of it
+    if (focus && !(drag && drag.spin) && !reduced) spin += dt * 0.16;
     if (gliding) {
       var k = Math.min(1, (now - gliding.t) / 520), e = 1 - Math.pow(1 - k, 3);
       cam.yaw = gliding.from.yaw + (gliding.to.yaw - gliding.from.yaw) * e;
@@ -593,23 +722,28 @@
   var pv = document.getElementById("pv");
   var current = null, region = null;
 
+  // Follow a world: the camera eases over to it and closes in while the
+  // chart keeps running underneath, so the other worlds go on moving round
+  // it. From one file, picking another world just moves the camera across.
   function openPlanet(p) {
-    var pos = planetPos(p);
-    // turn toward the world and close in, then raise the file
-    var yaw = Math.atan2(pos.x, pos.z) + Math.PI;
-    glide({ yaw: yaw, pitch: 0.5, dist: 420 }, function () { showPlanet(p); });
+    tween = { x: target.x, z: target.z, t: performance.now() };
+    focus = p;
+    glide({ yaw: cam.yaw, pitch: FOCUS.pitch, dist: FOCUS.dist });
+    showPlanet(p);
   }
   function showPlanet(p) {
     current = p; region = null;
     pv.className = "on"; pv.setAttribute("aria-hidden", "false");
     document.body.className = "pv-on";
     document.getElementById("pvname").textContent = p.name;
-    renderRail(); renderGlobe(p); renderStats(p); renderChips(p);
+    renderRail(); renderMarks(p); renderStats(p); renderChips(p);
     selectRegion(p.regions && p.regions[0] ? p.regions[0] : null);
   }
   document.getElementById("back").addEventListener("click", function () {
     pv.className = ""; pv.setAttribute("aria-hidden", "true"); current = null;
     document.body.className = "";
+    tween = { x: target.x, z: target.z, t: performance.now() };
+    focus = null; focusScreen = null;
     glide(HOME);
   });
   document.addEventListener("keydown", function (e) {
@@ -630,28 +764,35 @@
       var d = document.createElement("div"); d.className = "dist"; d.textContent = p.visited ? p.dist : "no file"; t.appendChild(d);
       b.appendChild(t);
       var go = document.createElement("span"); go.className = "go"; go.textContent = "›"; b.appendChild(go);
-      if (p.visited) b.addEventListener("click", function () { if (p !== current) showPlanet(p); });
+      if (p.visited) b.addEventListener("click", function () { if (p !== current) openPlanet(p); });
       else b.disabled = true;
       box.appendChild(b);
     });
   }
 
-  var globe = document.getElementById("globe"), globec = document.getElementById("globec");
-  function renderGlobe(p) {
-    var g = globec.getContext("2d");
-    g.clearRect(0, 0, 900, 900);
-    // the world sits inside its box with room for the glow drawSphere adds,
-    // so the glow is never clipped square by the canvas edge
-    drawSphere(g, 450, 450, 345, p, -Math.PI * .7);
-    // markers
-    Array.prototype.forEach.call(globe.querySelectorAll(".mark"), function (m) { m.parentNode.removeChild(m); });
+  // Region markers ride on the followed world as the chart draws it: each
+  // frame they are placed from the world's screen position and radius.
+  var marks = document.getElementById("marks");
+  function renderMarks(p) {
+    marks.textContent = "";
     (p.regions || []).forEach(function (r) {
       var m = document.createElement("button");
       m.type = "button"; m.className = "mark"; m.title = r.name;
-      m.style.left = (r.at[0] * 100) + "%"; m.style.top = (r.at[1] * 100) + "%";
       m.addEventListener("click", function () { selectRegion(r); });
       m._region = r;
-      globe.appendChild(m);
+      marks.appendChild(m);
+    });
+    placeMarks();
+  }
+  function placeMarks() {
+    if (!focusScreen) return;
+    var fs = focusScreen;
+    Array.prototype.forEach.call(marks.children, function (m) {
+      var pt = surfacePoint(m._region.lat, m._region.lon, spin, fs);
+      m.style.left = pt.x + "px";
+      m.style.top = pt.y + "px";
+      m.style.opacity = pt.front ? String(0.55 + 0.45 * Math.min(1, pt.z * 2)) : "0";
+      m.style.pointerEvents = pt.front ? "auto" : "none";
     });
   }
 
@@ -683,7 +824,7 @@
     Array.prototype.forEach.call(document.querySelectorAll("#pvchips .chip"), function (b) {
       b.setAttribute("aria-pressed", String(b._region === r));
     });
-    Array.prototype.forEach.call(globe.querySelectorAll(".mark"), function (m) {
+    Array.prototype.forEach.call(marks.children, function (m) {
       m.className = "mark" + (m._region === r ? " on" : "");
     });
     var lore = document.getElementById("pvlore"); lore.textContent = "";
@@ -726,13 +867,12 @@
   // a leader line from the selected marker to the lore panel's top edge
   function drawLead() {
     var line = document.getElementById("leadline");
-    var m = globe.querySelector(".mark.on"), lore = document.getElementById("pvlore");
-    var stage = pv.querySelector(".stage").getBoundingClientRect();
-    if (!m || !region) { line.setAttribute("x1", 0); line.setAttribute("y1", 0); line.setAttribute("x2", 0); line.setAttribute("y2", 0); return; }
+    var m = marks.querySelector(".mark.on"), lore = document.getElementById("pvlore");
+    if (!m || !region || !focusScreen) { line.setAttribute("x1", 0); line.setAttribute("y1", 0); line.setAttribute("x2", 0); line.setAttribute("y2", 0); return; }
     var a = m.getBoundingClientRect(), b = lore.getBoundingClientRect();
-    line.setAttribute("x1", a.left + a.width / 2 - stage.left); line.setAttribute("y1", a.top + a.height / 2 - stage.top);
-    line.setAttribute("x2", Math.min(b.right - 24, Math.max(b.left + 24, a.left + a.width / 2)) - stage.left);
-    line.setAttribute("y2", b.top - stage.top);
+    line.setAttribute("x1", a.left + a.width / 2); line.setAttribute("y1", a.top + a.height / 2);
+    line.setAttribute("x2", Math.min(b.right - 24, Math.max(b.left + 24, a.left + a.width / 2)));
+    line.setAttribute("y2", b.top);
   }
   window.addEventListener("resize", function () { if (current) requestAnimationFrame(drawLead); });
 
@@ -743,7 +883,11 @@
   var want = (location.search.match(/[?&]planet=([a-z0-9-]+)/i) || [])[1];
   if (want) {
     var p = system.planets.filter(function (q) { return q.id === want.toLowerCase() && q.visited; })[0];
-    if (p) { cam.dist = 420; showPlanet(p); }
+    if (p) {
+      focus = p; var pos = planetPos(p); target.x = pos.x; target.z = pos.z;
+      cam.pitch = FOCUS.pitch; cam.dist = FOCUS.dist;
+      showPlanet(p);
+    }
   }
 })();
 </script>
