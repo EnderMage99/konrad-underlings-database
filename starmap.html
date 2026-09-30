@@ -204,7 +204,7 @@
                   txt: "Trigger: a character ends their turn without having moved. Effect: they freeze to the ground and become Immobilized until they pass a Hull check against 12, which they may attempt at the start of each of their turns.",
                   meta: "Region condition / Every character in the mountains" }
               ] },
-            { id: "desert", name: "Desert", kind: "Biome", lat: -14, lon: 60, want: "desert",
+            { id: "desert", name: "Desert", kind: "Biome", lat: -22, lon: 10, want: "desert", avoid: "green",
               lore: [PH],
               conditions: [
                 { n: "Scorching",
@@ -405,6 +405,16 @@
   // Moves each region marker to the nearest spot of the ground it wants,
   // searching outward from where it was written. The surfaces are seeded,
   // so this lands in the same place every load.
+  // A region can also ask to stay clear of some ground: every neighbour
+  // ten degrees out has to be something else.
+  function clearOf(p, lat, lon, ground) {
+    if (!ground) return true;
+    for (var a = 0; a < 8; a++) {
+      var ang = a / 8 * Math.PI * 2;
+      if (groundAt(p, lat + Math.sin(ang) * 10, lon + Math.cos(ang) * 10) === ground) return false;
+    }
+    return true;
+  }
   function settleRegions(p) {
     (p.regions || []).forEach(function (r) {
       if (!r.want) return;
@@ -413,14 +423,14 @@
       var wants = [].concat(r.want);
       for (var w = 0; w < wants.length; w++) {
         var want = wants[w];
-        if (groundAt(p, r.lat, r.lon) === want) return;
+        if (groundAt(p, r.lat, r.lon) === want && clearOf(p, r.lat, r.lon, r.avoid)) return;
         for (var ring = 1; ring <= 26; ring++) {
           var step = ring * 3;
           for (var a = 0; a < 16; a++) {
             var ang = a / 16 * Math.PI * 2;
             var lat = Math.max(-70, Math.min(70, r.lat + Math.sin(ang) * step));
             var lon = r.lon + Math.cos(ang) * step;
-            if (groundAt(p, lat, lon) === want) { r.lat = lat; r.lon = lon; return; }
+            if (groundAt(p, lat, lon) === want && clearOf(p, lat, lon, r.avoid)) { r.lat = lat; r.lon = lon; return; }
           }
         }
       }
