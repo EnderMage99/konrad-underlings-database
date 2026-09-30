@@ -96,10 +96,21 @@
   .lore h3 { margin: .2rem 0 .5rem; font-size: 1.3rem; font-weight: 500; }
   .lore p { margin: 0 0 .6rem; font-size: .88rem; line-height: 1.6; color: var(--ink-soft); }
   .lore p.ph { color: var(--ink-faint); font-style: italic; }
-  .cond { margin-top: .8rem; border: 1px solid rgba(245,179,60,.5); background: rgba(245,179,60,.06); padding: .7rem .9rem; }
-  .cond .k { color: var(--brass); }
-  .cond ul { margin: .4rem 0 0; padding-left: 1.1rem; font-size: .85rem; line-height: 1.55; color: var(--ink); }
-  .cond li { margin-bottom: .25rem; }
+  /* mission conditions, set like a system on a dossier card */
+  .cond { margin-top: .9rem; }
+  .cond h4 {
+    display: inline-block; font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase;
+    margin: 0 0 .6rem; background: var(--accent-dim); color: #EAF8FF; padding: .12rem 1.1rem .12rem .5rem;
+    clip-path: polygon(0 0, 100% 0, calc(100% - .6rem) 100%, 0 100%);
+  }
+  .cond ul { list-style: none; margin: 0; padding: 0; }
+  .entry + .entry { margin-top: .7rem; }
+  .entry .name { font-family: var(--mono); font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--ink); }
+  .entry .txt { font-size: 13px; line-height: 1.5; color: var(--ink-soft); margin-top: .26rem; }
+  .entry .meta { font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-faint); margin-top: .2rem; }
+  .status { white-space: nowrap; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; font-weight: 600; color: var(--ink); }
+  .status.bad { color: var(--alert); text-decoration-color: var(--alert); }
+  .status.heat { color: var(--brass); text-decoration-color: var(--brass); }
   .chips { position: absolute; right: 2rem; bottom: 2rem; display: flex; flex-wrap: wrap; gap: .4rem; justify-content: flex-end; max-width: 40%; z-index: 2; }
   .chip { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; padding: .45rem .7rem;
           background: rgba(11,24,34,.9); color: var(--ink-soft); border: 1px solid var(--rule); cursor: pointer; }
@@ -183,10 +194,18 @@
               lore: [PH] },
             { id: "mountains", name: "Mountains", kind: "Biome", at: [0.62, 0.30],
               lore: [PH],
-              conditions: ["[Placeholder - mountain mission condition.]", "[Placeholder - second condition, if any.]"] },
+              conditions: [
+                { n: "Frozen Ground",
+                  txt: "Trigger: a character ends their turn without having moved. Effect: they freeze to the ground and become Immobilized until they pass a Hull check against 12, which they may attempt at the start of each of their turns.",
+                  meta: "Region condition / Every character in the mountains" }
+              ] },
             { id: "desert", name: "Desert", kind: "Biome", at: [0.58, 0.66],
               lore: [PH],
-              conditions: ["[Placeholder - desert mission condition.]"] },
+              conditions: [
+                { n: "Scorching",
+                  txt: "Any Heat gained within this region is doubled, no matter the source - weapons, systems, Overcharging or the environment alike.",
+                  meta: "Region condition / Every character in the desert" }
+              ] },
             { id: "dictis", name: "Dictis", kind: "City", at: [0.42, 0.56],
               lore: ["Where the squad's missions have been taking place. A short way from Vintatem, the larger city it sits in the shadow of.", PH] },
             { id: "vintatem", name: "Vintatem", kind: "City", at: [0.47, 0.62],
@@ -576,12 +595,29 @@
     });
     if (r.conditions && r.conditions.length) {
       var c = document.createElement("div"); c.className = "cond";
-      var ck = document.createElement("span"); ck.className = "k"; ck.textContent = "Mission conditions"; c.appendChild(ck);
+      var ck = document.createElement("h4"); ck.textContent = "Mission conditions"; c.appendChild(ck);
       var ul = document.createElement("ul");
-      r.conditions.forEach(function (line) { var li = document.createElement("li"); li.textContent = line; ul.appendChild(li); });
+      r.conditions.forEach(function (f) {
+        var li = document.createElement("li"); li.className = "entry";
+        var nm = document.createElement("div"); nm.className = "name"; nm.textContent = f.n; li.appendChild(nm);
+        if (f.txt) { var tx = document.createElement("div"); tx.className = "txt"; tx.innerHTML = markStatuses(f.txt); li.appendChild(tx); }
+        if (f.meta) { var mt = document.createElement("div"); mt.className = "meta"; mt.textContent = f.meta; li.appendChild(mt); }
+        ul.appendChild(li);
+      });
       c.appendChild(ul); lore.appendChild(c);
     }
     requestAnimationFrame(drawLead);
+  }
+
+  // Picks status keywords out of rules text the way the dossiers do, so a
+  // condition reads like one lifted off a scan.
+  var STATUS_WORDS = { Immobilized: "bad", Stunned: "bad", Slowed: "bad", Jammed: "bad", Impaired: "bad",
+                       Shredded: "bad", Exposed: "bad", Prone: "bad", Heat: "heat", Burn: "heat", Overcharging: "heat" };
+  function markStatuses(text) {
+    var safe = text.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+    return safe.replace(/\b(Immobilized|Stunned|Slowed|Jammed|Impaired|Shredded|Exposed|Prone|Heat|Burn|Overcharging)\b/g, function (w) {
+      return "<span class=\"status " + STATUS_WORDS[w] + "\">" + w + "</span>";
+    });
   }
 
   // a leader line from the selected marker to the lore panel's top edge
