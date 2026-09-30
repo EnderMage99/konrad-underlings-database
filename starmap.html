@@ -244,7 +244,10 @@
   var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   var HOME = { yaw: -0.65, pitch: 0.62, dist: 720 };
-  var FOCUS = { pitch: 0.42, dist: 300 };
+  var FOCUS = { pitch: 0.42 };
+  // Close enough that perspective alone makes the followed world fill about
+  // a fifth of the screen; every other world keeps its true relative size.
+  function focusDist(p) { return FOCAL * p.size * 1.15 / (Math.min(W, H) * 0.19); }
   var cam = { yaw: HOME.yaw, pitch: HOME.pitch, dist: HOME.dist };
   var FOCAL = 780;
   var drifting = !reduced;
@@ -278,7 +281,7 @@
     var cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
     var y2 = y * cp - z1 * sp, z2 = y * sp + z1 * cp;
     var depth = cam.dist + z2;
-    var s = FOCAL / Math.max(depth, 40);
+    var s = FOCAL / Math.max(depth, 6);
     var e = eye();
     return { x: e.x + x1 * s, y: e.y + y2 * s, s: s, depth: depth };
   }
@@ -378,16 +381,29 @@
   }
 
   // Draws the lit sphere into a square canvas of the given size.
-  function renderWorld(p, size, lon0) {
+  // The direction of the star from a world, in the camera's frame: x and y
+  // across the screen, z toward the viewer. Negative z means the star is
+  // behind the world and the reader is looking at its night side.
+  function viewLight(pos) {
+    var dx = -pos.x, dz = -pos.z, len = Math.hypot(dx, dz) || 1; dx /= len; dz /= len;
+    var cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw);
+    var x1 = dx * cy - dz * sy, z1 = dx * sy + dz * cy;
+    var cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+    return { x: x1, y: -z1 * sp, z: -z1 * cp };
+  }
+  var SPRITE_ANGLE = Math.atan2(-0.40, -0.72);   // where a cached sprite's light comes from on screen
+
+  // Renders a sprite lit from the upper left on screen with the given
+  // toward-viewer component lz; the chart turns the sprite in the plane of
+  // the screen to face the star, so only lz needs baking in.
+  function renderWorld(p, size, lon0, lz) {
     var look = lookFor(p);
     var c = document.createElement("canvas"); c.width = size; c.height = size;
     var g = c.getContext("2d");
     var img = g.createImageData(size, size), d = img.data;
     var r = size / 2 - 1, atmo = hex(look.atmo);
-    // light from the upper left, a little toward the viewer; the chart
-    // turns the sprite so the lit side faces the star
-    var L = [-0.72, -0.40, 0.40];
-    var ll = Math.hypot(L[0], L[1], L[2]); L = [L[0] / ll, L[1] / ll, L[2] / ll];
+    var m = Math.sqrt(Math.max(0, 1 - lz * lz));
+    var L = [Math.cos(SPRITE_ANGLE) * m, Math.sin(SPRITE_ANGLE) * m, lz];
     for (var py = 0; py < size; py++) {
       for (var px = 0; px < size; px++) {
         var x = (px + .5 - size / 2) / r, y = (py + .5 - size / 2) / r;
@@ -449,13 +465,13 @@
   }
 
   var spinC = document.createElement("canvas"), spinG = spinC.getContext("2d"), spinImg = null;
-  function drawSpinning(ctx, x, y, r, p, spin, lightAngle) {
+  function drawSpinning(ctx, x, y, r, p, spin, light) {
     var tex = textureFor(p), look = lookFor(p), atmo = hex(look.atmo);
-    var S = Math.max(8, Math.round(r * 2));
+    var S = Math.max(8, Math.min(512, Math.round(r * 2)));   // capped; scaled up when closer
     if (spinC.width !== S) { spinC.width = S; spinC.height = S; spinImg = spinG.createImageData(S, S); }
     var d = spinImg.data, td = tex.data, TW = tex.w, TH = tex.h;
-    var Lx = Math.cos(lightAngle), Ly = Math.sin(lightAngle), Lz = 0.45;
-    var ll = Math.hypot(Lx, Ly, Lz); Lx /= ll; Ly /= ll; Lz /= ll;
+    var Lx = light.x, Ly = light.y, Lz = light.z;
+    var ll = Math.hypot(Lx, Ly, Lz) || 1; Lx /= ll; Ly /= ll; Lz /= ll;
     var half = S / 2, inv = 1 / (half - .5);
     for (var py = 0; py < S; py++) {
       var yy = (py + .5 - half) * inv, yy2 = yy * yy;
@@ -497,18 +513,24 @@
     return { x: fs.x + x * fs.r, y: fs.y + y * fs.r, front: z > 0.08, z: z };
   }
 
+  // Sprites are cached per size and per step of the light's depth, so a
+  // world seen from behind gets a night-side sprite rather than a turned
+  // day-side one. Nine steps from lit-from-the-front to lit-from-behind.
   var SPRITES = {};
-  function spriteFor(p, size) {
-    var key = p.id + "@" + size;
-    if (!SPRITES[key]) SPRITES[key] = renderWorld(p, size, (p.phase || 0) * 1.7);
+  function spriteFor(p, size, lz) {
+    var step = Math.round(Math.max(-1, Math.min(1, lz)) * 4) / 4;
+    var key = p.id + "@" + size + "@" + step;
+    if (!SPRITES[key]) SPRITES[key] = renderWorld(p, size, (p.phase || 0) * 1.7, step);
     return SPRITES[key];
   }
 
-  // Draws a world at (x, y) radius r, turned so its lit side faces
-  // lightAngle, the direction of the star on screen. Atmosphere glow beneath.
-  function drawSphere(ctx, x, y, r, p, lightAngle) {
+  // Draws a world at (x, y) radius r lit from `light`, a direction in the
+  // camera's frame with z toward the viewer. Atmosphere glow beneath.
+  function drawSphere(ctx, x, y, r, p, light) {
     var size = r > 60 ? 1024 : (r > 20 ? 256 : 96);
-    var sp = spriteFor(p, size);
+    var ll = Math.hypot(light.x, light.y, light.z) || 1;
+    var lightAngle = Math.atan2(light.y, light.x);
+    var sp = spriteFor(p, size, light.z / ll);
     var look = lookFor(p), atmo = hex(look.atmo);
     var glow = ctx.createRadialGradient(x, y, r * .9, x, y, r * 1.28);
     glow.addColorStop(0, "rgba(" + atmo.join(",") + "," + (p.visited ? .32 : .10) + ")");
@@ -516,8 +538,8 @@
     ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(x, y, r * 1.28, 0, Math.PI * 2); ctx.fill();
     ctx.save();
     ctx.translate(x, y);
-    // the sprite is lit from atan2(-0.40, -0.72); turn that to lightAngle
-    ctx.rotate(lightAngle - Math.atan2(-0.40, -0.72));
+    // turn the sprite's baked light direction to face the star on screen
+    ctx.rotate(lightAngle - SPRITE_ANGLE);
     ctx.drawImage(sp, -r, -r, r * 2, r * 2);
     ctx.restore();
   }
@@ -535,7 +557,7 @@
         cx.beginPath();
         for (var u = -R; u <= R; u += 20) {
           var pt = pass ? project(g, 0, u) : project(u, 0, g);
-          if (u === -R || pt.depth < 60) cx.moveTo(pt.x, pt.y); else cx.lineTo(pt.x, pt.y);
+          if (u === -R || pt.depth < 12) cx.moveTo(pt.x, pt.y); else cx.lineTo(pt.x, pt.y);
         }
         cx.strokeStyle = "rgba(63,216,240," + (0.05 + 0.06 * (1 - Math.abs(g) / R)) + ")";
         cx.stroke();
@@ -559,7 +581,7 @@
       for (var i = 0; i <= 160; i++) {
         var a = i / 160 * Math.PI * 2;
         var pt = project(Math.cos(a) * p.orbit, 0, Math.sin(a) * p.orbit);
-        if (i === 0 || pt.depth < 60) cx.moveTo(pt.x, pt.y); else cx.lineTo(pt.x, pt.y);
+        if (i === 0 || pt.depth < 12) cx.moveTo(pt.x, pt.y); else cx.lineTo(pt.x, pt.y);
       }
       cx.stroke();
       cx.setLineDash([]); cx.globalAlpha = 1;
@@ -583,10 +605,7 @@
         return;
       }
       var p = it.p, r = Math.max(2.5, p.size * it.pr.s * 1.15);
-      // the followed world is shown large whatever the perspective says,
-      // so its file has something to point at
-      if (p === focus) r = Math.max(r, Math.min(W, H) * 0.2);
-      var light = Math.atan2(sp.y - it.pr.y, sp.x - it.pr.x);
+      var light = viewLight(it.pos);
       if (p === focus) drawSpinning(cx, it.pr.x, it.pr.y, r, p, spin, light);
       else drawSphere(cx, it.pr.x, it.pr.y, r, p, light);
       if (p === focus) focusScreen = { x: it.pr.x, y: it.pr.y, r: r };
@@ -658,7 +677,7 @@
   chart.addEventListener("pointerleave", function () { hover = null; showTip(null); });
   chart.addEventListener("wheel", function (e) {
     e.preventDefault();
-    var lo = focus ? 140 : 260, hi = focus ? 800 : 1500;
+    var lo = focus ? focusDist(focus) * 0.45 : 260, hi = focus ? focusDist(focus) * 8 : 1500;
     cam.dist = Math.max(lo, Math.min(hi, cam.dist * (e.deltaY > 0 ? 1.08 : 0.93)));
   }, { passive: false });
 
@@ -728,7 +747,7 @@
   function openPlanet(p) {
     tween = { x: target.x, z: target.z, t: performance.now() };
     focus = p;
-    glide({ yaw: cam.yaw, pitch: FOCUS.pitch, dist: FOCUS.dist });
+    glide({ yaw: cam.yaw, pitch: FOCUS.pitch, dist: focusDist(p) });
     showPlanet(p);
   }
   function showPlanet(p) {
@@ -757,7 +776,7 @@
       b.type = "button"; b.className = "dest" + (p.visited ? "" : " locked");
       if (p === current) b.setAttribute("aria-current", "true");
       var c = document.createElement("canvas"); c.width = 120; c.height = 120;
-      drawSphere(c.getContext("2d"), 60, 60, 52, p, -Math.PI * .75);
+      drawSphere(c.getContext("2d"), 60, 60, 52, p, { x: -0.72, y: -0.40, z: 0.40 });
       b.appendChild(c);
       var t = document.createElement("div");
       var nm = document.createElement("div"); nm.className = "nm"; nm.textContent = p.name; t.appendChild(nm);
@@ -885,7 +904,7 @@
     var p = system.planets.filter(function (q) { return q.id === want.toLowerCase() && q.visited; })[0];
     if (p) {
       focus = p; var pos = planetPos(p); target.x = pos.x; target.z = pos.z;
-      cam.pitch = FOCUS.pitch; cam.dist = FOCUS.dist;
+      cam.pitch = FOCUS.pitch; cam.dist = focusDist(p);
       showPlanet(p);
     }
   }
