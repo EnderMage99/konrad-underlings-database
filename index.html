@@ -2894,6 +2894,41 @@
   .nhp-attach .acct-row { align-items: center; flex-wrap: wrap; }
   .mechpanel .filewrite { margin-top: .9rem; }
 
+  /* opening a new Lancer file: the first thing on the tab */
+  .lancer-open {
+    margin: 0 0 1.6rem;
+    padding: .9rem 1.05rem 1rem;
+    border: 1px solid var(--accent-dim);
+    border-left: 3px solid var(--accent);
+    background: rgba(8, 18, 27, .55);
+  }
+  .lancer-open-btn {
+    font-size: var(--fs-md);
+    padding: .55rem 1.2rem;
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+  .lancer-open-note {
+    margin: .5rem 0 0;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .lancer-open-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    gap: 1.2rem;
+    margin-top: 1rem;
+    padding-top: .9rem;
+    border-top: 1px solid var(--rule);
+  }
+  .lancer-open-col { display: flex; flex-direction: column; gap: .5rem; }
+  .lancer-open-col .acct-h { margin: 0; }
+  .lancer-open-col .acct-row { align-items: center; flex-wrap: wrap; }
+  .lancer-open-form .notes-err { grid-column: 1 / -1; }
+
   /* ---------- table view ---------- */
 
   #tableview[hidden] { display: none; }
@@ -3166,6 +3201,7 @@
     <p class="viewnote">Pilot files for the Lancers themselves. Each carries a
       record, the mech they take into the field, and any NHP assisting them.
       Comments are left in-character by whoever is keeping the log.</p>
+    <div id="lancernew"></div>
     <details class="nhpnote">
       <summary>What is an NHP?</summary>
       <div class="nhpnote-body">
@@ -7499,10 +7535,110 @@
     return tools;
   }
 
+  // ---- opening a new Lancer file -------------------------------------------
+  // At the head of the tab, where it cannot be missed. A player opens a file
+  // for one of their characters that has none yet, or makes a new character
+  // on the spot and opens one for it. A character holds one Lancer file; an
+  // account may hold as many characters, and so as many files, as it likes.
+  var lancernew = document.getElementById("lancernew");
+  var openerOpen = false;
+
+  function renderLancerOpener() {
+    lancernew.textContent = "";
+    if (!sbOnline || !lancersOnline) return;
+    var box = el("div", "lancer-open");
+
+    if (!me) {
+      var b0 = el("button", "btn lancer-open-btn", "Open a Lancer file");
+      b0.type = "button";
+      b0.addEventListener("click", function () { openPanel(session ? "profile" : "auth"); });
+      box.appendChild(b0);
+      box.appendChild(el("p", "lancer-open-note",
+        session ? "Finish setting up your account first."
+                : "Log in to open a file of your own."));
+      lancernew.appendChild(box);
+      return;
+    }
+
+    var free = CHARS.filter(function (c) { return !lancerRowFor(c.id); });
+    var toggle = el("button", "btn lancer-open-btn", openerOpen ? "Close" : "Open a new Lancer file");
+    toggle.type = "button";
+    toggle.setAttribute("aria-expanded", String(openerOpen));
+    toggle.addEventListener("click", function () {
+      openerOpen = !openerOpen;
+      renderLancerOpener();
+    });
+    box.appendChild(toggle);
+    box.appendChild(el("p", "lancer-open-note",
+      "One file per character. Open as many characters as you like."));
+
+    if (openerOpen) {
+      var form = el("div", "lancer-open-form");
+      var msg = el("p", "notes-err");
+
+      async function openFor(ch) {
+        await postRow("lancers", { pilot: ch.id });
+        openerOpen = false;
+        await loadRegistry();
+        await redrawLancers();
+        focusTarget("lancer::" + ch.callsign);
+      }
+
+      if (free.length) {
+        var ex = el("div", "lancer-open-col");
+        ex.appendChild(el("h5", "acct-h", "For a character you already have"));
+        var row = el("div", "acct-row");
+        var sel = el("select", "acct-inline charpick");
+        free.forEach(function (c) {
+          var o = el("option", null, c.callsign + (c.title ? " - " + c.title : ""));
+          o.value = c.id;
+          sel.appendChild(o);
+        });
+        row.appendChild(sel);
+        var go = el("button", "btn", "Open file");
+        go.type = "button";
+        go.addEventListener("click", async function () {
+          msg.textContent = "";
+          go.disabled = true;
+          try {
+            var ch = null;
+            free.forEach(function (c) { if (c.id === sel.value) ch = c; });
+            await openFor(ch);
+          } catch (e) { msg.textContent = e.message; go.disabled = false; }
+        });
+        row.appendChild(go);
+        ex.appendChild(row);
+        form.appendChild(ex);
+      }
+
+      var nw = el("div", "lancer-open-col");
+      nw.appendChild(el("h5", "acct-h", free.length ? "Or for a new character" : "For a new character"));
+      var fields = charFields(nw);
+      var make = el("button", "btn", "Create and open");
+      make.type = "button";
+      make.addEventListener("click", async function () {
+        msg.textContent = "";
+        make.disabled = true;
+        try {
+          var v = await fields.read(msg);
+          if (!v) { make.disabled = false; return; }
+          await createChar(v.callsign, v.title, v.avatar);
+          await openFor(CHARS[CHARS.length - 1]);
+        } catch (e) { msg.textContent = e.message; make.disabled = false; }
+      });
+      nw.appendChild(make);
+      form.appendChild(nw);
+      form.appendChild(msg);
+      box.appendChild(form);
+    }
+    lancernew.appendChild(box);
+  }
+
   // ---- the cards -----------------------------------------------------------
   // Each block - the Lancer, every NHP, the mech - reads the same way: the
   // picture beside the file, the pinned comments, then the annotations.
   function renderLancers() {
+    renderLancerOpener();
     lancerlist.textContent = "";
     lancerEntries().forEach(function (L) {
       var box = el("article", "lancer");
@@ -9628,6 +9764,7 @@
     refreshArchivist();
     renderRegistry();
     renderCommentLog();
+    renderLancerOpener();
     renderAccount();
   }
 

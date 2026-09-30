@@ -98,7 +98,9 @@ Mech images go in the existing bucket under the uploader's folder.
 
 Controls, all ownership-gated, moderators on every card:
 
-- Account panel: "Open a Lancer file" on every character.
+- At the head of the Lancers tab: "Open a new Lancer file", for one of your
+  characters without one, or for a new character made on the spot. Also
+  "Open a Lancer file" on every character in the account panel.
 - File editor (existing) gains a "Written by" picker listing your characters,
   on Lancer, NHP and mech files alike.
 - "Write the mech": name, frame, image picker with the existing shrinker. The
