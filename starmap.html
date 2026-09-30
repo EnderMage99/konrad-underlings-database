@@ -858,12 +858,26 @@
     var m = Math.round(s / 60);
     return m < 60 ? m + " min" : (Math.floor(m / 60) + " h " + (m % 60) + " min");
   }
-  function planRoute(s, from, to) {
-    var t = simT, dur = 6;
-    var end = null;
-    for (var pass = 0; pass < 3; pass++) {
-      var dest = planetPosAt(to, t + dur);
-      var r1 = Math.hypot(from.x, from.z), a1 = Math.atan2(from.z, from.x);
+  // Where a ship sits on its orbit round its host at chart time t.
+  function shipOrbitAt(s, t) {
+    var p = hostOf(s), pos = planetPosAt(p, t);
+    var a = s.phase + (drifting ? t * (2 * Math.PI) / (s.period * 40) : 0);
+    var ci = Math.cos(s.incl || 0), si = Math.sin(s.incl || 0);
+    return { x: pos.x + Math.cos(a) * s.orbit, y: Math.sin(a) * s.orbit * si, z: pos.z + Math.sin(a) * s.orbit * ci };
+  }
+
+  // Plans the route as a function of the departure time alone: the start is
+  // where the ship was when it left, every prediction along the way is made
+  // from that moment, and the flight time is solved so that the route to
+  // where the destination WILL be takes exactly that long to fly. The worlds
+  // move far faster than the ship, so this is a proper root search over the
+  // flight time rather than a chase; the soonest meeting is taken. Built the
+  // same way from the same order on every screen and every reload, so the
+  // ship is always where the others see it and always lands on the world.
+  function planRoute(s, from, to, tDep) {
+    var r1 = Math.hypot(from.x, from.z), a1 = Math.atan2(from.z, from.x);
+    function routeFor(dur) {
+      var dest = planetPosAt(to, tDep + dur);
       var r2 = Math.hypot(dest.x, dest.z), a2 = Math.atan2(dest.z, dest.x);
       var sweep = a2 - a1; while (sweep > Math.PI) sweep -= 2 * Math.PI; while (sweep < -Math.PI) sweep += 2 * Math.PI;
       var pts = [], len = 0;
@@ -874,37 +888,50 @@
         var floor = SAFE_SUN + 22 * Math.sin(Math.PI * u);
         if (r < floor) r = floor;
         var x = Math.cos(a) * r, z = Math.sin(a) * r;
-        // other worlds along the way push the route outward
+        // other worlds along the way, where they will be at that point of
+        // the flight, push the route outward
         system.planets.forEach(function (q) {
-          if (q === to || q === hostOf(s)) return;
-          var qp = planetPosAt(q, t + dur * u);
+          if (q === to || q.id === s.host) return;
+          var qp = planetPosAt(q, tDep + dur * u);
           var keep = q.size * 4 + 8, d = Math.hypot(x - qp.x, z - qp.z);
           if (d < keep) { var out = (keep - d + 4); var rr = Math.hypot(x, z) + out; x = Math.cos(a) * rr; z = Math.sin(a) * rr; }
         });
         pts.push({ x: x, y: -Math.sin(Math.PI * u) * 14, z: z });
         if (i) len += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y, pts[i].z - pts[i - 1].z);
       }
-      // the last leg bends onto the destination's orbit ring
-      var last = pts[PATH_N], dest2 = dest;
-      var inx = last.x - dest2.x, inz = last.z - dest2.z, il = Math.hypot(inx, inz) || 1;
-      end = { x: dest2.x + inx / il * s.orbit, y: 0, z: dest2.z + inz / il * s.orbit, arrive: Math.atan2(inz / il, inx / il) };
-      pts[PATH_N] = { x: end.x, y: end.y, z: end.z };
-      dur = Math.max(8, len / SHIP_SPEED);
-      s._route = { pts: pts, len: len };
+      // the last leg bends onto the destination's orbit ring, at the point
+      // the ship comes in from
+      var prev = pts[PATH_N - 1];
+      var inx = prev.x - dest.x, inz = prev.z - dest.z, il = Math.hypot(inx, inz) || 1;
+      pts[PATH_N] = { x: dest.x + inx / il * s.orbit, y: 0, z: dest.z + inz / il * s.orbit };
+      return { pts: pts, len: len, arrive: Math.atan2(inz / il, inx / il), gap: len / SHIP_SPEED - dur };
     }
-    return { pts: s._route.pts, dur: dur, arrive: end.arrive };
+    // scan the flight time for the first moment the route can be flown in
+    // time, then narrow it down
+    var lo = 8, hi = lo, glo = routeFor(lo).gap, ghi = glo, step = 5;
+    while (ghi > 0 && hi < 4 * 3600) { lo = hi; glo = ghi; hi += step; ghi = routeFor(hi).gap; }
+    if (ghi > 0) hi = lo;                          // no meeting found: fly the direct guess
+    for (var k = 0; k < 24 && hi - lo > 0.01; k++) {
+      var mid = (lo + hi) / 2, g = routeFor(mid).gap;
+      if (g > 0) { lo = mid; glo = g; } else { hi = mid; ghi = g; }
+    }
+    var dur = Math.max(8, hi), best = routeFor(dur);
+    return { pts: best.pts, dur: dur, arrive: best.arrive, len: best.len };
   }
 
+  // startedAgo is how long ago the order was given, so a flight rebuilt on
+  // another screen or after a reload starts from the same place and time.
   function sendShip(s, to, startedAgo) {
     if (s.transit || !to || to.id === s.host) return;
-    var st = shipState(s);
-    var route = planRoute(s, { x: st.x, z: st.z }, to);
+    var tDep = simT - (startedAgo || 0);
+    var from = shipOrbitAt(s, tDep);
+    var route = planRoute(s, from, to, tDep);
     // cumulative lengths for even motion along the route
     var cum = [0]; for (var i = 1; i < route.pts.length; i++) {
       var a = route.pts[i - 1], b = route.pts[i];
       cum.push(cum[i - 1] + Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z));
     }
-    s.transit = { from: s.host, to: to.id, pts: route.pts, cum: cum, len: cum[cum.length - 1], t0: simT - (startedAgo || 0), dur: route.dur, arrive: route.arrive };
+    s.transit = { from: s.host, to: to.id, pts: route.pts, cum: cum, len: cum[cum.length - 1], t0: tDep, dur: route.dur, arrive: route.arrive };
   }
 
   function transitState(s) {
