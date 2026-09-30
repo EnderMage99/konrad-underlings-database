@@ -275,7 +275,9 @@
       // Ships belong to the system and carry the id of the world they are
       // orbiting; the archivist can send one to another world.
       ships: [
-        { id: "aliakmon", name: "Aliakmon", kind: "Mothership", host: "ii", orbit: 18, period: 0.32, incl: 0.3, size: 9, phase: 1.1 }
+        { id: "aliakmon", name: "Aliakmon", kind: "Mothership", host: "ii", orbit: 18, period: 0.32, incl: 0.3, size: 9, phase: 1.1,
+          stats: [["Class", "Mothership"], ["Complement", "The Lancers"], ["Registry", "Dachtylo Company"], ["Berth", "Wherever it is sent"]],
+          lore: [] }
       ],
       planets: [
         { id: "i",   name: "Invideis-I",   orbit: 55,  period: 1.0,  size: 4.5, visited: false, phase: 0.8 },
@@ -1076,6 +1078,7 @@
         if (it.ship.transit) drawRoute(it.ship); else drawShipRing(it.host, it.ship);
         var c = drawShip(it.host, it.ship, it.st, sp);
         hits.push({ p: it.ship, x: c.x, y: c.y, r: Math.max(10, it.ship.size * c.s * .5) });
+        if (it.ship === focus) focusScreen = { x: c.x, y: c.y, r: it.ship.size * c.s * .5 };
         return;
       }
       if (it.star) {
@@ -1245,8 +1248,7 @@
     var wasDrag = drag && moved > 6; drag = null;
     if (wasDrag) return;
     var h = hitAt(e.clientX, e.clientY);
-    if (h && h.host) openShipPanel(h);
-    else if (h && h.visited) openPlanet(h);
+    if (h && (h.host || h.visited)) openPlanet(h);
   });
   chart.addEventListener("pointerleave", function () { hover = null; showTip(null); });
   chart.addEventListener("wheel", function (e) {
@@ -1291,7 +1293,8 @@
     var dt = (now - t0) / 1000; t0 = now;
     if (drifting) simT += dt;
     // follow the target: a world on its orbit, or the star
-    var want = focus ? planetPos(focus) : { x: 0, z: 0 };
+    // the followed body: a world on its orbit, a ship wherever it is, or the star
+    var want = focus ? (focus.host ? shipState(focus) : planetPos(focus)) : { x: 0, z: 0 };
     if (tween) {
       var k2 = Math.min(1, (now - tween.t) / 700), e2 = 1 - Math.pow(1 - k2, 3);
       target.x = tween.x + (want.x - tween.x) * e2;
@@ -1326,6 +1329,8 @@
     glide({ yaw: cam.yaw, pitch: FOCUS.pitch, dist: focusDist(p) });
     showPlanet(p);
   }
+  // Opens a body's file: a world, or a ship, which gets the same view with
+  // its orders panel alongside.
   function showPlanet(p) {
     current = p; region = null;
     pv.className = "on"; pv.setAttribute("aria-hidden", "false");
@@ -1333,6 +1338,8 @@
     document.getElementById("pvname").textContent = p.name;
     renderRail(); renderMarks(p); renderStats(p); renderChips(p);
     selectRegion(null);
+    if (p.host) openShipPanel(p);
+    else if (shipPanelFor) { shipPanelFor = null; document.getElementById("shippanel").hidden = true; }
   }
   document.getElementById("back").addEventListener("click", function () {
     pv.className = ""; pv.setAttribute("aria-hidden", "true"); current = null;
@@ -1359,6 +1366,7 @@
   function refreshRailDistances() {
     Array.prototype.forEach.call(document.querySelectorAll("#dests .dist"), function (d) {
       if (d._planet) d.textContent = railDistance(d._planet);
+      if (d._ship) d.textContent = shipStatus(d._ship);
     });
   }
   setInterval(function () {
@@ -1385,6 +1393,49 @@
       else b.disabled = true;
       box.appendChild(b);
     });
+    // ships, after the worlds, with a silhouette for a thumbnail
+    (system.ships || []).forEach(function (s) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "dest";
+      if (s === current) b.setAttribute("aria-current", "true");
+      var c = document.createElement("canvas"); c.width = 120; c.height = 120;
+      drawShipIcon(c.getContext("2d"), 120);
+      b.appendChild(c);
+      var t = document.createElement("div");
+      var nm = document.createElement("div"); nm.className = "nm"; nm.textContent = s.name; t.appendChild(nm);
+      var d = document.createElement("div"); d.className = "dist"; d.textContent = shipStatus(s); d._ship = s; t.appendChild(d);
+      b.appendChild(t);
+      var go = document.createElement("span"); go.className = "go"; go.textContent = "›"; b.appendChild(go);
+      b.addEventListener("click", function () { if (s !== current) openPlanet(s); });
+      box.appendChild(b);
+    });
+  }
+
+  // one line on where a ship is
+  function shipStatus(s) {
+    if (s.transit) {
+      var left = Math.max(0, s.transit.dur - (simT - s.transit.t0));
+      return "en route to " + planetById(s.transit.to).name + " · " + flightTime(left * SHIP_SPEED) + " to go";
+    }
+    return "in orbit round " + hostOf(s).name;
+  }
+
+  // the ship seen from above, flattened onto a small canvas
+  function drawShipIcon(g, size) {
+    var m = SHIP_MESH, V = m.v, F = m.f;
+    var glow = g.createRadialGradient(size / 2, size / 2, size * .1, size / 2, size / 2, size * .5);
+    glow.addColorStop(0, "rgba(63,216,240,.18)"); glow.addColorStop(1, "rgba(63,216,240,0)");
+    g.fillStyle = glow; g.fillRect(0, 0, size, size);
+    var k = size * .42, cx0 = size / 2, cy0 = size / 2;
+    g.fillStyle = "#8FA3B3";
+    for (var i = 0; i < F.length; i++) {
+      var a = V[F[i][0]], b = V[F[i][1]], c = V[F[i][2]];
+      // the ship's length runs along model Y; lay it diagonally
+      var ax = cx0 + (a[0] * .7 - a[1] * .7) * k, ay = cy0 + (a[0] * .7 + a[1] * .7) * k;
+      var bx = cx0 + (b[0] * .7 - b[1] * .7) * k, by = cy0 + (b[0] * .7 + b[1] * .7) * k;
+      var cx1 = cx0 + (c[0] * .7 - c[1] * .7) * k, cy1 = cy0 + (c[0] * .7 + c[1] * .7) * k;
+      g.beginPath(); g.moveTo(ax, ay); g.lineTo(bx, by); g.lineTo(cx1, cy1); g.closePath(); g.fill();
+    }
   }
 
   // Region markers ride on the followed world as the chart draws it: each
@@ -1569,7 +1620,8 @@
   function applyOverride(row) {
     var parts = String(row.target_id).split("/");
     if (parts[0] !== system.id) return;
-    var p = system.planets.filter(function (q) { return q.id === parts[1]; })[0];
+    var p = system.planets.filter(function (q) { return q.id === parts[1]; })[0]
+         || (system.ships || []).filter(function (q) { return q.id === parts[1]; })[0];   // a ship keeps a file the same way
     if (!p) return;
     var body; try { body = JSON.parse(row.body); } catch (e) { return; }
     if (row.target_kind === "world") {
@@ -1828,9 +1880,10 @@
   // ?planet=ii opens a world straight away, for testing and for links
   var want = (location.search.match(/[?&]planet=([a-z0-9-]+)/i) || [])[1];
   if (want) {
-    var p = system.planets.filter(function (q) { return q.id === want.toLowerCase() && q.visited; })[0];
+    var p = system.planets.filter(function (q) { return q.id === want.toLowerCase() && q.visited; })[0]
+         || (system.ships || []).filter(function (q) { return q.id === want.toLowerCase(); })[0];
     if (p) {
-      focus = p; var pos = planetPos(p); target.x = pos.x; target.z = pos.z;
+      focus = p; var pos = p.host ? shipState(p) : planetPos(p); target.x = pos.x; target.z = pos.z;
       cam.pitch = FOCUS.pitch; cam.dist = focusDist(p);
       showPlanet(p);
     }
