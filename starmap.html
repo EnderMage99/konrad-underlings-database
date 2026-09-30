@@ -1506,7 +1506,7 @@
     var lore = document.getElementById("pvlore"); lore.textContent = "";
     // the world's own file when no region is picked
     if (!r) {
-      var wk = document.createElement("span"); wk.className = "k"; wk.textContent = "World"; lore.appendChild(wk);
+      var wk = document.createElement("span"); wk.className = "k"; wk.textContent = current.host ? (current.kind || "Ship") : "World"; lore.appendChild(wk);
       var wh = document.createElement("h3"); wh.textContent = current.name; lore.appendChild(wh);
       writeParas(lore, current.lore);
       lore.appendChild(editTools(function () { openWorldLoreEditor(current); }));
