@@ -2286,6 +2286,9 @@
     color: var(--ink-soft);
   }
 
+  .acct-share { display: flex; flex-direction: column; gap: .5rem; margin-top: .6rem; padding-top: .6rem; border-top: 1px solid var(--rule); }
+  .acct-share-btn { margin-top: .6rem; font-size: .78rem; color: var(--ink-faint); }
+  .acct-share-btn[aria-expanded="true"] { color: var(--ink); }
   .acct-fine {
     margin: -.2rem 0 0;
     font-size: 10px;
@@ -7434,6 +7437,7 @@
   var NOT_OAUTH = { email: 1, phone: 1, anonymous_users: 1 };
   var authErr = "";     // carried over from a failed OAuth round trip
   var oauthHint = null; // display name Discord handed back, to prefill callsign
+  var contactOpen = false; // reader chose to sign in with an email or a provider
 
   var session = null;     // {access_token, refresh_token, expires_at, user_id}
   var me = null;          // own account row, once one exists
@@ -9980,7 +9984,9 @@
       return;
     }
 
-    // auth: sign in, with sign-up available
+    // auth: sign in, with sign-up available. A username and password is the
+    // whole ask; email addresses and providers sit behind a button, so
+    // nobody hands over contact details without choosing to.
     panelEl.appendChild(el("h5", "acct-h", "Log in"));
 
     if (authErr) {
@@ -9989,6 +9995,10 @@
       panelEl.appendChild(ae);
       authErr = "";
     }
+
+    var usernameOnly = AUTH.autoconfirm;
+    var shareBox = el("div", "acct-share");
+    shareBox.hidden = !contactOpen;
 
     AUTH.providers.forEach(function (p) {
       var name = PROVIDER_NAMES[p] || p;
@@ -10000,22 +10010,26 @@
         b.disabled = true;
         startOAuth(p);
       });
-      panelEl.appendChild(b);
+      shareBox.appendChild(b);
     });
-
-    if (AUTH.providers.length && AUTH.email) {
-      panelEl.appendChild(el("p", "acct-fine", "or use an email address"));
-    }
 
     if (!AUTH.email) {
       if (!AUTH.providers.length) {
         panelEl.appendChild(el("p", "acct-msg",
           "No sign-in method is enabled. Ask the archivist."));
+        return;
       }
+      // providers only: nothing to do but offer them
+      contactOpen = true;
+      shareBox.hidden = false;
+      panelEl.appendChild(el("p", "acct-fine",
+        "Signing in shares your account name with the archive."));
+      panelEl.appendChild(shareBox);
       return;
     }
 
-    var em = field("Username or email", "text", "e.g. lyxie");
+    var em = field(usernameOnly && !contactOpen ? "Username" : "Username or email",
+                   "text", "e.g. lyxie");
     var pw = field("Password", "password", "at least 8 characters");
     panelEl.appendChild(em.wrap);
     panelEl.appendChild(pw.wrap);
@@ -10028,11 +10042,37 @@
     row.appendChild(inBtn);
     row.appendChild(upBtn);
     panelEl.appendChild(row);
-    panelEl.appendChild(el("p", "acct-fine", AUTH.autoconfirm
-      ? "A username is enough - no email needed. There is no password reset "
-        + "for a username, so ask the archivist if you lose it."
+    panelEl.appendChild(el("p", "acct-fine", usernameOnly
+      ? "A username is enough - no email or Discord needed. There is no "
+        + "password reset for a username, so ask the archivist if you lose it."
       : "An email address is required on this archive."));
     panelEl.appendChild(msg);
+
+    // the email and provider route, opt-in
+    if (usernameOnly) {
+      var shareBtn = el("button", "btn acct-share-btn",
+        contactOpen ? "Keep my email and Discord out of it"
+                    : "Use an email or Discord instead");
+      shareBtn.type = "button";
+      shareBtn.setAttribute("aria-expanded", String(contactOpen));
+      shareBtn.addEventListener("click", function () {
+        contactOpen = !contactOpen;
+        buildPanel();
+        sizePanel();
+      });
+      panelEl.appendChild(shareBtn);
+      if (contactOpen) {
+        shareBox.insertBefore(el("p", "acct-fine",
+          "This shares the address or Discord account with the archive. An "
+          + "account made this way logs in with it rather than a username. Only "
+          + "worth it if you want a password reset."), shareBox.firstChild);
+      }
+    } else if (AUTH.providers.length) {
+      contactOpen = true;
+      shareBox.hidden = false;
+      shareBox.appendChild(el("p", "acct-fine", "or use an email address"));
+    }
+    panelEl.appendChild(shareBox);
 
     // Returns null and writes to msg when the identifier will not do.
     function readIdentifier() {
@@ -10042,6 +10082,12 @@
         return null;
       }
       var id = asIdentifier(raw);
+      if (!id.username && usernameOnly && !contactOpen) {
+        msg.textContent = "Email addresses are not needed here. Pick a "
+          + "username, or press 'Use an email or Discord instead' below "
+          + "if you really want one.";
+        return null;
+      }
       if (id.username) {
         var bad = usernameProblem(id.username);
         if (bad) { msg.textContent = bad; return null; }
