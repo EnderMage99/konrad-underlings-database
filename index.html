@@ -7437,7 +7437,16 @@
   var NOT_OAUTH = { email: 1, phone: 1, anonymous_users: 1 };
   var authErr = "";     // carried over from a failed OAuth round trip
   var oauthHint = null; // display name Discord handed back, to prefill callsign
-  var contactOpen = false; // reader chose to sign in with an email or a provider
+  var CONTACT_KEY = "overseer.contact";
+  // this browser has signed in with an email or a provider before, so the
+  // question of sharing one has already been answered
+  var contactKnown = false;
+  try { contactKnown = localStorage.getItem(CONTACT_KEY) === "1"; } catch (e) {}
+  var contactOpen = contactKnown; // reader chose to sign in with an email or a provider
+  function rememberContact() {
+    contactKnown = contactOpen = true;
+    try { localStorage.setItem(CONTACT_KEY, "1"); } catch (e) {}
+  }
 
   var session = null;     // {access_token, refresh_token, expires_at, user_id}
   var me = null;          // own account row, once one exists
@@ -7552,6 +7561,7 @@
   }
 
   async function startOAuth(provider) {
+    rememberContact();
     var verifier = b64url(crypto.getRandomValues(new Uint8Array(48)));
     try { localStorage.setItem(SB_VERIFIER, verifier); } catch (e) {}
     var digest = await crypto.subtle.digest("SHA-256",
@@ -10028,8 +10038,7 @@
       return;
     }
 
-    var em = field(usernameOnly && !contactOpen ? "Username" : "Username or email",
-                   "text", "e.g. lyxie");
+    var em = field("Username or email", "text", "e.g. lyxie");
     var pw = field("Password", "password", "at least 8 characters");
     panelEl.appendChild(em.wrap);
     panelEl.appendChild(pw.wrap);
@@ -10048,8 +10057,14 @@
       : "An email address is required on this archive."));
     panelEl.appendChild(msg);
 
-    // the email and provider route, opt-in
-    if (usernameOnly) {
+    // the email and provider route, opt-in - unless this browser already
+    // signs in that way, in which case there is nothing to ask
+    if (usernameOnly && contactKnown) {
+      shareBox.hidden = false;
+      if (AUTH.providers.length) {
+        shareBox.insertBefore(el("p", "acct-fine", "or continue as before"), shareBox.firstChild);
+      }
+    } else if (usernameOnly) {
       var shareBtn = el("button", "btn acct-share-btn",
         contactOpen ? "Keep my email and Discord out of it"
                     : "Use an email or Discord instead");
@@ -10075,14 +10090,17 @@
     panelEl.appendChild(shareBox);
 
     // Returns null and writes to msg when the identifier will not do.
-    function readIdentifier() {
+    // creating is true when the account is new: that is the only time an
+    // email address needs the opt-in, since logging in with one means the
+    // reader already has it
+    function readIdentifier(creating) {
       var raw = (em.input.value || "").trim();
       if (!raw) {
         msg.textContent = "Enter a username or an email address.";
         return null;
       }
       var id = asIdentifier(raw);
-      if (!id.username && usernameOnly && !contactOpen) {
+      if (creating && !id.username && usernameOnly && !contactOpen) {
         msg.textContent = "Email addresses are not needed here. Pick a "
           + "username, or press 'Use an email or Discord instead' below "
           + "if you really want one.";
@@ -10102,11 +10120,12 @@
 
     inBtn.addEventListener("click", async function () {
       msg.textContent = "";
-      var id = readIdentifier();
+      var id = readIdentifier(false);
       if (!id) return;
       inBtn.disabled = upBtn.disabled = true;
       try {
         await signIn(id.email, pw.input.value);
+        if (!id.username) rememberContact();
         panelMode = me ? null : "profile";
         if (!me && id.username) oauthHint = { callsign: id.username };
         await loadNotes();
@@ -10124,7 +10143,7 @@
 
     upBtn.addEventListener("click", async function () {
       msg.textContent = "";
-      var id = readIdentifier();
+      var id = readIdentifier(true);
       if (!id) return;
       var p1 = pw.input.value;
       if (p1.length < 8) {
@@ -10134,6 +10153,7 @@
       inBtn.disabled = upBtn.disabled = true;
       try {
         var r = await signUp(id.email, p1);
+        if (!id.username) rememberContact();
         if (r && r.access_token) {
           // Confirmation is off, so signup hands back a session directly and
           // the reader goes straight on to naming their first character.
