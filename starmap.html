@@ -122,7 +122,7 @@
   /* while a file is open the chart and its controls step aside; the
      starfield stays behind the world */
   body.pv-on #chart, body.pv-on .hud, body.pv-on .tip { visibility: hidden; }
-  #globe { transform: translate(-38%, -54%); }
+  #globe { transform: translate(-36%, -52%); }
 
   @media (max-width: 760px) {
     #pv { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
@@ -261,54 +261,159 @@
     return { x: Math.cos(a) * p.orbit, z: Math.sin(a) * p.orbit, a: a };
   }
 
-  // A sphere lit from the star: a base gradient toward the light, a soft
-  // terminator, and a rim. Visited worlds get their palette painted as
-  // latitude bands with seeded noise; the rest are dim slate.
-  function drawSphere(ctx, x, y, r, p, lightAngle) {
-    var seed = 0;
-    for (var i = 0; i < p.id.length; i++) seed = (seed * 31 + p.id.charCodeAt(i)) % 9973;
-    function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
-    ctx.save();
-    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.clip();
-    var pal = p.palette;
-    ctx.fillStyle = pal ? pal.sea : "#1C2A33";
-    ctx.fillRect(x - r, y - r, r * 2, r * 2);
-    if (pal) {
-      // land: a few dozen blobs per band, bigger toward the middle latitudes
-      var bands = 7;
-      for (var b = 0; b < bands; b++) {
-        var yy = y - r + (b + .5) * (2 * r / bands);
-        var col = pal.land[Math.floor(rnd() * pal.land.length)];
-        var n = 5 + Math.floor(rnd() * 5);
-        for (var k = 0; k < n; k++) {
-          var bx = x - r + rnd() * 2 * r, by = yy + (rnd() - .5) * (r / bands);
-          var bw = r * (0.12 + rnd() * 0.32), bh = r * (0.05 + rnd() * 0.12);
-          ctx.fillStyle = pal.land[(Math.floor(rnd() * pal.land.length) + (k % 2 ? 1 : 0)) % pal.land.length];
-          ctx.beginPath(); ctx.ellipse(bx, by, bw, bh, (rnd() - .5) * .6, 0, Math.PI * 2); ctx.fill();
-        }
-      }
-      // cloud streaks
-      ctx.fillStyle = pal.cloud;
-      for (var c = 0; c < 9; c++) {
-        var cyy = y - r + rnd() * 2 * r;
-        ctx.beginPath(); ctx.ellipse(x - r + rnd() * 2 * r, cyy, r * (0.2 + rnd() * .4), r * .03, 0, 0, Math.PI * 2); ctx.fill();
-      }
-    } else {
-      ctx.fillStyle = "rgba(255,255,255,.04)";
-      for (var q = 0; q < 6; q++) { ctx.beginPath(); ctx.ellipse(x - r + rnd() * 2 * r, y - r + rnd() * 2 * r, r * .3, r * .08, rnd(), 0, Math.PI * 2); ctx.fill(); }
+  // ---- procedural worlds -------------------------------------------------
+  // Each world is shaded per pixel from layered 3D value noise sampled on the
+  // sphere itself, so the surface wraps with no seam and no texture file.
+  // A world's look is a handful of numbers: sea level, palette, ice, cloud
+  // cover, atmosphere colour, and for a gas giant, banding. Rendered once per
+  // size and cached; the chart draws the cached sprite turned toward the
+  // star. An equirectangular image could later replace the noise for a
+  // world with painted art - the projection below is the same either way.
+
+  // 3D value noise with a cheap integer hash, trilinear blend, fBm on top.
+  function hash3(x, y, z, seed) {
+    var n = (x * 374761393 + y * 668265263 + z * 2147483647 + seed * 1013904223) | 0;
+    n = (n ^ (n >>> 13)) * 1274126177 | 0;
+    return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
+  }
+  function smooth(t) { return t * t * (3 - 2 * t); }
+  function noise3(x, y, z, seed) {
+    var xi = Math.floor(x), yi = Math.floor(y), zi = Math.floor(z);
+    var xf = smooth(x - xi), yf = smooth(y - yi), zf = smooth(z - zi);
+    var c000 = hash3(xi, yi, zi, seed),         c100 = hash3(xi + 1, yi, zi, seed);
+    var c010 = hash3(xi, yi + 1, zi, seed),     c110 = hash3(xi + 1, yi + 1, zi, seed);
+    var c001 = hash3(xi, yi, zi + 1, seed),     c101 = hash3(xi + 1, yi, zi + 1, seed);
+    var c011 = hash3(xi, yi + 1, zi + 1, seed), c111 = hash3(xi + 1, yi + 1, zi + 1, seed);
+    var x00 = c000 + (c100 - c000) * xf, x10 = c010 + (c110 - c010) * xf;
+    var x01 = c001 + (c101 - c001) * xf, x11 = c011 + (c111 - c011) * xf;
+    var y0 = x00 + (x10 - x00) * yf, y1 = x01 + (x11 - x01) * yf;
+    return y0 + (y1 - y0) * zf;
+  }
+  function fbm(x, y, z, seed, oct, gain) {
+    var v = 0, amp = 1, f = 1, norm = 0;
+    for (var i = 0; i < oct; i++) {
+      v += noise3(x * f, y * f, z * f, seed + i * 17) * amp;
+      norm += amp; amp *= gain; f *= 2.03;
     }
-    // lighting: highlight toward the star, shadow away from it
-    var lx = x + Math.cos(lightAngle) * r * .55, ly = y + Math.sin(lightAngle) * r * .55;
-    var g = ctx.createRadialGradient(lx, ly, r * .1, x, y, r * 1.05);
-    g.addColorStop(0, "rgba(255,255,255,.22)");
-    g.addColorStop(.45, "rgba(255,255,255,0)");
-    g.addColorStop(.75, "rgba(0,0,0,.35)");
-    g.addColorStop(1, "rgba(0,0,0,.85)");
-    ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2);
+    return v / norm;
+  }
+  function hex(h) { return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; }
+  function mix(a, b, t) { return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]; }
+
+  // The look of each world. Unvisited worlds get a rocky or banded default
+  // from their size so the chart still reads as a real system.
+  var LOOKS = {
+    ii: { seed: 21, sea: 0.52, scale: 3.3, deep: "#0B2A4E", shallow: "#1E6C8E", low: "#2A7F4E", mid: "#4F8A3A",
+          high: "#B08E52", peak: "#7E8287", ice: 0.84, clouds: 0.38, atmo: "#6FD3FF", detail: 7, dry: true },
+    iv: { seed: 47, sea: 0.40, scale: 2.8, deep: "#0A262B", shallow: "#155A4A", low: "#175E2E", mid: "#2A8452",
+          high: "#3F6E33", peak: "#5E7356", ice: 0.9, clouds: 0.3, atmo: "#7CF2C4", detail: 7 }
+  };
+  function lookFor(p) {
+    if (LOOKS[p.id]) return LOOKS[p.id];
+    var seed = 0; for (var i = 0; i < p.id.length; i++) seed = seed * 31 + p.id.charCodeAt(i);
+    if (p.size >= 10) {     // gas giant: banded, no sea, no ice
+      return { seed: seed, gas: true, scale: 1.4, bands: 9, a: "#3A4652", b: "#5A6773", c: "#2B333C", atmo: "#8FA3B3", clouds: 0, ice: 2 };
+    }
+    return { seed: seed, sea: 0.0, scale: 3.2, deep: "#1A1F26", shallow: "#1A1F26", low: "#2A3038", mid: "#3A414A",
+             high: "#4A525B", peak: "#5E6770", ice: 2, clouds: 0, atmo: "#4A5A66", detail: 5 };
+  }
+
+  // Colour of the surface at a unit vector, with the world turned by lon0.
+  function surfaceAt(look, nx, ny, nz, lon0) {
+    var cl = Math.cos(lon0), sl = Math.sin(lon0);
+    var x = nx * cl - nz * sl, z = nx * sl + nz * cl, y = ny;
+    var s = look.scale;
+    if (look.gas) {
+      var warp = fbm(x * 2, y * 2, z * 2, look.seed, 3, .5) - .5;
+      var band = Math.sin((y + warp * .35) * look.bands * Math.PI) * .5 + .5;
+      var fine = fbm(x * 6, y * 18, z * 6, look.seed + 5, 3, .5);
+      return mix(mix(hex(look.c), hex(look.a), band), hex(look.b), fine * .35);
+    }
+    var h = fbm(x * s, y * s, z * s, look.seed, look.detail, .5);
+    var ridge = 1 - Math.abs(fbm(x * s * 2.1, y * s * 2.1, z * s * 2.1, look.seed + 99, 4, .5) * 2 - 1);
+    h = h * .78 + ridge * .22;
+    var lat = Math.abs(y);
+    var col;
+    if (h < look.sea) {
+      var d = (look.sea - h) / Math.max(look.sea, .001);
+      col = mix(hex(look.shallow), hex(look.deep), Math.min(1, d * 1.6));
+    } else {
+      var t = (h - look.sea) / Math.max(1 - look.sea, .001);
+      if (t < .3) col = mix(hex(look.low), hex(look.mid), t / .3);
+      else if (t < .65) col = mix(hex(look.mid), hex(look.high), (t - .3) / .35);
+      else col = mix(hex(look.high), hex(look.peak), (t - .65) / .35);
+      // drier and paler toward the tropics on a diverse world
+      if (look.dry) col = mix(col, hex(look.high), Math.max(0, .3 - lat) * .45);
+    }
+    var iceEdge = look.ice + (fbm(x * 4, y * 4, z * 4, look.seed + 7, 3, .5) - .5) * .12;
+    if (lat > iceEdge) col = mix(col, [236, 244, 248], Math.min(1, (lat - iceEdge) / .06));
+    return col;
+  }
+
+  // Draws the lit sphere into a square canvas of the given size.
+  function renderWorld(p, size, lon0) {
+    var look = lookFor(p);
+    var c = document.createElement("canvas"); c.width = size; c.height = size;
+    var g = c.getContext("2d");
+    var img = g.createImageData(size, size), d = img.data;
+    var r = size / 2 - 1, atmo = hex(look.atmo);
+    // light from the upper left, a little toward the viewer; the chart
+    // turns the sprite so the lit side faces the star
+    var L = [-0.72, -0.40, 0.40];
+    var ll = Math.hypot(L[0], L[1], L[2]); L = [L[0] / ll, L[1] / ll, L[2] / ll];
+    for (var py = 0; py < size; py++) {
+      for (var px = 0; px < size; px++) {
+        var x = (px + .5 - size / 2) / r, y = (py + .5 - size / 2) / r;
+        var rr = x * x + y * y, i = (py * size + px) * 4;
+        if (rr > 1) { d[i + 3] = 0; continue; }
+        var z = Math.sqrt(1 - rr);
+        var col = surfaceAt(look, x, y, z, lon0);
+        // clouds ride above the surface, drifted away from the land noise
+        if (look.clouds > 0) {
+          var cv = fbm(x * 3.1 + 7, y * 3.1, z * 3.1 - 3, look.seed + 31, 4, .55);
+          var ca = Math.max(0, cv - (1 - look.clouds) * .9) * 1.9;
+          col = mix(col, [250, 252, 255], Math.min(.75, ca));
+        }
+        var ndl = x * L[0] + y * L[1] + z * L[2];
+        var light = Math.max(0, Math.min(1, (ndl + .12) / .42));
+        light = light * light * (3 - 2 * light);
+        var lit = .06 + .94 * light;
+        // rim: scattered atmosphere along the lit edge
+        var fres = Math.pow(1 - z, 2.6) * (0.25 + 0.75 * light);
+        var edge = Math.max(0, (rr - .86) / .14);
+        d[i]     = Math.min(255, col[0] * lit + atmo[0] * fres * .9);
+        d[i + 1] = Math.min(255, col[1] * lit + atmo[1] * fres * .9);
+        d[i + 2] = Math.min(255, col[2] * lit + atmo[2] * fres * .9);
+        d[i + 3] = 255 * (1 - edge * edge * .9);
+      }
+    }
+    g.putImageData(img, 0, 0);
+    return c;
+  }
+
+  var SPRITES = {};
+  function spriteFor(p, size) {
+    var key = p.id + "@" + size;
+    if (!SPRITES[key]) SPRITES[key] = renderWorld(p, size, (p.phase || 0) * 1.7);
+    return SPRITES[key];
+  }
+
+  // Draws a world at (x, y) radius r, turned so its lit side faces
+  // lightAngle, the direction of the star on screen. Atmosphere glow beneath.
+  function drawSphere(ctx, x, y, r, p, lightAngle) {
+    var size = r > 60 ? 1024 : (r > 20 ? 256 : 96);
+    var sp = spriteFor(p, size);
+    var look = lookFor(p), atmo = hex(look.atmo);
+    var glow = ctx.createRadialGradient(x, y, r * .9, x, y, r * 1.28);
+    glow.addColorStop(0, "rgba(" + atmo.join(",") + "," + (p.visited ? .32 : .10) + ")");
+    glow.addColorStop(1, "rgba(" + atmo.join(",") + ",0)");
+    ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(x, y, r * 1.28, 0, Math.PI * 2); ctx.fill();
+    ctx.save();
+    ctx.translate(x, y);
+    // the sprite is lit from atan2(-0.40, -0.72); turn that to lightAngle
+    ctx.rotate(lightAngle - Math.atan2(-0.40, -0.72));
+    ctx.drawImage(sp, -r, -r, r * 2, r * 2);
     ctx.restore();
-    // rim
-    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.strokeStyle = p.visited ? "rgba(63,216,240,.35)" : "rgba(127,166,190,.18)"; ctx.lineWidth = 1; ctx.stroke();
   }
 
   var hits = [];    // projected planets this frame, for hover and click
@@ -535,11 +640,9 @@
   function renderGlobe(p) {
     var g = globec.getContext("2d");
     g.clearRect(0, 0, 900, 900);
-    // atmosphere glow
-    var glow = g.createRadialGradient(450, 450, 380, 450, 450, 450);
-    glow.addColorStop(0, "rgba(63,216,240,.28)"); glow.addColorStop(1, "rgba(63,216,240,0)");
-    g.fillStyle = glow; g.fillRect(0, 0, 900, 900);
-    drawSphere(g, 450, 450, 400, p, -Math.PI * .7);
+    // the world sits inside its box with room for the glow drawSphere adds,
+    // so the glow is never clipped square by the canvas edge
+    drawSphere(g, 450, 450, 345, p, -Math.PI * .7);
     // markers
     Array.prototype.forEach.call(globe.querySelectorAll(".mark"), function (m) { m.parentNode.removeChild(m); });
     (p.regions || []).forEach(function (r) {
