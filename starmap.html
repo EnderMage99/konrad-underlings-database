@@ -284,27 +284,29 @@
           palette: { sea: "#1B4F7A", land: ["#2E8B57", "#3C9D62", "#C2A56B", "#8C8F93", "#6B7F8E"], cloud: "rgba(255,255,255,.18)" },
           dist: "0.00 ly - here",
           stats: [["Biomes", "Woods, mountains, desert"], ["Principal city", "Vintatem"], ["Field of operations", "Dictis"], ["Contract", "Active"]],
+          // a world's own lore, shown as its Overview; regions keep theirs
+          lore: [],
           regions: [
             { id: "woods", name: "Woods", kind: "Biome", lat: 24, lon: -48, want: "green",
-              lore: [PH] },
+              lore: [] },
             { id: "mountains", name: "Mountains", kind: "Biome", lat: 34, lon: 22, want: ["peak", "ice"],
-              lore: [PH],
+              lore: [],
               conditions: [
                 { n: "Frozen Ground",
                   txt: "Trigger: a character ends their turn without having moved. Effect: they freeze to the ground and become Immobilized until they pass a Hull check against 12, which they may attempt at the start of each of their turns.",
                   meta: "Region condition / Every character in the mountains" }
               ] },
             { id: "desert", name: "Desert", kind: "Biome", lat: -22, lon: 10, want: "desert", avoid: "green",
-              lore: [PH],
+              lore: [],
               conditions: [
                 { n: "Scorching",
                   txt: "Any Heat gained within this region is doubled, no matter the source - weapons, systems, Overcharging or the environment alike.",
                   meta: "Region condition / Every character in the desert" }
               ] },
             { id: "dictis", name: "Dictis", kind: "City", lat: -6, lon: -12, want: "desert",
-              lore: ["Where the squad's missions have been taking place. A short way from Vintatem, the larger city it sits in the shadow of.", PH] },
+              lore: ["Where the squad's missions have been taking place. A short way from Vintatem, the larger city it sits in the shadow of."] },
             { id: "vintatem", name: "Vintatem", kind: "City", lat: -13, lon: -3, want: "desert",
-              lore: ["The larger city near Dictis.", PH] }
+              lore: ["The larger city near Dictis."] }
           ] },
         { id: "iii", name: "Invideis-III", orbit: 180, period: 5.9,  size: 6,   visited: false, phase: 1.7 },
         { id: "iv",  name: "Invideis-IV",  orbit: 250, period: 9.7,  size: 9,   visited: true,  phase: 5.2,
@@ -312,11 +314,10 @@
           palette: { sea: "#173E4A", land: ["#1F6B3A", "#246F3C", "#2E8B57", "#3B7A4B", "#4E6B3B"], cloud: "rgba(220,255,235,.14)" },
           dist: "0.31 ly from Invideis-II",
           stats: [["Development", "Sparse"], ["Fauna", "Large"], ["Trade", "Little offworld"], ["Settlements", "A few small cities"]],
+          lore: ["A planet largely taken back by nature: little trade reaches it from other worlds, its fauna runs large, and only a few very small cities hold out against the green."],
           regions: [
             { id: "woods4", name: "Woods", kind: "Biome", lat: 12, lon: 8, want: "green",
-              lore: ["A planet largely taken back by nature: little trade reaches it from other worlds, its fauna runs large, and only a few very small cities hold out against the green.",
-                     "Within the woods stands Dendetz Zephyr's Outpost. Zephyr is a monster hunter working this planet on contract, and has been hiring the squad. See the personnel file on the main site: <a class=\"link\" href=\"./#personnel::Dendetz Zephyr\">Dendetz Zephyr</a>.",
-                     PH] }
+              lore: ["Within the woods stands Dendetz Zephyr's Outpost. Zephyr is a monster hunter working this planet on contract, and has been hiring the squad. See the personnel file on the main site: <a class=\"link\" href=\"./#personnel::Dendetz Zephyr\">Dendetz Zephyr</a>."] }
           ] },
         { id: "v",   name: "Invideis-V",   orbit: 360, period: 17.1, size: 12,  visited: false, phase: 2.6 },
         { id: "vi",  name: "Invideis-VI",  orbit: 490, period: 26.6, size: 10,  visited: false, phase: 4.4 },
@@ -1318,7 +1319,7 @@
     document.body.classList.add("pv-on");
     document.getElementById("pvname").textContent = p.name;
     renderRail(); renderMarks(p); renderStats(p); renderChips(p);
-    selectRegion(p.regions && p.regions[0] ? p.regions[0] : null);
+    selectRegion(null);
   }
   document.getElementById("back").addEventListener("click", function () {
     pv.className = ""; pv.setAttribute("aria-hidden", "true"); current = null;
@@ -1390,6 +1391,13 @@
 
   function renderChips(p) {
     var box = document.getElementById("pvchips"); box.textContent = "";
+    // the world itself first, then its regions
+    var o = document.createElement("button");
+    o.type = "button"; o.className = "chip"; o.textContent = "Overview";
+    var ok = document.createElement("span"); ok.className = "kind"; ok.textContent = "World"; o.appendChild(ok);
+    o.addEventListener("click", function () { selectRegion(null); });
+    o._region = null;
+    box.appendChild(o);
     (p.regions || []).forEach(function (r) {
       var b = document.createElement("button");
       b.type = "button"; b.className = "chip";
@@ -1410,15 +1418,18 @@
       m.className = "mark" + (m._region === r ? " on" : "");
     });
     var lore = document.getElementById("pvlore"); lore.textContent = "";
-    if (!r) { lore.innerHTML = "<span class=\"k\">File</span><p class=\"ph\">Nothing on record for this world yet.</p>"; drawLead(); return; }
+    // the world's own file when no region is picked
+    if (!r) {
+      var wk = document.createElement("span"); wk.className = "k"; wk.textContent = "World"; lore.appendChild(wk);
+      var wh = document.createElement("h3"); wh.textContent = current.name; lore.appendChild(wh);
+      writeParas(lore, current.lore);
+      lore.appendChild(editTools(function () { openWorldLoreEditor(current); }));
+      drawLead();
+      return;
+    }
     var k = document.createElement("span"); k.className = "k"; k.textContent = r.kind; lore.appendChild(k);
     var h = document.createElement("h3"); h.textContent = r.name; lore.appendChild(h);
-    (r.lore || []).forEach(function (para) {
-      var pEl = document.createElement("p");
-      if (para === PH) pEl.className = "ph";
-      pEl.innerHTML = para;
-      lore.appendChild(pEl);
-    });
+    writeParas(lore, r.lore);
     if (r.conditions && r.conditions.length) {
       var c = document.createElement("div"); c.className = "cond";
       var ck = document.createElement("h4"); ck.textContent = "Mission conditions"; c.appendChild(ck);
@@ -1434,6 +1445,19 @@
     }
     lore.appendChild(editTools(function () { openRegionEditor(current, r); }));
     requestAnimationFrame(drawLead);
+  }
+
+  // Lore paragraphs, or the placeholder when there are none. The placeholder
+  // is only ever drawn here; it is never stored as a paragraph.
+  function writeParas(box, paras) {
+    var real = (paras || []).filter(function (x) { return x && x !== PH; });
+    if (!real.length) {
+      var ph = document.createElement("p"); ph.className = "ph"; ph.textContent = PH; box.appendChild(ph);
+      return;
+    }
+    real.forEach(function (para) {
+      var pEl = document.createElement("p"); pEl.innerHTML = para; box.appendChild(pEl);
+    });
   }
 
   // Picks status keywords out of rules text the way the dossiers do, so a
@@ -1515,6 +1539,7 @@
     var body; try { body = JSON.parse(row.body); } catch (e) { return; }
     if (row.target_kind === "world") {
       if (Array.isArray(body.stats)) p.stats = body.stats;
+      if (Array.isArray(body.lore)) p.lore = body.lore;
     } else if (row.target_kind === "region") {
       var r = (p.regions || []).filter(function (q) { return q.id === parts[2]; })[0];
       if (!r) return;
@@ -1663,11 +1688,34 @@
       });
       try {
         await saveOverride("region", fileId(p, r), { lore: paras, conditions: conds });
-        r.lore = paras.length ? paras : [PH]; r.conditions = conds.length ? conds : undefined;
+        r.lore = paras; r.conditions = conds.length ? conds : undefined;
         selectRegion(r);
       } catch (e) { err.textContent = e.message; save.disabled = false; }
     });
     cancel.addEventListener("click", function () { selectRegion(r); });
+    rowB.appendChild(save); rowB.appendChild(cancel); lore.appendChild(rowB); lore.appendChild(err);
+    fLore._input.focus();
+  }
+
+  // -- world: its own lore, shown as the Overview
+  function openWorldLoreEditor(p) {
+    var lore = document.getElementById("pvlore"); lore.textContent = "";
+    var k = document.createElement("span"); k.className = "k"; k.textContent = "Editing " + p.name; lore.appendChild(k);
+    var fLore = edField("Lore - blank lines separate paragraphs", (p.lore || []).filter(function (x) { return x !== PH; }).join("\n\n"), true, 9);
+    lore.appendChild(fLore);
+    var err = document.createElement("p"); err.className = "ed-err";
+    var rowB = document.createElement("div"); rowB.className = "ed-row";
+    var save = edButton("Save", "ed-save"), cancel = edButton("Cancel");
+    save.addEventListener("click", async function () {
+      err.textContent = ""; save.disabled = true;
+      var paras = fLore._input.value.split(/\n\s*\n/).map(function (s) { return s.trim(); }).filter(Boolean);
+      try {
+        await saveOverride("world", fileId(p), { stats: p.stats || [], lore: paras });
+        p.lore = paras;
+        selectRegion(null);
+      } catch (e) { err.textContent = e.message; save.disabled = false; }
+    });
+    cancel.addEventListener("click", function () { selectRegion(null); });
     rowB.appendChild(save); rowB.appendChild(cancel); lore.appendChild(rowB); lore.appendChild(err);
     fLore._input.focus();
   }
@@ -1690,7 +1738,7 @@
       err.textContent = ""; save.disabled = true;
       var stats = rows.map(function (r) { return [r.k.value.trim(), r.v.value.trim()]; }).filter(function (s) { return s[0] || s[1]; });
       try {
-        await saveOverride("world", fileId(p), { stats: stats });
+        await saveOverride("world", fileId(p), { stats: stats, lore: p.lore || [] });
         p.stats = stats; renderStats(p);
       } catch (e) { err.textContent = e.message; save.disabled = false; }
     });
