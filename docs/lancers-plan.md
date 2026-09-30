@@ -3,12 +3,10 @@
 Players open and write their own Lancer files.
 Revised 2026-09-30 with author choice, pinned comments and the annotation move.
 
-Status 2026-09-30: steps 1 and 2 are built and deployed. Step 3 is Star's:
-run `supabase/lancers.sql` in the Supabase SQL editor, then claim Star.
-Until the migration runs the page shows the baked entries and no controls.
-Left out for now: the inline "new character" shortcut on the NHP picker
-(the account panel does that job) and editing a pinned comment in place
-(remove and re-pin instead).
+Status 2026-09-30: all three steps done. The migration has been run; the
+controls are live.
+Left out for now: editing a pinned comment in place (remove and re-pin
+instead).
 
 ## Decisions taken
 
@@ -107,8 +105,10 @@ Controls, all ownership-gated, moderators on every card:
   mech's prose is edited through the file editor like any other file.
 - "Add a comment" under each file: text plus a "Written by" picker. Comments
   can be reordered and removed by the file's owner.
-- "Add an NHP" listing your other characters, with an inline new-character
-  shortcut. Reorder and remove on each attached NHP.
+- "Add an assisting NHP" on the main file: one of your other characters, or
+  a new character made on the spot. Reorder and detach on each attached NHP.
+- "Close this Lancer file" at the foot of a card you own. The row and its
+  attachments go; prose, comments and annotations stay under the name.
 
 ## Step 3. Rollout
 

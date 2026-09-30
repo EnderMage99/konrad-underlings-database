@@ -2929,6 +2929,11 @@
   .lancer-open-col .acct-row { align-items: center; flex-wrap: wrap; }
   .lancer-open-form .notes-err { grid-column: 1 / -1; }
 
+  .lancer-tools { padding: 0 1.05rem .9rem; border-top: 1px solid var(--rule); }
+  .lancer-tools .pagebtn { margin-top: .8rem; }
+  .lancer-tools .lancer-open-form { border-top: 0; padding-top: .8rem; margin-top: 0; }
+  .lancer-close { padding: .8rem 1.05rem 1rem; border-top: 1px solid var(--rule); text-align: right; }
+
   /* ---------- table view ---------- */
 
   #tableview[hidden] { display: none; }
@@ -7457,48 +7462,114 @@
   }
 
   // ---- attaching NHPs ------------------------------------------------------
+  // A button on the main file. Opens a form for one of your characters that
+  // is not already assisting, or for a new character made on the spot.
   function nhpAttacher(e) {
-    var wrap = el("div", "filewrite nhp-attach");
+    var wrap = el("div", "lancer-tools");
+    var open = el("button", "pagebtn", "Add an assisting NHP");
+    open.type = "button";
+    wrap.appendChild(open);
+
+    var form = el("div", "filewrite-form lancer-open-form");
+    form.hidden = true;
+    var msg = el("p", "notes-err");
     var taken = {};
     e.nhps.forEach(function (n) { if (n.row) taken[n.row.nhp] = true; });
     var pilot = charNamed(e.callsign);
-    var free = speakableChars().filter(function (c) {
+    var free = CHARS.filter(function (c) {
       return !taken[c.id] && !(pilot && c.id === pilot.id);
     });
-    if (!free.length) {
-      wrap.appendChild(el("p", "acct-fine",
-        "To attach an NHP, add it as a character in the account panel first."));
-      return wrap;
+
+    async function attach(ch) {
+      var lr = await ensureLancerRow(e);
+      var last = 0;
+      e.nhps.forEach(function (n) { if (n.row) last = Math.max(last, n.row.position + 1); });
+      await postRow("lancer_nhps", { lancer: lr.id, nhp: ch.id, position: last });
+      await loadRegistry();
+      await redrawLancers();
     }
-    var row = el("div", "acct-row");
-    var sel = el("select", "acct-inline charpick");
-    free.forEach(function (c) {
-      var o = el("option", null, c.callsign + (c.title ? " - " + c.title : ""));
-      o.value = c.id;
-      sel.appendChild(o);
-    });
-    row.appendChild(sel);
-    var add = el("button", "btn", "Attach as NHP");
-    add.type = "button";
-    var err = el("p", "notes-err");
-    add.addEventListener("click", async function () {
-      err.textContent = "";
-      add.disabled = true;
+
+    if (free.length) {
+      var ex = el("div", "lancer-open-col");
+      ex.appendChild(el("h5", "acct-h", "One of your characters"));
+      var row = el("div", "acct-row");
+      var sel = el("select", "acct-inline charpick");
+      free.forEach(function (c) {
+        var o = el("option", null, c.callsign + (c.title ? " - " + c.title : ""));
+        o.value = c.id;
+        sel.appendChild(o);
+      });
+      row.appendChild(sel);
+      var add = el("button", "btn", "Attach");
+      add.type = "button";
+      add.addEventListener("click", async function () {
+        msg.textContent = "";
+        add.disabled = true;
+        try {
+          var ch = null;
+          free.forEach(function (c) { if (c.id === sel.value) ch = c; });
+          await attach(ch);
+        } catch (ex) { msg.textContent = ex.message; add.disabled = false; }
+      });
+      row.appendChild(add);
+      ex.appendChild(row);
+      form.appendChild(ex);
+    }
+
+    var nw = el("div", "lancer-open-col");
+    nw.appendChild(el("h5", "acct-h", free.length ? "Or a new character" : "A new character"));
+    var fields = charFields(nw);
+    var make = el("button", "btn", "Create and attach");
+    make.type = "button";
+    make.addEventListener("click", async function () {
+      msg.textContent = "";
+      make.disabled = true;
       try {
-        var lr = await ensureLancerRow(e);
-        var last = 0;
-        e.nhps.forEach(function (n) { if (n.row) last = Math.max(last, n.row.position + 1); });
-        await postRow("lancer_nhps", { lancer: lr.id, nhp: sel.value, position: last });
-        await redrawLancers();
-      } catch (ex) {
-        err.textContent = ex.message;
-        add.disabled = false;
-      }
+        var v = await fields.read(msg);
+        if (!v) { make.disabled = false; return; }
+        if (charNamed(v.callsign) && CHARS.some(function (c) { return lc(c.callsign) === lc(v.callsign); })) {
+          msg.textContent = "You already have a character called " + v.callsign + ".";
+          make.disabled = false;
+          return;
+        }
+        await createChar(v.callsign, v.title, v.avatar);
+        await attach(CHARS[CHARS.length - 1]);
+      } catch (ex) { msg.textContent = ex.message; make.disabled = false; }
     });
-    row.appendChild(add);
-    wrap.appendChild(row);
-    wrap.appendChild(el("p", "acct-fine",
-      "Your other characters. The same character may assist more than one Lancer."));
+    nw.appendChild(make);
+    form.appendChild(nw);
+
+    var cancel = el("button", "btn", "Cancel");
+    cancel.type = "button";
+    cancel.addEventListener("click", function () { form.hidden = true; open.hidden = false; });
+    form.appendChild(cancel);
+    form.appendChild(msg);
+    wrap.appendChild(form);
+    open.addEventListener("click", function () { form.hidden = false; open.hidden = true; });
+    return wrap;
+  }
+
+  // At the foot of a card you own: closes the file. The row and its attached
+  // NHPs go; the prose, comments and annotations stay under the name, so
+  // reopening it later finds them again. A baked entry falls back to the
+  // page's version.
+  function lancerCloser(e) {
+    var wrap = el("div", "lancer-close");
+    var del = el("button", "notes-del", "Close this Lancer file");
+    del.type = "button";
+    var err = el("p", "notes-err");
+    del.addEventListener("click", async function () {
+      if (del.textContent !== "Sure? This closes the file and detaches its NHPs.") {
+        del.textContent = "Sure? This closes the file and detaches its NHPs.";
+        return;
+      }
+      del.disabled = true;
+      try {
+        await deleteRow("lancers", e.row.id);
+        await redrawLancers();
+      } catch (ex) { err.textContent = ex.message; del.disabled = false; }
+    });
+    wrap.appendChild(del);
     wrap.appendChild(err);
     return wrap;
   }
@@ -7622,6 +7693,15 @@
         try {
           var v = await fields.read(msg);
           if (!v) { make.disabled = false; return; }
+          var have = null;
+          CHARS.forEach(function (c) { if (lc(c.callsign) === lc(v.callsign)) have = c; });
+          if (have) {
+            msg.textContent = lancerRowFor(have.id)
+              ? have.callsign + " already has a Lancer file."
+              : "You already have a character called " + have.callsign + ". Pick it above instead.";
+            make.disabled = false;
+            return;
+          }
           await createChar(v.callsign, v.title, v.avatar);
           await openFor(CHARS[CHARS.length - 1]);
         } catch (e) { msg.textContent = e.message; make.disabled = false; }
@@ -7656,6 +7736,7 @@
       grid.appendChild(media);
       grid.appendChild(fileBlock(L.file, "lancer", L.callsign));
       box.appendChild(grid);
+      if (mine) box.appendChild(nhpAttacher(L));
       box.appendChild(commentsBlock("lancer", L.callsign, L.comments, L));
       box.appendChild(noteBlock("lancer", L.callsign));
 
@@ -7678,15 +7759,6 @@
         TARGETS["nhp::" + n.name] = { view: "lancers", node: sub };
         box.appendChild(sub);
       });
-
-      if (mine) {
-        var at = el("div", "nhp nhp-new");
-        var ah = el("div", "nhp-head");
-        ah.appendChild(el("h4", null, "Assisting NHPs"));
-        at.appendChild(ah);
-        at.appendChild(nhpAttacher(L));
-        box.appendChild(at);
-      }
 
       var mp = el("div", "mechpanel");
       mp.appendChild(el("h4", "paneltab", "Mech"));
@@ -7714,6 +7786,7 @@
       box.appendChild(fileBlock(null, "mech", L.callsign));
       box.appendChild(commentsBlock("mech", L.callsign, [], L));
       box.appendChild(noteBlock("mech", L.callsign));
+      if (mine && L.row) box.appendChild(lancerCloser(L));
 
       TARGETS["lancer::" + L.callsign] = { view: "lancers", node: box };
       lancerlist.appendChild(box);
