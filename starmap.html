@@ -808,17 +808,17 @@
     }
     // the near layer: brighter stars and the glowing ones, on their own
     // canvas so they can slide faster than the nebula behind them
-    SKY2 = document.createElement("canvas"); SKY2.width = SKY_W; SKY2.height = SKY_H;
-    var g2 = SKY2.getContext("2d");
-    for (var k3 = 0; k3 < count / 6; k3++) {
+    SKY2 = document.createElement("canvas"); SKY2.width = Math.round(W * 2); SKY2.height = Math.round(H * 1.7);
+    var g2 = SKY2.getContext("2d"), W2 = SKY2.width, H2 = SKY2.height;
+    for (var k3 = 0; k3 < count / 4; k3++) {
       var m3 = rnd(), br3 = 0.5 + m3 * m3 * 1.4, tint3 = rnd();
       var col3 = tint3 < .15 ? "63,216,240" : tint3 < .25 ? "170,190,255" : "230,240,250";
       g2.fillStyle = "rgba(" + col3 + "," + (0.45 + m3 * .5) + ")";
-      g2.fillRect(rnd() * SKY_W, rnd() * SKY_H, br3, br3);
+      g2.fillRect(rnd() * W2, rnd() * H2, br3, br3);
     }
     g = g2;
-    for (var b2 = 0; b2 < 14; b2++) {
-      var bx = rnd() * SKY_W, by = rnd() * SKY_H, br = 6 + rnd() * 16;
+    for (var b2 = 0; b2 < 22; b2++) {
+      var bx = rnd() * W2, by = rnd() * H2, br = 6 + rnd() * 16;
       var tint2 = rnd();
       var col2 = tint2 < .5 ? "190,225,255" : tint2 < .8 ? "63,216,240" : "255,215,240";
       var glow = g.createRadialGradient(bx, by, 0, bx, by, br);
@@ -834,13 +834,17 @@
     // the painted field is 25% larger than the screen. The nebula slides a
     // little with the camera, the near stars more, and both creep slowly
     // on their own so the sky is never quite still.
+    // Every offset stays inside the painted margin, so nothing ever wraps
+    // or snaps: the camera terms are bounded sines and the drift is a slow
+    // oscillation rather than a run.
     var t = (performance.now() - skyT0) / 1000;
     var mx = SKY_W - W, my = SKY_H - H;
     var px = Math.sin(cam.yaw), py = Math.sin(cam.pitch);
-    var wrapX = function (v) { return ((v % mx) + mx) % mx; };
-    var ox = -wrapX(mx / 2 + px * mx * 0.3 + t * 1.5), oy = -my / 2 - py * my * 0.3;
+    var dx = Math.sin(t * 0.05), dy = Math.cos(t * 0.037);
+    var ox = -(mx / 2 + px * mx * 0.3 + dx * mx * 0.15), oy = -(my / 2 + py * my * 0.3 + dy * my * 0.1);
     sx.drawImage(SKY, ox, oy);
-    var ox2 = -wrapX(mx / 2 + px * mx * 0.8 + t * 4), oy2 = -my / 2 - py * my * 0.7;
+    var mx2 = SKY2.width - W, my2 = SKY2.height - H;
+    var ox2 = -(mx2 / 2 + px * mx2 * 0.35 + dx * mx2 * 0.1), oy2 = -(my2 / 2 + py * my2 * 0.35 + dy * my2 * 0.08);
     sx.drawImage(SKY2, ox2, oy2);
   }
 
