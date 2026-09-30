@@ -188,8 +188,8 @@
     {
       id: "invideis", name: "Invideis", star: { color: "#FFF4D6", glow: "#F5B33C", size: 22 },
       planets: [
-        { id: "i",   name: "Invideis-I",   orbit: 60,  period: 1.0,  size: 4.5, visited: false, phase: 0.8 },
-        { id: "ii",  name: "Invideis-II",  orbit: 95,  period: 1.9,  size: 8,   visited: true,  phase: 3.9,
+        { id: "i",   name: "Invideis-I",   orbit: 55,  period: 1.0,  size: 4.5, visited: false, phase: 0.8 },
+        { id: "ii",  name: "Invideis-II",  orbit: 95,  period: 2.3,  size: 8,   visited: true,  phase: 3.9,
           ring: "#45E0A0",
           palette: { sea: "#1B4F7A", land: ["#2E8B57", "#3C9D62", "#C2A56B", "#8C8F93", "#6B7F8E"], cloud: "rgba(255,255,255,.18)" },
           dist: "0.00 ly - here",
@@ -216,8 +216,8 @@
             { id: "vintatem", name: "Vintatem", kind: "City", lat: -13, lon: -3,
               lore: ["The larger city near Dictis.", PH] }
           ] },
-        { id: "iii", name: "Invideis-III", orbit: 130, period: 3.1,  size: 6,   visited: false, phase: 1.7 },
-        { id: "iv",  name: "Invideis-IV",  orbit: 172, period: 4.7,  size: 9,   visited: true,  phase: 5.2,
+        { id: "iii", name: "Invideis-III", orbit: 150, period: 4.5,  size: 6,   visited: false, phase: 1.7 },
+        { id: "iv",  name: "Invideis-IV",  orbit: 225, period: 8.3,  size: 9,   visited: true,  phase: 5.2,
           ring: "#3FD8F0",
           palette: { sea: "#173E4A", land: ["#1F6B3A", "#246F3C", "#2E8B57", "#3B7A4B", "#4E6B3B"], cloud: "rgba(220,255,235,.14)" },
           dist: "0.31 ly from Invideis-II",
@@ -228,9 +228,9 @@
                      "Within the woods stands Dendetz Zephyr's Outpost. Zephyr is a monster hunter working this planet on contract, and has been hiring the squad. See the personnel file on the main site: <a class=\"link\" href=\"./#personnel::Dendetz Zephyr\">Dendetz Zephyr</a>.",
                      PH] }
           ] },
-        { id: "v",   name: "Invideis-V",   orbit: 215, period: 6.6,  size: 12,  visited: false, phase: 2.6 },
-        { id: "vi",  name: "Invideis-VI",  orbit: 262, period: 8.9,  size: 10,  visited: false, phase: 4.4 },
-        { id: "vii", name: "Invideis-VII", orbit: 305, period: 11.2, size: 5,   visited: false, phase: 0.3 }
+        { id: "v",   name: "Invideis-V",   orbit: 340, period: 15.4, size: 12,  visited: false, phase: 2.6 },
+        { id: "vi",  name: "Invideis-VI",  orbit: 480, period: 25.8, size: 10,  visited: false, phase: 4.4 },
+        { id: "vii", name: "Invideis-VII", orbit: 640, period: 39.7, size: 5,   visited: false, phase: 0.3 }
       ]
     }
   ];
@@ -243,7 +243,7 @@
   var W = 0, H = 0, DPR = Math.min(2, window.devicePixelRatio || 1);
   var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  var HOME = { yaw: -0.65, pitch: 0.62, dist: 720 };
+  var HOME = { yaw: -0.65, pitch: 0.62, dist: 1150 };
   var FOCUS = { pitch: 0.42 };
   // Close enough that perspective alone makes the followed world fill about
   // a fifth of the screen; every other world keeps its true relative size.
@@ -391,19 +391,20 @@
     var cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
     return { x: x1, y: -z1 * sp, z: -z1 * cp };
   }
-  var SPRITE_ANGLE = Math.atan2(-0.40, -0.72);   // where a cached sprite's light comes from on screen
+  var SPRITE_ANGLE = Math.atan2(-0.40, -0.72);   // where a light mask's light comes from on screen
 
-  // Renders a sprite lit from the upper left on screen with the given
-  // toward-viewer component lz; the chart turns the sprite in the plane of
-  // the screen to face the star, so only lz needs baking in.
-  function renderWorld(p, size, lon0, lz) {
+  // Surface and light are kept apart so that turning the camera never
+  // re-bakes a surface. A world's sprite is its unlit surface, baked once
+  // per size from noise. Lighting is a separate mask - Lambert shading of a
+  // plain sphere, no noise, cheap - cached per size and per step of the
+  // light's depth, and multiplied over the surface at draw time after both
+  // are turned to face the star.
+  function renderWorld(p, size, lon0) {
     var look = lookFor(p);
     var c = document.createElement("canvas"); c.width = size; c.height = size;
     var g = c.getContext("2d");
     var img = g.createImageData(size, size), d = img.data;
-    var r = size / 2 - 1, atmo = hex(look.atmo);
-    var m = Math.sqrt(Math.max(0, 1 - lz * lz));
-    var L = [Math.cos(SPRITE_ANGLE) * m, Math.sin(SPRITE_ANGLE) * m, lz];
+    var r = size / 2 - 1;
     for (var py = 0; py < size; py++) {
       for (var px = 0; px < size; px++) {
         var x = (px + .5 - size / 2) / r, y = (py + .5 - size / 2) / r;
@@ -411,26 +412,48 @@
         if (rr > 1) { d[i + 3] = 0; continue; }
         var z = Math.sqrt(1 - rr);
         var col = surfaceAt(look, x, y, z, lon0);
-        // clouds ride above the surface, drifted away from the land noise
         if (look.clouds > 0) {
           var cv = fbm(x * 3.1 + 7, y * 3.1, z * 3.1 - 3, look.seed + 31, 4, .55);
           var ca = Math.max(0, cv - (1 - look.clouds) * .9) * 1.9;
           col = mix(col, [250, 252, 255], Math.min(.75, ca));
         }
-        var ndl = x * L[0] + y * L[1] + z * L[2];
-        var light = Math.max(0, Math.min(1, (ndl + .12) / .42));
-        light = light * light * (3 - 2 * light);
-        var lit = .06 + .94 * light;
-        // rim: scattered atmosphere along the lit edge
-        var fres = Math.pow(1 - z, 2.6) * (0.25 + 0.75 * light);
         var edge = Math.max(0, (rr - .86) / .14);
-        d[i]     = Math.min(255, col[0] * lit + atmo[0] * fres * .9);
-        d[i + 1] = Math.min(255, col[1] * lit + atmo[1] * fres * .9);
-        d[i + 2] = Math.min(255, col[2] * lit + atmo[2] * fres * .9);
+        d[i] = col[0]; d[i + 1] = col[1]; d[i + 2] = col[2];
         d[i + 3] = 255 * (1 - edge * edge * .9);
       }
     }
     g.putImageData(img, 0, 0);
+    return c;
+  }
+
+  // Shading only: how lit each point of a sphere is with the light coming
+  // from SPRITE_ANGLE on screen and lz toward the viewer. Grey inside the
+  // disc, transparent outside, so a multiply leaves the surroundings alone.
+  var MASKS = {};
+  function lightMask(size, lz) {
+    var key = size + "@" + lz;
+    if (MASKS[key]) return MASKS[key];
+    var c = document.createElement("canvas"); c.width = size; c.height = size;
+    var g = c.getContext("2d");
+    var img = g.createImageData(size, size), d = img.data;
+    var r = size / 2 - 1;
+    var m = Math.sqrt(Math.max(0, 1 - lz * lz));
+    var Lx = Math.cos(SPRITE_ANGLE) * m, Ly = Math.sin(SPRITE_ANGLE) * m, Lz = lz;
+    for (var py = 0; py < size; py++) {
+      for (var px = 0; px < size; px++) {
+        var x = (px + .5 - size / 2) / r, y = (py + .5 - size / 2) / r;
+        var rr = x * x + y * y, i = (py * size + px) * 4;
+        if (rr > 1) { d[i + 3] = 0; continue; }
+        var z = Math.sqrt(1 - rr);
+        var ndl = x * Lx + y * Ly + z * Lz;
+        var light = Math.max(0, Math.min(1, (ndl + .12) / .42));
+        light = light * light * (3 - 2 * light);
+        var v = 255 * (.06 + .94 * light);
+        d[i] = v; d[i + 1] = v; d[i + 2] = v; d[i + 3] = 255;
+      }
+    }
+    g.putImageData(img, 0, 0);
+    MASKS[key] = c;
     return c;
   }
 
@@ -464,37 +487,64 @@
     return MAPS[p.id];
   }
 
-  var spinC = document.createElement("canvas"), spinG = spinC.getContext("2d"), spinImg = null;
-  function drawSpinning(ctx, x, y, r, p, spin, light) {
-    var tex = textureFor(p), look = lookFor(p), atmo = hex(look.atmo);
-    var S = Math.max(8, Math.min(512, Math.round(r * 2)));   // capped; scaled up when closer
-    if (spinC.width !== S) { spinC.width = S; spinC.height = S; spinImg = spinG.createImageData(S, S); }
-    var d = spinImg.data, td = tex.data, TW = tex.w, TH = tex.h;
-    var Lx = light.x, Ly = light.y, Lz = light.z;
-    var ll = Math.hypot(Lx, Ly, Lz) || 1; Lx /= ll; Ly /= ll; Lz /= ll;
-    var half = S / 2, inv = 1 / (half - .5);
+  // The geometry of the projection depends only on the sprite size, so it
+  // is worked out once per size: for each pixel, the texel row, the
+  // longitude as a fraction of a turn, the normal, and the edge softening.
+  // Per frame that leaves one texel fetch and a dot product per pixel.
+  var LUTS = {};
+  function spinLUT(S) {
+    if (LUTS[S]) return LUTS[S];
+    var n = S * S;
+    var lut = { inside: new Uint8Array(n), row: new Int32Array(n), uf: new Float32Array(n),
+                nx: new Float32Array(n), ny: new Float32Array(n), nz: new Float32Array(n),
+                fres: new Float32Array(n), alpha: new Uint8Array(n) };
+    var half = S / 2, inv = 1 / (half - .5), TW = 1024, TH = 512;
     for (var py = 0; py < S; py++) {
       var yy = (py + .5 - half) * inv, yy2 = yy * yy;
       for (var px = 0; px < S; px++) {
-        var xx = (px + .5 - half) * inv, rr = xx * xx + yy2, i = (py * S + px) * 4;
-        if (rr > 1) { d[i + 3] = 0; continue; }
+        var xx = (px + .5 - half) * inv, rr = xx * xx + yy2, k = py * S + px;
+        if (rr > 1) continue;
         var zz = Math.sqrt(1 - rr);
-        var lat = Math.asin(-yy), lon = Math.atan2(xx, zz) + spin;
-        var u = ((lon / (2 * Math.PI) + 0.5) % 1 + 1) % 1 * TW | 0;
-        var v = (0.5 - lat / Math.PI) * TH | 0;
-        if (v >= TH) v = TH - 1;
-        var ti = (v * TW + u) * 4;
-        var ndl = xx * Lx + yy * Ly + zz * Lz;
-        var light = Math.max(0, Math.min(1, (ndl + .12) / .42));
-        light = light * light * (3 - 2 * light);
-        var lit = .06 + .94 * light;
-        var fres = Math.pow(1 - zz, 2.6) * (0.25 + 0.75 * light);
+        lut.inside[k] = 1;
+        var v = (0.5 - Math.asin(-yy) / Math.PI) * TH | 0;
+        lut.row[k] = (v >= TH ? TH - 1 : v) * TW;
+        lut.uf[k] = Math.atan2(xx, zz) / (2 * Math.PI) + 0.5;
+        lut.nx[k] = xx; lut.ny[k] = yy; lut.nz[k] = zz;
+        lut.fres[k] = Math.pow(1 - zz, 2.6);
         var edge = Math.max(0, (rr - .86) / .14);
-        d[i]     = Math.min(255, td[ti] * lit + atmo[0] * fres * .9);
-        d[i + 1] = Math.min(255, td[ti + 1] * lit + atmo[1] * fres * .9);
-        d[i + 2] = Math.min(255, td[ti + 2] * lit + atmo[2] * fres * .9);
-        d[i + 3] = 255 * (1 - edge * edge * .9);
+        lut.alpha[k] = 255 * (1 - edge * edge * .9);
       }
+    }
+    LUTS[S] = lut;
+    return lut;
+  }
+
+  var spinC = document.createElement("canvas"), spinG = spinC.getContext("2d"), spinImg = null;
+  function drawSpinning(ctx, x, y, r, p, spin, light) {
+    var tex = textureFor(p), look = lookFor(p), atmo = hex(look.atmo);
+    var S = Math.max(8, Math.min(384, Math.round(r * 2)));   // capped; scaled up when closer
+    if (spinC.width !== S) { spinC.width = S; spinC.height = S; spinImg = spinG.createImageData(S, S); }
+    var lut = spinLUT(S);
+    var d = spinImg.data, td = tex.data, TW = tex.w;
+    var Lx = light.x, Ly = light.y, Lz = light.z;
+    var ll = Math.hypot(Lx, Ly, Lz) || 1; Lx /= ll; Ly /= ll; Lz /= ll;
+    var turn = spin / (2 * Math.PI);
+    var a0 = atmo[0] * .9, a1 = atmo[1] * .9, a2 = atmo[2] * .9;
+    var inside = lut.inside, row = lut.row, uf = lut.uf, nx = lut.nx, ny = lut.ny, nz = lut.nz, fr = lut.fres, al = lut.alpha;
+    for (var k = 0, n = S * S; k < n; k++) {
+      var i = k * 4;
+      if (!inside[k]) { d[i + 3] = 0; continue; }
+      var u = uf[k] + turn; u -= Math.floor(u);
+      var ti = (row[k] + (u * TW | 0)) * 4;
+      var ndl = nx[k] * Lx + ny[k] * Ly + nz[k] * Lz;
+      var light2 = (ndl + .12) / .42;
+      if (light2 < 0) light2 = 0; else if (light2 > 1) light2 = 1;
+      light2 = light2 * light2 * (3 - 2 * light2);
+      var lit = .06 + .94 * light2;
+      var fres = fr[k] * (0.25 + 0.75 * light2);
+      var c0 = td[ti] * lit + a0 * fres, c1 = td[ti + 1] * lit + a1 * fres, c2 = td[ti + 2] * lit + a2 * fres;
+      d[i] = c0 > 255 ? 255 : c0; d[i + 1] = c1 > 255 ? 255 : c1; d[i + 2] = c2 > 255 ? 255 : c2;
+      d[i + 3] = al[k];
     }
     spinG.putImageData(spinImg, 0, 0);
     var glow = ctx.createRadialGradient(x, y, r * .9, x, y, r * 1.28);
@@ -513,24 +563,24 @@
     return { x: fs.x + x * fs.r, y: fs.y + y * fs.r, front: z > 0.08, z: z };
   }
 
-  // Sprites are cached per size and per step of the light's depth, so a
-  // world seen from behind gets a night-side sprite rather than a turned
-  // day-side one. Nine steps from lit-from-the-front to lit-from-behind.
+  // Unlit surface sprites, one per world per size.
   var SPRITES = {};
-  function spriteFor(p, size, lz) {
-    var step = Math.round(Math.max(-1, Math.min(1, lz)) * 4) / 4;
-    var key = p.id + "@" + size + "@" + step;
-    if (!SPRITES[key]) SPRITES[key] = renderWorld(p, size, (p.phase || 0) * 1.7, step);
+  function spriteFor(p, size) {
+    var key = p.id + "@" + size;
+    if (!SPRITES[key]) SPRITES[key] = renderWorld(p, size, (p.phase || 0) * 1.7);
     return SPRITES[key];
   }
 
   // Draws a world at (x, y) radius r lit from `light`, a direction in the
-  // camera's frame with z toward the viewer. Atmosphere glow beneath.
+  // camera's frame with z toward the viewer: atmosphere glow beneath, the
+  // surface, its light mask multiplied on, and a rim of scattered light
+  // along the lit edge. Everything but the rim is cached.
   function drawSphere(ctx, x, y, r, p, light) {
-    var size = r > 60 ? 1024 : (r > 20 ? 256 : 96);
+    var size = r > 60 ? 512 : (r > 20 ? 256 : 96);
     var ll = Math.hypot(light.x, light.y, light.z) || 1;
     var lightAngle = Math.atan2(light.y, light.x);
-    var sp = spriteFor(p, size, light.z / ll);
+    var step = Math.round(Math.max(-1, Math.min(1, light.z / ll)) * 4) / 4;
+    var sp = spriteFor(p, size), mask = lightMask(size, step);
     var look = lookFor(p), atmo = hex(look.atmo);
     var glow = ctx.createRadialGradient(x, y, r * .9, x, y, r * 1.28);
     glow.addColorStop(0, "rgba(" + atmo.join(",") + "," + (p.visited ? .32 : .10) + ")");
@@ -538,19 +588,39 @@
     ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(x, y, r * 1.28, 0, Math.PI * 2); ctx.fill();
     ctx.save();
     ctx.translate(x, y);
-    // turn the sprite's baked light direction to face the star on screen
+    // turn the baked light direction to face the star on screen
     ctx.rotate(lightAngle - SPRITE_ANGLE);
     ctx.drawImage(sp, -r, -r, r * 2, r * 2);
+    ctx.globalCompositeOperation = "multiply";
+    ctx.drawImage(mask, -r, -r, r * 2, r * 2);
+    ctx.globalCompositeOperation = "source-over";
     ctx.restore();
+    if (r > 14) {
+      // rim: a crescent of atmosphere colour along the lit edge, brighter
+      // the more the light comes from behind
+      var m = Math.sqrt(Math.max(0, 1 - step * step));
+      var ox = Math.cos(lightAngle) * r * (0.55 + 0.35 * m), oy = Math.sin(lightAngle) * r * (0.55 + 0.35 * m);
+      var rim = ctx.createRadialGradient(x + ox, y + oy, r * .75, x + ox, y + oy, r * 1.35);
+      var a = 0.32 + 0.25 * Math.max(0, -step);
+      rim.addColorStop(0, "rgba(" + atmo.join(",") + ",0)");
+      rim.addColorStop(.6, "rgba(" + atmo.join(",") + "," + a * .35 + ")");
+      rim.addColorStop(1, "rgba(" + atmo.join(",") + "," + a + ")");
+      ctx.save();
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.clip();
+      ctx.globalCompositeOperation = "lighter";
+      ctx.fillStyle = rim; ctx.fillRect(x - r, y - r, r * 2, r * 2);
+      ctx.restore();
+    }
   }
 
+  var MONO_FONT = "10px " + getComputedStyle(document.body).getPropertyValue("--mono");
   var hits = [];    // projected planets this frame, for hover and click
   var hover = null;
 
   function drawChart() {
     cx.clearRect(0, 0, W, H);
     // grid plane, fading with distance from the star
-    var R = 360, step = 40;
+    var R = 720, step = 60;
     cx.lineWidth = 1;
     for (var g = -R; g <= R; g += step) {
       for (var pass = 0; pass < 2; pass++) {
@@ -610,7 +680,7 @@
       else drawSphere(cx, it.pr.x, it.pr.y, r, p, light);
       if (p === focus) focusScreen = { x: it.pr.x, y: it.pr.y, r: r };
       if ((p.visited || hover === p) && p !== focus) {
-        cx.font = "10px " + getComputedStyle(document.body).getPropertyValue("--mono");
+        cx.font = MONO_FONT;
         cx.fillStyle = p.visited ? "rgba(210,236,246,.9)" : "rgba(91,127,146,.9)";
         cx.textAlign = "center";
         cx.fillText(p.name.toUpperCase().replace(/ /g, " "), it.pr.x, it.pr.y + r + 14);
@@ -678,7 +748,7 @@
   chart.addEventListener("pointerleave", function () { hover = null; showTip(null); });
   chart.addEventListener("wheel", function (e) {
     e.preventDefault();
-    var lo = focus ? focusDist(focus) * 0.45 : 260, hi = focus ? focusDist(focus) * 8 : 1500;
+    var lo = focus ? focusDist(focus) * 0.45 : 260, hi = focus ? focusDist(focus) * 8 : 2600;
     cam.dist = Math.max(lo, Math.min(hi, cam.dist * (e.deltaY > 0 ? 1.08 : 0.93)));
   }, { passive: false });
 
@@ -899,6 +969,17 @@
   // ---- boot ----------------------------------------------------------------
   resize();
   requestAnimationFrame(frame);
+  // Bake ahead of need, one item per idle slice, so the first click on a
+  // world and the first switch between them do not stall.
+  (function prebake() {
+    var jobs = [];
+    system.planets.forEach(function (p) { jobs.push(function () { spriteFor(p, 96); lightMask(96, 0.25); }); });
+    system.planets.forEach(function (p) { if (p.visited) jobs.push(function () { textureFor(p); spriteFor(p, 256); }); });
+    [-1, -0.75, -0.5, -0.25, 0, 0.25, 0.5, 0.75, 1].forEach(function (lz) { jobs.push(function () { lightMask(96, lz); lightMask(256, lz); }); });
+    function next() { var j = jobs.shift(); if (!j) return; j(); setTimeout(next, 30); }
+    setTimeout(next, 400);
+  })();
+
   // ?planet=ii opens a world straight away, for testing and for links
   var want = (location.search.match(/[?&]planet=([a-z0-9-]+)/i) || [])[1];
   if (want) {
