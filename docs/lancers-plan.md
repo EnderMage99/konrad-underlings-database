@@ -20,7 +20,10 @@ Left out for now: the inline "new character" shortcut on the NHP picker
   wrote it. That goes for the Lancer's own file, each NHP's file and the
   mech's file.
 - Comments are pinned, in-character remarks the owner adds, each with a chosen
-  author. They stand above the annotations.
+  author. They stand above the annotations. The owner can remove any of
+  them, the baked ones included (those are hidden by key on the lancer row).
+- Every author picker lists the player's own characters only, the archivist
+  included.
 - Annotations sit directly under the file they concern, not at the foot of
   the card.
 

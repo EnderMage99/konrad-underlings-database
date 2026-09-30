@@ -6902,12 +6902,9 @@
     return null;
   }
 
-  // The characters a reader may speak as: their own, or for the archivist
-  // everyone's.
-  function speakableChars() {
-    if (me && me.is_moderator && REGISTRY.chars.length) return REGISTRY.chars;
-    return CHARS;
-  }
+  // The characters a reader may speak as: their own, and only their own -
+  // the archivist included.
+  function speakableChars() { return CHARS; }
 
   // A drop-down of those, preferring the one named, then the active one.
   function charSelect(preferName) {
@@ -7100,7 +7097,7 @@
     mounts.forEach(function (m) {
       if (!m.el.isConnected) return;
       var draft = m.el._ta ? m.el._ta.value : "";
-      var fresh = commentsBlock(m.kind, m.id, m.baked);
+      var fresh = commentsBlock(m.kind, m.id, m.baked, m.entry);
       m.el.parentNode.replaceChild(fresh, m.el);
       if (draft && fresh._ta) fresh._ta.value = draft;
     });
@@ -7137,21 +7134,45 @@
     await patchRow(table, b.id, { position: pa });
   }
 
-  function commentsBlock(kind, id, baked) {
+  // entry is the Lancer the block belongs to: a baked comment removed by the
+  // owner is recorded on that Lancer's row, since the comment itself is in
+  // the page and cannot be deleted.
+  function commentsBlock(kind, id, baked, entry) {
     var box = el("div", "comments");
-    COMMENT_MOUNTS.push({ kind: kind, id: id, baked: baked, el: box });
+    COMMENT_MOUNTS.push({ kind: kind, id: id, baked: baked, entry: entry, el: box });
     var rows = COMMENT_ROWS[noteKey(kind, id)] || [];
     var mine = commentsOnline && canWriteFile(id) && speakableChars().length > 0;
-    if (!(baked && baked.length) && !rows.length && !mine) {
+    var hidden = (entry && entry.row && entry.row.hidden_comments) || [];
+    var shown = (baked || []).map(function (c, i) { return { c: c, key: kind + "::" + id + "::" + i }; })
+      .filter(function (b) { return hidden.indexOf(b.key) === -1; });
+    if (!shown.length && !rows.length && !mine) {
       box.hidden = true;
       return box;
     }
     box.appendChild(el("h4", "paneltab", "Comments"));
 
-    (baked || []).forEach(function (c) {
-      var who = COMMENTERS[c.by];
-      box.appendChild(commentRow(who ? who.avatar : null, who ? who.name : c.by,
-                                 who ? who.kind : null, null, c.text).row);
+    shown.forEach(function (b) {
+      var c = b.c, who = COMMENTERS[c.by];
+      var made = commentRow(who ? who.avatar : null, who ? who.name : c.by,
+                            who ? who.kind : null, null, c.text);
+      if (mine && lancersOnline && entry) {
+        var tools = el("span", "comment-tools");
+        var del = el("button", "notes-del", "Remove");
+        del.type = "button";
+        del.addEventListener("click", async function () {
+          if (del.textContent !== "Sure?") { del.textContent = "Sure?"; return; }
+          del.disabled = true;
+          try {
+            var lr = await ensureLancerRow(entry);
+            var list = (lr.hidden_comments || []).concat([b.key]);
+            await patchRow("lancers", lr.id, { hidden_comments: list, updated_at: new Date().toISOString() });
+            await redrawLancers();
+          } catch (e) { del.disabled = false; del.textContent = "Failed"; }
+        });
+        tools.appendChild(del);
+        made.head.appendChild(tools);
+      }
+      box.appendChild(made.row);
     });
 
     rows.forEach(function (r, i) {
@@ -7248,7 +7269,7 @@
   async function loadLancers() {
     try {
       var pair = await Promise.all([
-        api("/rest/v1/lancers?select=id,pilot,mech_name,mech_frame,mech_image,"
+        api("/rest/v1/lancers?select=id,pilot,mech_name,mech_frame,mech_image,hidden_comments,"
             + "updated_at,characters(id,callsign,title,avatar,owner)&order=created_at.asc"),
         api("/rest/v1/lancer_nhps?select=id,lancer,nhp,tag,position,"
             + "characters(id,callsign,title,avatar,owner)&order=position.asc")
@@ -7499,7 +7520,7 @@
       grid.appendChild(media);
       grid.appendChild(fileBlock(L.file, "lancer", L.callsign));
       box.appendChild(grid);
-      box.appendChild(commentsBlock("lancer", L.callsign, L.comments));
+      box.appendChild(commentsBlock("lancer", L.callsign, L.comments, L));
       box.appendChild(noteBlock("lancer", L.callsign));
 
       L.nhps.forEach(function (n) {
@@ -7516,7 +7537,7 @@
         ng.appendChild(nm);
         ng.appendChild(fileBlock(n.file, "nhp", n.name));
         sub.appendChild(ng);
-        sub.appendChild(commentsBlock("nhp", n.name, n.comments));
+        sub.appendChild(commentsBlock("nhp", n.name, n.comments, L));
         sub.appendChild(noteBlock("nhp", n.name));
         TARGETS["nhp::" + n.name] = { view: "lancers", node: sub };
         box.appendChild(sub);
@@ -7555,7 +7576,7 @@
       if (mine) mp.appendChild(mechEditor(L));
       box.appendChild(mp);
       box.appendChild(fileBlock(null, "mech", L.callsign));
-      box.appendChild(commentsBlock("mech", L.callsign, []));
+      box.appendChild(commentsBlock("mech", L.callsign, [], L));
       box.appendChild(noteBlock("mech", L.callsign));
 
       TARGETS["lancer::" + L.callsign] = { view: "lancers", node: box };

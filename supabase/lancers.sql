@@ -46,9 +46,13 @@ create table if not exists public.lancers (
   mech_name   text,
   mech_frame  text,
   mech_image  text,
+  hidden_comments jsonb not null default '[]',   -- baked comments the owner removed
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
+
+alter table public.lancers
+  add column if not exists hidden_comments jsonb not null default '[]';
 
 do $$
 begin
