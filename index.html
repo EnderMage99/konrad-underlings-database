@@ -10794,5 +10794,15 @@
   render();
   renderAccount();
   initAccounts();
+
+  // a dossier named in the address opens straight away
+  var wantContact = new URLSearchParams(location.search || "").get("contact");
+  if (wantContact) {
+    var key = null;
+    Object.keys(TARGETS).forEach(function (k) {
+      if (k.toLowerCase() === ("contact::" + wantContact).toLowerCase()) key = k;
+    });
+    if (key) setTimeout(function () { focusTarget(key); }, 50);
+  }
 })();
 </script>

@@ -127,3 +127,12 @@ repo is going to stay public, worth deciding how you want to handle that.
 
 The visual contact stills are images sourced from elsewhere; check you're
 happy publishing them before making the repo public.
+
+## Tools
+
+`tools/export_mesh.py` turns one object in a .blend into the star chart's mesh JSON
+(run headless through Blender). `tools/chart-contacts.sh` rebuilds the chart's
+snapshot of the contacts it names on worlds and the station - stats and roles
+from `index.html` - and should be run again whenever one of those contacts
+changes; icons and any rewritten sheets are read live from the archive's
+contacts table.
