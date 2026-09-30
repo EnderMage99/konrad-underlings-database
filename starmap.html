@@ -1270,14 +1270,14 @@
   function showPlanet(p) {
     current = p; region = null;
     pv.className = "on"; pv.setAttribute("aria-hidden", "false");
-    document.body.className = "pv-on";
+    document.body.classList.add("pv-on");
     document.getElementById("pvname").textContent = p.name;
     renderRail(); renderMarks(p); renderStats(p); renderChips(p);
     selectRegion(p.regions && p.regions[0] ? p.regions[0] : null);
   }
   document.getElementById("back").addEventListener("click", function () {
     pv.className = ""; pv.setAttribute("aria-hidden", "true"); current = null;
-    document.body.className = "";
+    document.body.classList.remove("pv-on");
     tween = { x: target.x, z: target.z, t: performance.now() };
     focus = null; focusScreen = null;
     glide(HOME);
@@ -1519,7 +1519,7 @@
         archivist = !!(rows && rows[0] && rows[0].is_moderator) && filesOnline;
       } catch (e) { archivist = false; }
     }
-    document.body.className = document.body.className.replace(/\s*archivist/g, "") + (archivist ? " archivist" : "");
+    document.body.classList.toggle("archivist", archivist);
   }
 
   // -- the ship's panel and orders
