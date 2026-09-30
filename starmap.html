@@ -247,7 +247,7 @@
 <div id="pv" aria-hidden="true">
   <aside class="rail">
     <h2>Available destinations</h2>
-    <p class="lede">Select a world to open its file. Greyed worlds have not been visited.</p>
+    <p class="lede">Select a world to open its file. Distances are from the mothership. Greyed worlds have not been visited.</p>
     <div id="dests"></div>
     <button class="btn back" id="back" type="button">&larr; Back to the chart</button>
   </aside>
@@ -282,7 +282,6 @@
         { id: "ii",  name: "Invideis-II",  orbit: 125, period: 3.4,  size: 8,   visited: true,  phase: 3.9,
           ring: "#45E0A0",
           palette: { sea: "#1B4F7A", land: ["#2E8B57", "#3C9D62", "#C2A56B", "#8C8F93", "#6B7F8E"], cloud: "rgba(255,255,255,.18)" },
-          dist: "0.00 ly - here",
           stats: [["Biomes", "Woods, mountains, desert"], ["Principal city", "Vintatem"], ["Field of operations", "Dictis"], ["Contract", "Active"]],
           // a world's own lore, shown as its Overview; regions keep theirs
           lore: [],
@@ -312,7 +311,6 @@
         { id: "iv",  name: "Invideis-IV",  orbit: 250, period: 9.7,  size: 9,   visited: true,  phase: 5.2,
           ring: "#3FD8F0",
           palette: { sea: "#173E4A", land: ["#1F6B3A", "#246F3C", "#2E8B57", "#3B7A4B", "#4E6B3B"], cloud: "rgba(220,255,235,.14)" },
-          dist: "0.31 ly from Invideis-II",
           stats: [["Development", "Sparse"], ["Fauna", "Large"], ["Trade", "Little offworld"], ["Settlements", "A few small cities"]],
           lore: ["A planet largely taken back by nature: little trade reaches it from other worlds, its fauna runs large, and only a few very small cities hold out against the green."],
           regions: [
@@ -345,7 +343,10 @@
   var cam = { yaw: HOME.yaw, pitch: HOME.pitch, dist: HOME.dist };
   var FOCAL = 780;
   var drifting = !reduced;
-  var t0 = performance.now(), simT = 0;
+  // The chart's clock runs on wall time from a fixed epoch, so every viewer
+  // sees the worlds in the same places and a flight keyed to its order time
+  // sits at the same point on every screen.
+  var t0 = performance.now(), simT = (Date.now() - Date.UTC(2026, 0, 1)) / 1000;
 
   // What the camera looks at: the star, or a followed world, which it keeps
   // centred as the world moves along its orbit. A change of target eases
@@ -842,7 +843,19 @@
   // the way, and any other world it would pass close to pushes it outward.
   // The destination's position is predicted for the arrival time, so the
   // ship meets the world rather than the place it left.
-  var SAFE_SUN = 78, SHIP_SPEED = 46, PATH_N = 64;
+  // Scale: one chart unit is 0.004 AU, which puts Invideis-II at half an AU
+  // and Invideis-IV at one. The ship's speed is set so the run between them,
+  // a swept route of about 330 units, takes ten minutes.
+  var UNIT_AU = 0.004, SHIP_SPEED = 330 / 600;
+  var SAFE_SUN = 78, PATH_N = 64;
+  function unitsToAU(u) { return (u * UNIT_AU).toFixed(2) + " AU"; }
+  // a flight's length in words, from a route length in chart units
+  function flightTime(len) {
+    var s = len / SHIP_SPEED;
+    if (s < 90) return Math.round(s) + " s";
+    var m = Math.round(s / 60);
+    return m < 60 ? m + " min" : (Math.floor(m / 60) + " h " + (m % 60) + " min");
+  }
   function planRoute(s, from, to) {
     var t = simT, dur = 6;
     var end = null;
@@ -874,7 +887,7 @@
       var inx = last.x - dest2.x, inz = last.z - dest2.z, il = Math.hypot(inx, inz) || 1;
       end = { x: dest2.x + inx / il * s.orbit, y: 0, z: dest2.z + inz / il * s.orbit, arrive: Math.atan2(inz / il, inx / il) };
       pts[PATH_N] = { x: end.x, y: end.y, z: end.z };
-      dur = Math.max(3.5, Math.min(14, len / SHIP_SPEED));
+      dur = Math.max(8, len / SHIP_SPEED);
       s._route = { pts: pts, len: len };
     }
     return { pts: s._route.pts, dur: dur, arrive: end.arrive };
@@ -1332,6 +1345,28 @@
     if (e.key === "Escape" && current) document.getElementById("back").click();
   });
 
+  // Each world's distance from the mothership right now, and how long the
+  // ship would take to get there by its swept route, which runs about 15%
+  // longer than the straight line. Kept fresh while a file is open.
+  function railDistance(p) {
+    var s = (system.ships || [])[0];
+    if (!s) return "";
+    if (!s.transit && s.host === p.id) return "the " + s.name + " is here";
+    var st = shipState(s), pos = planetPos(p);
+    var d = Math.hypot(pos.x - st.x, pos.z - st.z);
+    return unitsToAU(d) + " from the " + s.name + " · about " + flightTime(d * 1.15) + " out";
+  }
+  function refreshRailDistances() {
+    Array.prototype.forEach.call(document.querySelectorAll("#dests .dist"), function (d) {
+      if (d._planet) d.textContent = railDistance(d._planet);
+    });
+  }
+  setInterval(function () {
+    if (current) refreshRailDistances();
+    // a panel open on a ship in flight keeps its arrival estimate current
+    if (shipPanelFor && shipPanelFor.transit) openShipPanel(shipPanelFor);
+  }, 3000);
+
   function renderRail() {
     var box = document.getElementById("dests"); box.textContent = "";
     system.planets.forEach(function (p) {
@@ -1343,7 +1378,7 @@
       b.appendChild(c);
       var t = document.createElement("div");
       var nm = document.createElement("div"); nm.className = "nm"; nm.textContent = p.name; t.appendChild(nm);
-      var d = document.createElement("div"); d.className = "dist"; d.textContent = p.visited ? p.dist : "no file"; t.appendChild(d);
+      var d = document.createElement("div"); d.className = "dist"; d.textContent = railDistance(p); d._planet = p; t.appendChild(d);
       b.appendChild(t);
       var go = document.createElement("span"); go.className = "go"; go.textContent = "›"; b.appendChild(go);
       if (p.visited) b.addEventListener("click", function () { if (p !== current) openPlanet(p); });
@@ -1555,14 +1590,34 @@
     var s = (system.ships || []).filter(function (q) { return q.id === parts[1]; })[0];
     if (!s) return;
     var body; try { body = JSON.parse(row.body); } catch (e) { return; }
+    // the same order seen again changes nothing
+    if (body.at && s._seenAt === body.at) return;
+    s._seenAt = body.at || null;
     var ago = body.at ? (Date.now() - body.at) / 1000 : 1e9;
-    if (body.from && body.to && ago < 14 && planetById(body.from) && planetById(body.to)) {
+    // a flight is replayed from where it is up to; one that would already
+    // have arrived settles straight away on the next frame
+    if (body.from && body.to && ago < 3 * 3600 && planetById(body.from) && planetById(body.to)) {
       s.host = body.from; s.transit = null;
       sendShip(s, planetById(body.to), ago);
     } else if (body.host && planetById(body.host)) {
       s.host = body.host; s.transit = null;
     }
+    if (shipPanelFor === s) openShipPanel(s);
+    if (current) refreshRailDistances();
   }
+  // Every few seconds, look for a new order. A viewer with the chart open
+  // sees the ship set off when the archivist sends it, and because the
+  // flight is keyed to the order's timestamp, every screen shows the same
+  // point of it.
+  async function pollShips() {
+    if (!filesOnline) return;
+    try {
+      var rows = await api("/rest/v1/files?select=target_kind,target_id,body&target_kind=eq.ship");
+      (rows || []).forEach(applyShipRow);
+    } catch (e) {}
+  }
+  setInterval(pollShips, 5000);
+
   async function loadOverrides() {
     try {
       var rows = await api("/rest/v1/files?select=target_kind,target_id,body&target_kind=in.(world,region,ship)");
@@ -1602,7 +1657,9 @@
     document.getElementById("sp-name").textContent = s.name;
     var status = document.getElementById("sp-status");
     if (s.transit) {
-      status.textContent = "En route from " + planetById(s.transit.from).name + " to " + planetById(s.transit.to).name + ".";
+      var left = Math.max(0, s.transit.dur - (simT - s.transit.t0));
+      status.textContent = "En route from " + planetById(s.transit.from).name + " to " + planetById(s.transit.to).name
+        + ", " + unitsToAU(s.transit.len) + " by the swept route. Arriving in about " + flightTime(left * SHIP_SPEED) + ".";
     } else {
       status.textContent = "In orbit round " + hostOf(s).name + ".";
     }
@@ -1628,7 +1685,9 @@
     var err = document.getElementById("sp-err"); err.textContent = "";
     if (!archivist) { err.textContent = "Only the archivist can give orders."; return; }
     try {
-      await saveOverride("ship", system.id + "/" + s.id, { host: to.id, from: s.host, to: to.id, at: Date.now() });
+      var at = Date.now();
+      s._seenAt = at;   // the poll will see this row; it is already applied here
+      await saveOverride("ship", system.id + "/" + s.id, { host: to.id, from: s.host, to: to.id, at: at });
       sendShip(s, to, 0);
       openShipPanel(s);
     } catch (e) { err.textContent = e.message; }
