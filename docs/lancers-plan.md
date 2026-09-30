@@ -1,7 +1,14 @@
 # Lancers page rework
 
-Players open and write their own Lancer files. Nothing here is built yet.
+Players open and write their own Lancer files.
 Revised 2026-09-30 with author choice, pinned comments and the annotation move.
+
+Status 2026-09-30: steps 1 and 2 are built and deployed. Step 3 is Star's:
+run `supabase/lancers.sql` in the Supabase SQL editor, then claim Star.
+Until the migration runs the page shows the baked entries and no controls.
+Left out for now: the inline "new character" shortcut on the NHP picker
+(the account panel does that job) and editing a pinned comment in place
+(remove and re-pin instead).
 
 ## Decisions taken
 
@@ -109,9 +116,7 @@ Controls, all ownership-gated, moderators on every card:
 Size: about 120 lines of SQL, roughly 400 lines added against 250 removed in
 `index.html`.
 
-## Open question
+## Comments
 
-Who may add a comment to a file: only the file's owner (choosing among their
-own characters), or any signed-in reader speaking as one of their characters?
-The plan assumes owner only, which matches the baked comments today, where
-Star and Overseer remark on each other's files and both belong to Star.
+Only the file's owner adds comments, choosing among their own characters.
+Decided 2026-09-30.

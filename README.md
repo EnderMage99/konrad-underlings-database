@@ -104,9 +104,16 @@ callsign, title and picture, and switch between them from the account panel.
 Annotations are attributed to whichever character is speaking at the time.
 The active character is a local choice, so switching costs no round trip.
 
+Any character can open a Lancer file from the account panel. Its owner
+writes the file, names its mech and picks which of their characters wrote
+each piece; attaches their other characters as assisting NHPs; and pins
+in-character comments, each in the voice of one of their characters, above
+the annotations. The two baked entries, Star and Nebula, are claimed the same
+way by whoever holds a character of that name.
+
 Schema lives in `supabase/`, as migrations to run in the Supabase SQL editor
 in this order: `characters.sql`, `moderation.sql`, `files.sql`, `images.sql`,
-`editing.sql`.
+`editing.sql`, `lancers.sql`.
 Each is safe to run twice. The page works either side of every one of them -
 it tries the fuller query first and falls back if a table or column is not
 there yet, so a feature simply stays hidden until its migration lands.
