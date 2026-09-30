@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Star Chart</title>
 <meta name="description" content="The systems the campaign has moved through, as a chart you can turn, with a file on every world the squad has set foot on.">
 <style>
@@ -33,6 +33,7 @@
   .kicker { font-family: var(--mono); font-size: 10px; letter-spacing: .24em; text-transform: uppercase; color: var(--accent); }
   .hud-title h1 { margin: .15rem 0 0; font-size: 1.9rem; letter-spacing: .04em; text-shadow: 0 0 22px rgba(63,216,240,.35); }
   .hud-title .sys { font-family: var(--mono); font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-faint); margin-top: .35rem; }
+  .hud-help .mob { display: none; }
   .hud-help { right: 1.4rem; top: 1.4rem; text-align: right; font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); line-height: 1.8; }
   .hud-foot { left: 1.4rem; bottom: 1.2rem; display: flex; gap: .5rem; align-items: center; }
   .btn {
@@ -163,12 +164,62 @@
   .lore h4.ed-h { margin: .6rem 0 .3rem; font-family: var(--mono); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-faint); background: none; padding: 0; clip-path: none; }
 
   @media (max-width: 760px) {
+    /* the chart: a smaller HUD that keeps out of the way of a thumb */
+    .hud-title { left: 1rem; top: .9rem; }
+    .hud-title h1 { font-size: 1.3rem; }
+    .hud-title .sys { font-size: 9px; margin-top: .2rem; }
+    .hud-title .home { margin-top: .5rem; }
+    .hud-help { left: 50%; right: 1rem; top: .9rem; font-size: 9px; line-height: 1.6; }
+    .hud-help .desk { display: none; }
+    .hud-help .mob { display: inline; }
+    .hud-foot { left: 1rem; right: 1rem; bottom: .9rem; flex-wrap: wrap; }
+    .legend { display: none; }
+    .tip { display: none !important; }
+    .mark { width: 30px; height: 30px; margin: -15px 0 0 -15px; }
+
+    /* the file: destinations as a strip across the top */
     #pv { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
-    .rail { max-height: 34vh; padding: 1rem; }
-    .stage h2 { font-size: 1.5rem; right: 1rem; top: 1rem; }
-    .stats { position: static; margin: 3.6rem 1rem 0; flex-wrap: wrap; }
-    .lore { left: 1rem; bottom: 1rem; width: calc(100% - 2rem); max-height: 40vh; }
-    .chips { right: 1rem; bottom: auto; top: 50%; max-width: 45%; }
+    .rail { max-height: none; padding: .6rem .8rem; display: flex; align-items: stretch; gap: .5rem;
+            overflow-x: auto; overflow-y: hidden; border-right: 0; border-bottom: 1px solid var(--rule);
+            -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .rail::-webkit-scrollbar { display: none; }
+    .rail h2, .rail .lede { display: none; }
+    #dests { display: flex; gap: .5rem; order: 2; }
+    .dest { display: flex; flex-direction: column; align-items: center; gap: .3rem; width: 5.4rem; flex: 0 0 auto;
+            border: 1px solid rgba(27,62,78,.6); padding: .5rem .3rem; text-align: center; }
+    .dest:last-child { border-bottom: 1px solid rgba(27,62,78,.6); }
+    .dest[aria-current="true"] { border-color: var(--accent); }
+    .dest canvas { width: 2.6rem; height: 2.6rem; }
+    .dest .nm { font-size: .72rem; line-height: 1.2; }
+    .dest .nm::after { content: none !important; }
+    .dest .dist, .dest .go { display: none; }
+    .rail .back { order: 1; margin: 0; flex: 0 0 auto; align-self: center; white-space: nowrap; }
+
+    /* the stage: name and stats flow at the top, the world sits in the
+       middle, the lore is a sheet at the bottom with the regions above it */
+    .stage h2 { position: static; font-size: 1.25rem; margin: .7rem 1rem 0; text-align: left; }
+    .stats { position: static; margin: .5rem 0 0; padding: 0 1rem; display: flex; overflow-x: auto; scrollbar-width: none;
+             background: none; border: 0; backdrop-filter: none; clip-path: none; }
+    .stats::before { display: none; }
+    .stats::-webkit-scrollbar { display: none; }
+    .stats div { padding: .3rem .7rem .3rem 0; border-right: 1px solid var(--rule); margin-right: .7rem; white-space: nowrap; }
+    .stats .v { font-size: .9rem; }
+    .stats.editing { position: absolute; left: 1rem; right: 1rem; top: 3rem; width: auto; margin: 0; padding: .8rem;
+                     background: rgba(11,24,34,.95); border: 1px solid var(--accent-dim); z-index: 5; max-height: 70vh; overflow-y: auto; }
+    .lore { left: 0; right: 0; bottom: 0; width: 100%; max-height: 36vh; padding: .8rem 1rem 1rem; border-left: 0; border-right: 0; clip-path: none; }
+    .lore h3 { font-size: 1.1rem; }
+    .lore p { font-size: .82rem; }
+    .chips { left: 0; right: 0; bottom: 0; top: auto; max-width: none; flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start;
+             padding: .4rem 1rem; gap: .35rem; scrollbar-width: none; }
+    .chips::-webkit-scrollbar { display: none; }
+    .chip { flex: 0 0 auto; padding: .4rem .6rem; }
+    body.pv-on .hud-foot { display: none; }
+
+    /* the ship's panel spans the width; while it is up it takes the lore's place */
+    .shippanel { left: 1rem; right: 1rem; width: auto; bottom: 3.6rem; }
+    body.pv-on .shippanel { left: 0; right: 0; bottom: 0; z-index: 13; clip-path: none; }
+    #shippanel:not([hidden]) ~ #pv .lore { display: none; }
+    #shippanel:not([hidden]) ~ #pv .chips { display: none; }
   }
   @media (prefers-reduced-motion: reduce) { #pv, .mark, .dest .go { transition: none; } }
 
@@ -228,7 +279,7 @@
   <div class="sys" id="sysname"></div>
   <div class="home"><a class="btn" id="home" href="./">&larr; Back to the archive</a></div>
 </div>
-<div class="hud hud-help">drag to turn &middot; wheel to zoom<br>click a world for its file</div>
+<div class="hud hud-help"><span class="desk">drag to turn &middot; wheel to zoom<br>click a world for its file</span><span class="mob">drag to turn &middot; pinch to zoom<br>tap a world for its file</span></div>
 <div class="hud hud-foot">
   <button class="btn" id="drift" type="button" aria-pressed="true">Orbits: moving</button>
   <button class="btn" id="reset" type="button">Reset view</button>
@@ -341,7 +392,7 @@
   var FOCUS = { pitch: 0.42 };
   // Close enough that perspective alone makes the followed world fill about
   // a fifth of the screen; every other world keeps its true relative size.
-  function focusDist(p) { return FOCAL * p.size * 1.15 / (Math.min(W, H) * 0.19); }
+  function focusDist(p) { return FOCAL * p.size * 1.15 / (Math.min(W, H) * (W < 760 ? 0.3 : 0.19)); }
   var cam = { yaw: HOME.yaw, pitch: HOME.pitch, dist: HOME.dist };
   var FOCAL = 780;
   var drifting = !reduced;
@@ -360,11 +411,31 @@
   var spin = 0;          // how far the followed world has turned
   var tween = null;      // { x, z, t }: where the target was when it last changed
   var focusScreen = null;
+  // Measured once a frame at most: every projected point asks.
+  var eyeCache = null;
   function eye() {
     if (!current) return { x: W / 2, y: H / 2 };
+    var now = performance.now();
+    if (eyeCache && now - eyeCache.t < 12) return eyeCache;
     var rail = document.querySelector("#pv .rail");
-    var rw = rail ? rail.getBoundingClientRect().width : 0;
-    return { x: rw + (W - rw) * 0.5, y: H * 0.46 };
+    var rr = rail ? rail.getBoundingClientRect() : { width: 0, bottom: 0 };
+    var e;
+    if (rr.width >= W * 0.9) {
+      // phone: the rail runs across the top, the stats under it, the lore
+      // sheet at the bottom - the world sits in what is left
+      var top = rr.bottom;
+      var st = document.getElementById("pvstats").getBoundingClientRect();
+      if (st.height && st.bottom > top && st.bottom < H * 0.6) top = st.bottom;
+      var lr = document.getElementById("pvlore").getBoundingClientRect();
+      var bottom = (lr.height && lr.top > top) ? lr.top : H;
+      var ch = document.getElementById("pvchips").getBoundingClientRect();
+      if (ch.height && ch.top > top && ch.top < bottom) bottom = ch.top;
+      e = { x: W / 2, y: top + (bottom - top) * 0.5 };
+    } else {
+      e = { x: rr.width + (W - rr.width) * 0.5, y: H * 0.46 };
+    }
+    e.t = now; eyeCache = e;
+    return e;
   }
 
   // Rotates a chart point by the camera and projects it. The orbit plane is
@@ -1248,14 +1319,38 @@
 
   // camera controls: drag to turn, wheel or pinch to zoom
   var drag = null, moved = 0;
+  var fingers = {}, pinch = null;   // pointers down by id; two of them zoom
+  function fingerCount() { return Object.keys(fingers).length; }
+  function fingerSpan() {
+    var ids = Object.keys(fingers), a = fingers[ids[0]], b = fingers[ids[1]];
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  }
+  function zoomTo(d) {
+    var lo = focus ? focusDist(focus) * 0.45 : 260, hi = focus ? focusDist(focus) * 8 : 2600;
+    cam.dist = Math.max(lo, Math.min(hi, d));
+  }
   chart.addEventListener("pointerdown", function (e) {
+    fingers[e.pointerId] = { x: e.clientX, y: e.clientY };
+    chart.setPointerCapture(e.pointerId);
+    if (fingerCount() >= 2) {
+      // a second finger: stop turning, start zooming
+      pinch = { span: fingerSpan(), dist: cam.dist }; drag = null; moved = 99;
+      return;
+    }
     // dragging on the followed world spins the world; dragging anywhere
     // else turns the camera
-    var onWorld = focus && hitAt(e.clientX, e.clientY) === focus;
+    var slack = e.pointerType === "touch" ? 22 : 0;
+    var onWorld = focus && hitAt(e.clientX, e.clientY, slack) === focus;
     drag = { x: e.clientX, y: e.clientY, yaw: cam.yaw, pitch: cam.pitch, spin: onWorld, spin0: spin }; moved = 0;
-    chart.setPointerCapture(e.pointerId); chart.className = "grabbing";
+    chart.className = "grabbing";
   });
   chart.addEventListener("pointermove", function (e) {
+    if (fingers[e.pointerId]) fingers[e.pointerId] = { x: e.clientX, y: e.clientY };
+    if (pinch && fingerCount() >= 2) {
+      var span = fingerSpan();
+      if (span > 0) zoomTo(pinch.dist * pinch.span / span);
+      return;
+    }
     if (drag) {
       var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
       moved += Math.abs(dx) + Math.abs(dy);
@@ -1270,24 +1365,33 @@
     if (h !== hover) { hover = h; chart.className = h ? "over" : ""; }
     showTip(h, e.clientX, e.clientY);
   });
+  function fingerUp(e) {
+    delete fingers[e.pointerId];
+    if (fingerCount() < 2) pinch = null;
+  }
   chart.addEventListener("pointerup", function (e) {
+    var wasPinch = !!pinch || moved >= 99;
+    fingerUp(e);
     chart.className = hover ? "over" : "";
     var wasDrag = drag && moved > 6; drag = null;
-    if (wasDrag) return;
-    var h = hitAt(e.clientX, e.clientY);
+    if (wasDrag || wasPinch) return;
+    // a fingertip is wider than a pointer, so a tap gets some slack
+    var h = hitAt(e.clientX, e.clientY, e.pointerType === "touch" ? 22 : 0);
     if (h && (h.host || h.visited)) openPlanet(h);
   });
+  chart.addEventListener("pointercancel", function (e) { fingerUp(e); drag = null; chart.className = ""; });
   chart.addEventListener("pointerleave", function () { hover = null; showTip(null); });
   chart.addEventListener("wheel", function (e) {
     e.preventDefault();
-    var lo = focus ? focusDist(focus) * 0.45 : 260, hi = focus ? focusDist(focus) * 8 : 2600;
-    cam.dist = Math.max(lo, Math.min(hi, cam.dist * (e.deltaY > 0 ? 1.08 : 0.93)));
+    zoomTo(cam.dist * (e.deltaY > 0 ? 1.08 : 0.93));
   }, { passive: false });
 
-  function hitAt(x, y) {
+  // slack widens every target, for a fingertip
+  function hitAt(x, y, slack) {
+    slack = slack || 0;
     for (var i = hits.length - 1; i >= 0; i--) {
       var h = hits[i]; var d = Math.hypot(x - h.x, y - h.y);
-      if (d <= h.r) return h.p;
+      if (d <= Math.max(h.r, slack)) return h.p;
     }
     return null;
   }
@@ -1345,6 +1449,12 @@
 
   // ---- the planet view -----------------------------------------------------
   var pv = document.getElementById("pv");
+  // on a phone the region chips ride just above the lore sheet, whatever
+  // height its text gives it
+  var loreEl = document.getElementById("pvlore"), chipsEl = document.getElementById("pvchips");
+  function seatChips() { chipsEl.style.bottom = W < 760 ? loreEl.offsetHeight + "px" : ""; }
+  if (window.ResizeObserver) new ResizeObserver(seatChips).observe(loreEl);
+  window.addEventListener("resize", seatChips);
   var current = null, region = null;
 
   // Follow a world: the camera eases over to it and closes in while the
