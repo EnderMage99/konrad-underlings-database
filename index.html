@@ -2969,6 +2969,23 @@
     z-index: 1;
   }
 
+  .facrow td {
+    text-align: left;
+    font-family: var(--mono);
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--fc, var(--accent));
+    background: var(--surface-alt);
+    border-top: 1px solid var(--rule);
+    padding-top: .5rem;
+    padding-bottom: .5rem;
+  }
+  tbody tr.facrow:hover td { background: var(--surface-alt); }
+  .tablepager { margin: .6rem 0; }
+  #cardview > .pager { margin: 0 0 1.4rem; }
+  #cardview > .pager:last-child { margin: 1.4rem 0 0; }
   td.nm, th.nm { text-align: left; font-weight: 700; letter-spacing: .05em; color: var(--ink); }
   td.ro, th.ro { text-align: left; color: var(--ink-faint); }
   tbody tr:hover td { background: rgba(63, 216, 240, .07); }
@@ -6036,28 +6053,93 @@
   var tbody = document.getElementById("tbody");
   var emptyMsg = document.getElementById("empty");
 
-  function render() {
-    searchEl.placeholder = state.scope
-      ? SCOPE_HINT[state.scope] : "Search contact names...";
-    cardview.textContent = "";
-    tbody.textContent = "";
-    var shown = 0;
-
-    FACTION_ORDER.forEach(function (fk, fi) {
-      // Alphabetical within the faction, on the displayed name.
+  // Every contact that passes the filters, in display order: faction by
+  // faction, and within a faction by name or by the ledger.
+  function orderedContacts() {
+    var all = [];
+    FACTION_ORDER.forEach(function (fk) {
       // Alphabetical within the faction by default; the Sort chips switch
       // to ledger order, with A-Z only breaking ties between contacts that
       // arrived in the same batch position (which the ledger never produces).
-      var list = DATA
+      DATA
         .filter(function (d) { return d.faction === fk && matches(d); })
         .sort(function (a, b) {
           if (state.sort && a._seq !== b._seq) {
             return state.sort === "newest" ? b._seq - a._seq : a._seq - b._seq;
           }
           return a.short.localeCompare(b.short, "en", { sensitivity: "base" });
-        });
-      if (!list.length) return;
-      shown += list.length;
+        })
+        .forEach(function (d) { all.push(d); });
+    });
+    return all;
+  }
+
+  // The dossiers and the combat index are read ten contacts to a page, and
+  // share the page they are on.
+  var CONTACT_PAGE = "contacts";
+  var lastFilterSig = "";
+
+  // Which page a contact is on under the current filters; 0 when it is not
+  // listed at all.
+  function pageOfContact(name) {
+    var want = String(name || "").toLowerCase(), all = orderedContacts();
+    for (var i = 0; i < all.length; i++) {
+      if (all[i].name.toLowerCase() === want) return Math.floor(i / PAGE_SIZE) + 1;
+    }
+    return 0;
+  }
+
+  var tvEl = document.getElementById("tableview");
+  var tpTop = el("div", "tablepager"), tpBottom = el("div", "tablepager");
+  tvEl.insertBefore(tpTop, tvEl.firstChild);
+  tvEl.appendChild(tpBottom);
+
+  function render() {
+    searchEl.placeholder = state.scope
+      ? SCOPE_HINT[state.scope] : "Search contact names...";
+    cardview.textContent = "";
+    tbody.textContent = "";
+    tpTop.textContent = "";
+    tpBottom.textContent = "";
+
+    var all = orderedContacts();
+    // a change of search, filter or sort starts again from the first page
+    var sig = JSON.stringify([state.q, state.faction, state.tier, state.role,
+                              state.only, state.scope, state.sort]);
+    if (sig !== lastFilterSig) {
+      if (lastFilterSig) PAGES[CONTACT_PAGE] = 1;
+      lastFilterSig = sig;
+    }
+    var page = currentPage(CONTACT_PAGE, all.length, false);
+    var slice = pageSlice(all, page);
+    var paged = all.length > PAGE_SIZE;
+    var totals = {};
+    all.forEach(function (d) { totals[d.faction] = (totals[d.faction] || 0) + 1; });
+
+    function pager() {
+      return pagerBar(CONTACT_PAGE, all, page, true, function () {
+        render();
+        (currentView === "table" ? tvEl : cardview).scrollIntoView({ block: "start" });
+      }, true);
+    }
+
+    // Consecutive contacts of one faction on this page make a group, and
+    // every group is headed by its faction - including one that carries on
+    // from the page before, so the heading always stands above the first
+    // contact of that faction in view.
+    var groups = [];
+    slice.forEach(function (d) {
+      var g = groups[groups.length - 1];
+      if (!g || g.fk !== d.faction) groups.push(g = { fk: d.faction, list: [] });
+      g.list.push(d);
+    });
+
+    if (paged) cardview.appendChild(pager());
+
+    groups.forEach(function (g, gi) {
+      var fk = g.fk, list = g.list;
+      var at = all.indexOf(list[0]);
+      var continued = at > 0 && all[at - 1].faction === fk;
 
       // The faction key doubles as a class so a faction can carry its own
       // treatment (the Horrors section glitches).
@@ -6065,15 +6147,17 @@
       // reveal only on the very first paint, never on filter changes
       if (!booted) {
         sec.className += " boot-in";
-        sec.style.animationDelay = (fi * 70) + "ms";
+        sec.style.animationDelay = (gi * 70) + "ms";
       }
       var fh = el("div", "faction-head");
       var h2 = el("h2", null, FACTIONS[fk].name);
       h2.style.setProperty("--fc", FACTIONS[fk].color);
       fh.appendChild(h2);
+      if (continued) fh.appendChild(el("span", "count", "continued"));
       fh.appendChild(el("span", "blurb", FACTIONS[fk].blurb));
       fh.appendChild(el("span", "count",
-        list.length + (list.length === 1 ? " contact" : " contacts")));
+        totals[fk] + (totals[fk] === 1 ? " contact" : " contacts")
+        + (list.length < totals[fk] ? " · " + list.length + " on this page" : "")));
       if (fk === "horror") {
         // Steady readings: keeps the text glitch and the frame flicker but
         // stops entries, stats and tags dropping out, for anyone who wants
@@ -6111,6 +6195,14 @@
       sec.appendChild(cards);
       cardview.appendChild(sec);
 
+      // the combat index: the same heading as a row of its own
+      var fr = el("tr", "facrow fac-" + fk);
+      var ftd = el("td", null, FACTIONS[fk].name + (continued ? " · continued" : ""));
+      ftd.colSpan = 18;
+      ftd.style.setProperty("--fc", FACTIONS[fk].color);
+      fr.appendChild(ftd);
+      tbody.appendChild(fr);
+
       list.forEach(function (d) {
         var tr = el("tr");
         function td(v, cls) { tr.appendChild(el("td", cls, v)); }
@@ -6138,8 +6230,14 @@
       });
     });
 
-    emptyMsg.hidden = shown > 0 || currentView !== "cards";
-    document.getElementById("t-unique").textContent = String(shown);
+    if (paged) {
+      cardview.appendChild(pager());
+      tpTop.appendChild(pager());
+      tpBottom.appendChild(pager());
+    }
+
+    emptyMsg.hidden = all.length > 0 || currentView !== "cards";
+    document.getElementById("t-unique").textContent = String(all.length);
     renderHiddenList();
     booted = true;
   }
@@ -8469,8 +8567,16 @@
   };
 
   function focusTarget(key) {
-    if (!TARGETS[key]) return;
-    setView(TARGETS[key].view);
+    if (key.indexOf("contact::") === 0) {
+      var pg = pageOfContact(key.slice(9));
+      if (!pg) return;
+      PAGES[CONTACT_PAGE] = pg;
+      setView("cards");
+      if (!TARGETS[key] || !TARGETS[key].node.isConnected) render();
+    } else {
+      if (!TARGETS[key]) return;
+      setView(TARGETS[key].view);
+    }
 
     // setView re-renders the dossiers, which detaches the card registered a
     // moment ago and files a fresh one - so look the target up again on the
@@ -8535,7 +8641,7 @@
       jump.appendChild(el("span", "log-kind",
         TARGET_KINDS[r.target_kind] || r.target_kind));
       jump.appendChild(el("span", "log-name", r.target_id));
-      if (TARGETS[key]) {
+      if (r.target_kind === "contact" ? pageOfContact(r.target_id) : TARGETS[key]) {
         jump.addEventListener("click", function () { focusTarget(key); });
       } else {
         jump.disabled = true;   // the file it was left on is no longer indexed
@@ -9411,6 +9517,8 @@
 
   function jumpToContact(name) {
     var want = String(name).toLowerCase();
+    var pg = pageOfContact(name);
+    if (pg && PAGES[CONTACT_PAGE] !== pg) { PAGES[CONTACT_PAGE] = pg; render(); }
     var cards = document.querySelectorAll("#cardview article.card");
     for (var i = 0; i < cards.length; i++) {
       if ((cards[i].dataset.name || "").toLowerCase() === want) {
@@ -9895,7 +10003,7 @@
     return pageCount(rows.length);
   }
 
-  function pagerBar(key, rows, page, ascending, redraw) {
+  function pagerBar(key, rows, page, ascending, redraw, plain) {
     var max = pageCount(rows.length);
     var bar = el("div", "pager");
 
@@ -9937,6 +10045,7 @@
     });
     jump.appendChild(num);
     jump.appendChild(numGo);
+    if (plain) { bar.appendChild(jump); return bar; }
 
     var day = el("input", "pagedate");
     day.type = "date";
@@ -10799,8 +10908,8 @@
   var wantContact = new URLSearchParams(location.search || "").get("contact");
   if (wantContact) {
     var key = null;
-    Object.keys(TARGETS).forEach(function (k) {
-      if (k.toLowerCase() === ("contact::" + wantContact).toLowerCase()) key = k;
+    DATA.forEach(function (d) {
+      if (d.name.toLowerCase() === wantContact.toLowerCase()) key = "contact::" + d.name;
     });
     if (key) setTimeout(function () { focusTarget(key); }, 50);
   }
