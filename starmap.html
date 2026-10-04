@@ -424,14 +424,14 @@
         { id: "aliakmon", name: "Aliakmon", kind: "Mothership", host: "ii", orbit: 18, period: 1.28, incl: 0.3, size: 4.5, phase: 1.1,
           stats: [["Class", "Mothership"], ["Complement", "The Lancers"], ["Registry", "Dachtylo Company"], ["Berth", "Wherever it is sent"]],
           lore: [] },
-        // A dead station far out round Invideis-II. Fixed: it goes nowhere and
+        // A dead station orbiting the star, out beyond Invideis-VII. Fixed: it goes nowhere and
         // takes no orders. Its file glitches the way the Horrors' entries do.
-        { id: "derelict", name: "Derelict Station", kind: "Abandoned station", host: "ii", orbit: 64, period: 5.2, incl: -0.22, size: 8, phase: 4.0,
+        { id: "derelict", name: "Derelict Station", kind: "Abandoned station", host: "sun", orbit: 860, period: 70, incl: 0.05, size: 8, phase: 4.0,
           fixed: true, glitch: true, mesh: STATION_MESH,
           contacts: ["Horrors Reanimated Phantasm", "Horrors Reanimated Berserker", "Horrors Contact 03", "Horrors Reanimated Hornet", "Horrors Contact 05", "Horrors Contact 06"],
           stats: [["Class", "Orbital station"], ["Registry", "None on record"], ["Status", "Sealed"], ["Contract", "Concluded"]],
           lore: [
-            "An orbital station in a high, slow orbit round Invideis-II, dark on every band. No registry claims it and no signal answers. The contract was plain: get inside, reach the machine at its heart, and switch it on.",
+            "A station in a wide, slow orbit round the star itself, far out past Invideis-VII and well clear of every world in the system, dark on every band. No registry claims it and no signal answers. The contract was plain: get inside, reach the machine at its heart, and switch it on.",
             "Everything about the place is wrong for an NHP. From the approach onwards it puts out waves of interference that land on them like a sickness - answers arrive late, then later, and the ones who can describe it say it feels like a heavy, rolling nausea. It gets worse with every metre closer to the core.",
             "The machine did switch on. Whatever it is, it reached out to the wrecks lying in and around the station and got them moving again, and the moving ones went for anything alive. The Lancers Star, Ring and Waterfly were inside when it happened, and it went bad very quickly.",
             "Waterfly stayed. He sealed himself inside the station so the doors would hold long enough for the other two to get clear. The station is still sealed. He is still in there."
@@ -1001,7 +1001,9 @@
   }
 
   // Where a ship is right now, and which way it points, in chart space.
-  function hostOf(s) { return system.planets.filter(function (p) { return p.id === s.host; })[0]; }
+  // A body may orbit the star itself: the star stands in as a host at the centre.
+  var SUN_HOST = { id: "sun", name: "the star", orbit: 0, period: 1, phase: 0, size: 0 };
+  function hostOf(s) { return s.host === "sun" ? SUN_HOST : system.planets.filter(function (p) { return p.id === s.host; })[0]; }
   function planetById(id) { return system.planets.filter(function (p) { return p.id === id; })[0]; }
   // where a world will be at a chart time other than now
   function planetPosAt(p, t) {
@@ -1156,6 +1158,9 @@
     var m = s.mesh || SHIP_MESH, V = m.v, F = m.f, C = m.c, N = shipNormals(m);
     var k = s.size;
     var centre = project(st.x, st.y, st.z);
+    // behind the camera or with the camera inside it: nothing to draw, and
+    // drawing it would mean thousands of screen-sized triangles
+    if (centre.depth < k * 0.9 + 12) return centre;
     // too small to read as a ship: a dot and its ring only
     var lengthPx = k * centre.s;
     if (lengthPx < 7) {
@@ -1194,7 +1199,7 @@
       var nwy = n0 * r[1] + n1 * f[1] + n2 * u[1];
       var nwz = n0 * r[2] + n1 * f[2] + n2 * u[2];
       var depth = (D[fa] + D[fb] + D[fc]) / 3;
-      if (depth < 12) continue;
+      if (D[fa] < 12 || D[fb] < 12 || D[fc] < 12) continue;
       var lit = Math.abs(nwx * lx + nwy * ly + nwz * lz);
       SHIP_TRIS.push({ a: fa, b: fb, c: fc, d: depth, l: 0.18 + 0.82 * lit, m: F[t][3] });
     }
@@ -1237,16 +1242,33 @@
     cx.stroke(); cx.setLineDash([]);
   }
 
+  // Lays a ring into the current path, n steps round, from a function that
+  // projects the point at an angle. A piece is drawn only when both its
+  // ends are in front of the camera and it comes near the screen: a dashed
+  // line running off to a point beside the camera is millions of dashes
+  // long and stalls the frame.
+  function ringPath(n, at) {
+    cx.beginPath();
+    var prev = null;
+    for (var i = 0; i <= n; i++) {
+      var pt = at(i / n * Math.PI * 2);
+      if (prev && prev.depth >= 12 && pt.depth >= 12
+          && Math.max(prev.x, pt.x) > -W && Math.min(prev.x, pt.x) < 2 * W
+          && Math.max(prev.y, pt.y) > -H && Math.min(prev.y, pt.y) < 2 * H) {
+        cx.lineTo(pt.x, pt.y);
+      } else cx.moveTo(pt.x, pt.y);
+      prev = pt;
+    }
+  }
+
   // the ship's own orbit round its world, as a faint ring
   function drawShipRing(p, s) {
     var pos = planetPos(p), ci = Math.cos(s.incl || 0), si = Math.sin(s.incl || 0);
     cx.setLineDash([3, 6]); cx.lineWidth = 1; cx.strokeStyle = "rgba(210,236,246,.35)";
     cx.beginPath();
-    for (var i = 0; i <= 96; i++) {
-      var a = i / 96 * Math.PI * 2;
-      var pt = project(pos.x + Math.cos(a) * s.orbit, Math.sin(a) * s.orbit * si, pos.z + Math.sin(a) * s.orbit * ci);
-      if (i === 0 || pt.depth < 12) cx.moveTo(pt.x, pt.y); else cx.lineTo(pt.x, pt.y);
-    }
+    ringPath(s.orbit > 200 ? 240 : 96, function (a) {
+      return project(pos.x + Math.cos(a) * s.orbit, Math.sin(a) * s.orbit * si, pos.z + Math.sin(a) * s.orbit * ci);
+    });
     cx.stroke(); cx.setLineDash([]);
   }
 
@@ -1270,12 +1292,7 @@
       cx.lineWidth = on ? 2 : 1.2;
       cx.strokeStyle = col;
       cx.globalAlpha = p.visited ? (on ? 1 : .8) : .55;
-      cx.beginPath();
-      for (var i = 0; i <= 160; i++) {
-        var a = i / 160 * Math.PI * 2;
-        var pt = project(Math.cos(a) * p.orbit, 0, Math.sin(a) * p.orbit);
-        if (i === 0 || pt.depth < 12) cx.moveTo(pt.x, pt.y); else cx.lineTo(pt.x, pt.y);
-      }
+      ringPath(160, function (a) { return project(Math.cos(a) * p.orbit, 0, Math.sin(a) * p.orbit); });
       cx.stroke();
       cx.setLineDash([]); cx.globalAlpha = 1;
     });
@@ -1301,6 +1318,9 @@
         if (it.ship === focus) focusScreen = { x: c.x, y: c.y, r: it.ship.size * c.s * .5 };
         return;
       }
+      // a body behind the camera, or all but touching it, is not drawn: its
+      // disc would be thousands of pixels across and cost seconds to paint
+      if (it.pr.depth < 14) return;
       if (it.star) {
         var r = system.star.size * it.pr.s;
         var gg = cx.createRadialGradient(it.pr.x, it.pr.y, 0, it.pr.x, it.pr.y, r * 3.2);
@@ -1310,6 +1330,7 @@
         return;
       }
       var p = it.p, r = Math.max(2.5, p.size * it.pr.s * 1.15);
+      if (p !== focus) r = Math.min(r, Math.min(W, H) * 0.6);
       var light = viewLight(it.pos);
       if (p === focus) drawSpinning(cx, it.pr.x, it.pr.y, r, p, spin, light);
       else drawSphere(cx, it.pr.x, it.pr.y, r, p, light);
@@ -1695,7 +1716,7 @@
       var left = Math.max(0, s.transit.dur - (simT - s.transit.t0));
       return "en route to " + planetById(s.transit.to).name + " · " + flightTime(left * SHIP_SPEED) + " to go";
     }
-    return (s.fixed ? "derelict, high orbit round " : "in orbit round ") + hostOf(s).name;
+    return (s.fixed ? "derelict, far orbit round " : "in orbit round ") + hostOf(s).name;
   }
 
   // the ship seen from above, flattened onto a small canvas
@@ -2062,7 +2083,7 @@
       status.textContent = "En route from " + planetById(s.transit.from).name + " to " + planetById(s.transit.to).name
         + ", " + unitsToAU(s.transit.len) + " by the swept route. Arriving in about " + flightTime(left * SHIP_SPEED) + ".";
     } else if (s.fixed) {
-      status.textContent = "Abandoned, in a high orbit round " + hostOf(s).name + ". It answers nothing and goes nowhere.";
+      status.textContent = "Abandoned, in a far orbit round " + hostOf(s).name + ", beyond the outermost world. It answers nothing and goes nowhere.";
     } else {
       status.textContent = "In orbit round " + hostOf(s).name + ".";
     }
