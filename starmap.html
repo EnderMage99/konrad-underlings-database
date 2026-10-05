@@ -1175,14 +1175,123 @@
     });
   }
 
+  // ---- paint and light ---------------------------------------------------
+  // A mesh is { v, f } with f rows [a, b, c, material]. paintMesh() gives
+  // every triangle a paint from a palette it builds by rule: hull tones in
+  // panels, darker recesses, accent bands, and lights that shine on their own.
+  function paintHash(n) { n = (n ^ 61) ^ (n >>> 16); n = n + (n << 3); n = n ^ (n >>> 4); n = Math.imul(n, 0x27d4eb2d); n = n ^ (n >>> 15); return (n >>> 0) / 4294967296; }
+  function paintHash3(a, b, c) { return paintHash((a * 73856093) ^ (b * 19349663) ^ (c * 83492791)); }
+
+  // Palette entries: { rgb, emit, anim, seed }. anim: 0 steady, 1 slow pulse,
+  // 2 flicker, 3 mostly dead with rare flicker.
+  function paintMesh(m, st) {
+    var V = m.v, F = m.f, n = F.length;
+    var ax = st.axis, o1 = (ax + 1) % 3, o2 = (ax + 2) % 3;
+    var lo = [1e9, 1e9, 1e9], hi = [-1e9, -1e9, -1e9];
+    V.forEach(function (v) { for (var k = 0; k < 3; k++) { if (v[k] < lo[k]) lo[k] = v[k]; if (v[k] > hi[k]) hi[k] = v[k]; } });
+    var span = hi[ax] - lo[ax] || 1;
+    var T = new Float32Array(n), R = new Float32Array(n), A = new Float32Array(n), ANG = new Float32Array(n), NA = new Float32Array(n), DOM = new Uint8Array(n);
+    var BINS = 48, maxR = new Float32Array(BINS), gmax = 0, areas = [];
+    for (var i = 0; i < n; i++) {
+      var a = V[F[i][0]], b = V[F[i][1]], c = V[F[i][2]];
+      var cx = (a[0] + b[0] + c[0]) / 3, cy = (a[1] + b[1] + c[1]) / 3, cz = (a[2] + b[2] + c[2]) / 3, cen = [cx, cy, cz];
+      var ux = b[0] - a[0], uy = b[1] - a[1], uz = b[2] - a[2], vx = c[0] - a[0], vy = c[1] - a[1], vz = c[2] - a[2];
+      var nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx, l = Math.hypot(nx, ny, nz) || 1e-9;
+      var nn = [nx / l, ny / l, nz / l];
+      A[i] = l / 2; areas.push(l / 2);
+      T[i] = (cen[ax] - lo[ax]) / span;
+      R[i] = Math.hypot(cen[o1], cen[o2]);
+      ANG[i] = Math.atan2(cen[o2], cen[o1]);
+      NA[i] = nn[ax];
+      var d = 0; if (Math.abs(nn[1]) > Math.abs(nn[d])) d = 1; if (Math.abs(nn[2]) > Math.abs(nn[d])) d = 2;
+      DOM[i] = d * 2 + (nn[d] < 0 ? 1 : 0);
+      var bin = Math.min(BINS - 1, Math.floor(T[i] * BINS));
+      if (R[i] > maxR[bin]) maxR[bin] = R[i];
+      if (R[i] > gmax) gmax = R[i];
+    }
+    areas.sort(function (x, y) { return x - y; });
+    var small = areas[Math.floor(n * (st.windowSize || 0.35))];
+
+    var pal = [], ix = {};
+    function col(key, rgb, emit, anim, seed) { if (ix[key] === undefined) { ix[key] = pal.length; pal.push({ rgb: rgb, emit: emit || 0, anim: anim || 0, seed: seed || 0 }); } return ix[key]; }
+    st.hull.forEach(function (h, k) { col("h" + k, h); });
+    col("recess", st.recess);
+    col("accent", st.accent);
+
+    for (i = 0; i < n; i++) {
+      var bin2 = Math.min(BINS - 1, Math.floor(T[i] * BINS));
+      var rel = st.ring ? R[i] / gmax : R[i] / (maxR[bin2] || 1);
+      var band = Math.floor(T[i] * st.bands), sector = Math.floor((ANG[i] + Math.PI) / (2 * Math.PI) * st.sectors);
+      var panel = paintHash3(band, sector, DOM[i]);
+      var mat = ix["h" + Math.floor(panel * st.hull.length)];
+      if (!st.ring && rel < st.recessBelow) mat = ix.recess;
+      if (st.ring && Math.abs(NA[i]) < 0.35 && panel < 0.35) mat = ix.recess;
+      // accent bands on the outer skin
+      (st.stripes || []).forEach(function (s) {
+        var p = st.ring ? rel : T[i];
+        if (p >= s[0] && p <= s[1] && (st.ring ? Math.abs(NA[i]) > 0.5 : rel > 0.72)) mat = ix.accent;
+      });
+      // windows: small outer faces, lit by the panel so they come in rows
+      if (st.windows && A[i] <= small && (st.ring ? true : rel > 0.6)) {
+        var w = paintHash3(band * 7 + 3, sector * 5 + 1, i >> 1);
+        if (w < st.windows.p) {
+          var kind = Math.floor(paintHash(i * 31 + 7) * st.windows.colors.length);
+          var seed = Math.floor(paintHash(band * 13 + sector) * 5);
+          mat = col("w" + kind + "_" + seed, st.windows.colors[kind], 1, st.windows.anim, seed);
+        }
+      }
+      // engines: faces at the stern looking aft
+      if (st.engine && T[i] < st.engine.at && NA[i] < -0.55) mat = col("eng", st.engine.color, 1, 1, 9);
+      // a lit core: the inner ring of a gate
+      if (st.core && R[i] / gmax >= st.core.from && R[i] / gmax <= st.core.to && Math.abs(NA[i]) < st.core.facing) mat = col("core", st.core.color, 1, 1, 3);
+      F[i][3] = mat;
+    }
+    m.pal = pal;
+    return m;
+  }
+
+  // How bright a light is right now.
+  function glowOf(p, t, on) {
+    if (!on) return 0.06;
+    if (p.anim === 1) return 0.72 + 0.28 * Math.sin(t * 1.1 + p.seed);
+    if (p.anim === 2) { var f = paintHash(Math.floor(t * 9) * 131 + p.seed * 17); return f < 0.18 ? 0.15 : 0.75 + 0.25 * f; }
+    if (p.anim === 3) { var g = paintHash(Math.floor(t * 6) * 97 + p.seed * 29), slow = paintHash(Math.floor(t / 2.5) * 53 + p.seed * 7); return slow < 0.45 ? 0.04 : (g < 0.5 ? 0.1 : 0.9); }
+    return 1;
+  }
+
+  // The look of each body.
+  var STYLES = {
+    aliakmon: { axis: 1, bands: 26, sectors: 8, recessBelow: 0.28,
+      hull: [[0.50, 0.56, 0.63], [0.44, 0.50, 0.58], [0.56, 0.62, 0.68], [0.38, 0.44, 0.52]],
+      recess: [0.22, 0.26, 0.32], accent: [0.25, 0.85, 0.94],
+      stripes: [[0.62, 0.65], [0.30, 0.315]],
+      windows: { p: 0.3, colors: [[1.0, 0.86, 0.60], [1.0, 0.93, 0.78]], anim: 0 }, windowSize: 0.4,
+      engine: { at: 0.035, color: [0.45, 0.85, 1.0] } },
+    derelict: { axis: 2, bands: 22, sectors: 10, recessBelow: 0.22,
+      hull: [[0.60, 0.60, 0.56], [0.50, 0.51, 0.49], [0.68, 0.66, 0.61], [0.42, 0.43, 0.43]],
+      recess: [0.20, 0.21, 0.21], accent: [0.52, 0.30, 0.18],
+      stripes: [[0.48, 0.5]],
+      windows: { p: 0.14, colors: [[0.55, 0.97, 0.65], [0.71, 0.55, 1.0]], anim: 3 }, windowSize: 0.4 },
+    gate: { axis: 0, ring: true, bands: 6, sectors: 24,
+      hull: [[0.30, 0.33, 0.38], [0.24, 0.27, 0.32], [0.36, 0.39, 0.44], [0.20, 0.22, 0.27]],
+      recess: [0.09, 0.10, 0.13], accent: [0.62, 0.50, 0.24],
+      stripes: [[0.93, 1.0]],
+      windows: { p: 0.08, colors: [[0.25, 0.85, 0.94], [1.0, 0.80, 0.45]], anim: 0 }, windowSize: 0.3,
+      core: { from: 0.0, to: 0.24, facing: 0.6, color: [0.16, 0.55, 0.62] } }
+  };
+
   var SHIP_TRIS = [];
+  var GLOW_C = document.createElement("canvas"), GLOW_X = GLOW_C.getContext("2d");
+  var CAN_BLUR = typeof GLOW_X.filter === "string";
   function drawShip(p, s, st, sp) {
-    var m = s.mesh || SHIP_MESH, V = m.v, F = m.f, C = m.c, N = shipNormals(m);
+    var m = s.mesh || SHIP_MESH, V = m.v, F = m.f, N = shipNormals(m);
+    if (!m.pal) paintMesh(m, STYLES[s.id] || STYLES.aliakmon);
+    var pal = m.pal;
     var k = s.size;
     var centre = project(st.x, st.y, st.z);
     // behind the camera or with the camera inside it: nothing to draw, and
     // drawing it would mean thousands of screen-sized triangles
-    if (centre.depth < k * 0.9 + 12) return centre;
+    if (centre.depth < k * 0.6 + 3) return centre;
     // too small to read as a ship: a dot and its ring only
     var lengthPx = k * centre.s;
     if (lengthPx < 7) {
@@ -1212,29 +1321,85 @@
     var vy0 = 0 * cp + 1 * spp, vz1 = -0 * spp + 1 * cp;      // undo pitch
     var vx2 = 0 * cy + vz1 * sy, vz2 = -0 * sy + vz1 * cy;    // undo yaw
     camF = [vx2, vy0, vz2];
+    // How much sun reaches it: less far from the star, and almost none in
+    // the shadow of the world it circles.
+    var host = (!s.transit && s.host !== "sun") ? hostOf(s) : null, hostPos = host ? planetPos(host) : null;
+    var sun = Math.max(0.5, Math.min(1, 1.15 - Math.hypot(st.x, st.z) / 1400));
+    var bounce = null;
+    if (host && !host.dock) {
+      var hx = hostPos.x - st.x, hy = -st.y, hz = hostPos.z - st.z, hd = Math.hypot(hx, hy, hz) || 1;
+      var along = hx * lx + hy * ly + hz * lz;
+      if (along > 0) {
+        var off = Math.sqrt(Math.max(0, hd * hd - along * along)), R = host.size * 1.15;
+        var e0 = Math.max(0, Math.min(1, (off - R * 0.8) / (R * 0.4)));
+        sun *= 0.03 + 0.97 * e0 * e0 * (3 - 2 * e0);
+      }
+      // light thrown back by the world, in the colour of its air
+      var at = hex(lookFor(host).atmo);
+      bounce = { x: hx / hd, y: hy / hd, z: hz / hd, r: at[0] / 255, g: at[1] / 255, b: at[2] / 255, k: 0.3 * Math.min(1, (host.size * 2.4) / hd) };
+    }
+    var tNow = reduced ? 0 : performance.now() / 1000;
+    var gl = pal.map(function (q) { return q.emit ? glowOf(q, tNow, true) : 0; });
+    var amb = 0.09;
     SHIP_TRIS.length = 0;
     for (var t = 0; t < F.length; t++) {
       var fa = F[t][0], fb = F[t][1], fc = F[t][2];
-      // world normal
-      var n0 = N[t * 3], n1 = N[t * 3 + 1], n2 = N[t * 3 + 2];
-      var nwx = n0 * r[0] + n1 * f[0] + n2 * u[0];
-      var nwy = n0 * r[1] + n1 * f[1] + n2 * u[1];
-      var nwz = n0 * r[2] + n1 * f[2] + n2 * u[2];
-      var depth = (D[fa] + D[fb] + D[fc]) / 3;
-      if (D[fa] < 12 || D[fb] < 12 || D[fc] < 12) continue;
-      var lit = Math.abs(nwx * lx + nwy * ly + nwz * lz);
-      SHIP_TRIS.push({ a: fa, b: fb, c: fc, d: depth, l: 0.18 + 0.82 * lit, m: F[t][3] });
+      if (D[fa] < 3 || D[fb] < 3 || D[fc] < 3) continue;
+      var q = pal[F[t][3]], cr, cg, cb, glow = false;
+      if (q.emit) {
+        var e = gl[F[t][3]];
+        cr = q.rgb[0] * e; cg = q.rgb[1] * e; cb = q.rgb[2] * e; glow = e > 0.3;
+      } else {
+        // world normal
+        var n0 = N[t * 3], n1 = N[t * 3 + 1], n2 = N[t * 3 + 2];
+        var nwx = n0 * r[0] + n1 * f[0] + n2 * u[0];
+        var nwy = n0 * r[1] + n1 * f[1] + n2 * u[1];
+        var nwz = n0 * r[2] + n1 * f[2] + n2 * u[2];
+        // two-sided: the winding of these models is not reliable
+        var lit = amb + (1 - amb) * Math.abs(nwx * lx + nwy * ly + nwz * lz) * sun;
+        cr = q.rgb[0] * lit; cg = q.rgb[1] * lit; cb = q.rgb[2] * lit;
+        if (bounce) {
+          var bd = Math.abs(nwx * bounce.x + nwy * bounce.y + nwz * bounce.z) * bounce.k;
+          cr += q.rgb[0] * bounce.r * bd; cg += q.rgb[1] * bounce.g * bd; cb += q.rgb[2] * bounce.b * bd;
+        }
+      }
+      SHIP_TRIS.push({ a: fa, b: fb, c: fc, d: (D[fa] + D[fb] + D[fc]) / 3, glow: glow,
+        css: "rgb(" + (Math.min(255, cr * 255) | 0) + "," + (Math.min(255, cg * 255) | 0) + "," + (Math.min(255, cb * 255) | 0) + ")" });
     }
     SHIP_TRIS.sort(function (p, q) { return q.d - p.d; });
+    var glows = [];
     for (var j = 0; j < SHIP_TRIS.length; j++) {
-      var tr = SHIP_TRIS[j], col = C[tr.m];
-      var rr = Math.min(255, col[0] * 255 * tr.l) | 0, gg = Math.min(255, col[1] * 255 * tr.l) | 0, bb = Math.min(255, col[2] * 255 * tr.l) | 0;
-      cx.fillStyle = "rgb(" + rr + "," + gg + "," + bb + ")";
+      var tr = SHIP_TRIS[j];
+      if (tr.glow) glows.push(tr);
+      cx.fillStyle = tr.css;
       cx.beginPath();
       cx.moveTo(P[tr.a * 3], P[tr.a * 3 + 1]);
       cx.lineTo(P[tr.b * 3], P[tr.b * 3 + 1]);
       cx.lineTo(P[tr.c * 3], P[tr.c * 3 + 1]);
       cx.closePath(); cx.fill();
+    }
+    // the lights bleed: redrawn blurred and added on top, once the body is
+    // large enough on screen for it to show
+    if (glows.length && CAN_BLUR && lengthPx > 26) {
+      var gw = Math.min(1400, Math.ceil(lengthPx * 1.3) + 24);
+      if (GLOW_C.width !== gw) { GLOW_C.width = gw; GLOW_C.height = gw; }
+      GLOW_X.clearRect(0, 0, gw, gw);
+      var gox = gw / 2 - centre.x, goy = gw / 2 - centre.y;
+      for (var g2 = 0; g2 < glows.length; g2++) {
+        var gt = glows[g2];
+        GLOW_X.fillStyle = gt.css;
+        GLOW_X.beginPath();
+        GLOW_X.moveTo(P[gt.a * 3] + gox, P[gt.a * 3 + 1] + goy);
+        GLOW_X.lineTo(P[gt.b * 3] + gox, P[gt.b * 3 + 1] + goy);
+        GLOW_X.lineTo(P[gt.c * 3] + gox, P[gt.c * 3 + 1] + goy);
+        GLOW_X.closePath(); GLOW_X.fill();
+      }
+      cx.save();
+      cx.globalCompositeOperation = "lighter";
+      cx.filter = "blur(" + Math.max(1.5, lengthPx * 0.012).toFixed(1) + "px)";
+      cx.drawImage(GLOW_C, -gox, -goy);
+      cx.drawImage(GLOW_C, -gox, -goy);
+      cx.restore();
     }
     // engine glow at the stern; a station has none
     if (!s.fixed) {
@@ -1720,7 +1885,7 @@
       b.type = "button"; b.className = "dest";
       if (s === current) b.setAttribute("aria-current", "true");
       var c = document.createElement("canvas"); c.width = 120; c.height = 120;
-      drawShipIcon(c.getContext("2d"), 120, s.mesh);
+      drawShipIcon(c.getContext("2d"), 120, s.mesh, s.id);
       b.appendChild(c);
       var t = document.createElement("div");
       var nm = document.createElement("div"); nm.className = "nm"; nm.textContent = s.name; t.appendChild(nm);
@@ -1745,15 +1910,24 @@
   }
 
   // the ship seen from above, flattened onto a small canvas
-  function drawShipIcon(g, size, m) {
+  function drawShipIcon(g, size, m, id) {
     m = m || SHIP_MESH; var V = m.v, F = m.f;
+    if (!m.pal) paintMesh(m, STYLES[id] || STYLES.aliakmon);
+    // seen from above, so the highest faces go on last
+    if (!m._top) {
+      m._top = F.map(function (f, i) { return i; }).sort(function (p, q) {
+        return (V[F[p][0]][2] + V[F[p][1]][2] + V[F[p][2]][2]) - (V[F[q][0]][2] + V[F[q][1]][2] + V[F[q][2]][2]);
+      });
+    }
     var glow = g.createRadialGradient(size / 2, size / 2, size * .1, size / 2, size / 2, size * .5);
     glow.addColorStop(0, "rgba(63,216,240,.18)"); glow.addColorStop(1, "rgba(63,216,240,0)");
     g.fillStyle = glow; g.fillRect(0, 0, size, size);
     var k = size * .42, cx0 = size / 2, cy0 = size / 2;
-    g.fillStyle = "#8FA3B3";
-    for (var i = 0; i < F.length; i++) {
+    for (var o = 0; o < F.length; o++) {
+      var i = m._top[o];
       var a = V[F[i][0]], b = V[F[i][1]], c = V[F[i][2]];
+      var q = m.pal[F[i][3]], sh = q.emit ? 1 : 0.55 + 0.45 * Math.abs(shipNormals(m)[i * 3 + 2]);
+      g.fillStyle = "rgb(" + (Math.min(255, q.rgb[0] * sh * 300) | 0) + "," + (Math.min(255, q.rgb[1] * sh * 300) | 0) + "," + (Math.min(255, q.rgb[2] * sh * 300) | 0) + ")";
       // the ship's length runs along model Y; lay it diagonally
       var ax = cx0 + (a[0] * .7 - a[1] * .7) * k, ay = cy0 + (a[0] * .7 + a[1] * .7) * k;
       var bx = cx0 + (b[0] * .7 - b[1] * .7) * k, by = cy0 + (b[0] * .7 + b[1] * .7) * k;
