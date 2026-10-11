@@ -657,24 +657,33 @@
       ctx.fillStyle = rgba(col, 0.5); ctx.fill();
       ctx.strokeStyle = sel ? "#3FD8F0" : shade(col, 0.15); ctx.lineWidth = R * (sel ? 0.09 : 0.05); ctx.stroke();
     });
-    var art = img(tokenArt(t)), side = (f.half ? 1.25 : f.cells.length === 1 ? 2.1 : 2 * f.rad / R * 0.95) * R;
+    // the picture is cut to a hex sitting on the base: one hex for Size 1,
+    // a larger hex over the footprint for bigger tokens
+    var art = img(tokenArt(t)), whole = f.half ? 0 : Math.max(1, Math.round(sizeNum(t.size)));
+    var rr = R * (f.half ? 0.56 : { 1: 0.9, 2: 1.2, 3: 2.0, 4: 2.7 }[whole]);
     ctx.save();
     ctx.translate(t.dx, t.dy); ctx.rotate((t.facing || 0) * Math.PI / 180);
+    ctx.shadowColor = "rgba(0,0,0,.6)"; ctx.shadowBlur = R * 0.25; ctx.shadowOffsetY = R * 0.06;
+    ctx.beginPath(); hexPath(ctx, 0, 0, rr);
+    ctx.fillStyle = art ? "#05090E" : shade(col, 0.25); ctx.fill();
+    ctx.shadowColor = "transparent";
     if (art) {
-      var s = side / Math.max(art.naturalWidth, art.naturalHeight);
-      ctx.shadowColor = "rgba(0,0,0,.6)"; ctx.shadowBlur = R * 0.25; ctx.shadowOffsetY = R * 0.06;
+      ctx.save();
+      ctx.beginPath(); hexPath(ctx, 0, 0, rr); ctx.clip();
+      var s = 2 * rr / Math.min(art.naturalWidth, art.naturalHeight);
       ctx.drawImage(art, -art.naturalWidth * s / 2, -art.naturalHeight * s / 2, art.naturalWidth * s, art.naturalHeight * s);
+      ctx.restore();
     } else {
-      var disc = Math.min(side * 0.32, R * 0.62);
-      ctx.beginPath(); ctx.arc(0, 0, disc, 0, Math.PI * 2);
-      ctx.fillStyle = shade(col, 0.25); ctx.fill();
-      ctx.fillStyle = "#05090E"; ctx.font = "700 " + (disc * 0.95) + "px " + FONT;
+      ctx.fillStyle = "#05090E"; ctx.font = "700 " + (Math.min(rr, R) * 0.9) + "px " + FONT;
       ctx.textAlign = "center"; ctx.textBaseline = "middle";
       ctx.fillText(((t.label || t.contact || "?").trim()[0] || "?").toUpperCase(), 0, 0);
     }
-    // facing tick
+    ctx.beginPath(); hexPath(ctx, 0, 0, rr);
+    ctx.strokeStyle = sel ? "#3FD8F0" : shade(col, 0.3); ctx.lineWidth = R * (sel ? 0.08 : 0.06); ctx.stroke();
+    // facing tick, just past the hex's upper edge
     if (t.facing) {
-      ctx.beginPath(); ctx.moveTo(0, -side * 0.5); ctx.lineTo(-R * 0.14, -side * 0.5 + R * 0.2); ctx.lineTo(R * 0.14, -side * 0.5 + R * 0.2); ctx.closePath();
+      var top = rr * (flat() ? SQ3 / 2 : 1) + R * 0.06;
+      ctx.beginPath(); ctx.moveTo(0, -top - R * 0.2); ctx.lineTo(-R * 0.15, -top); ctx.lineTo(R * 0.15, -top); ctx.closePath();
       ctx.fillStyle = "#3FD8F0"; ctx.fill();
     }
     ctx.restore();
