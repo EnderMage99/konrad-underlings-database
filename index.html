@@ -4803,23 +4803,27 @@
                save: "???", evade: "???", edef: "???", sensor: "???" },
       skills: { hull: "?", agi: "?", sys: "?", eng: "?" },
       weapons: [
-        { n: "???", ghost: true, mount: "Observed ranged",
-          line: "Range ? | ~6 Energy",
-          txt: "An arm-mounted gun. One hit recorded at 6 Energy. Range not established, but it fired from beyond Threat. While the Scourer is Exposed, a hit also inflicts 3 Burn.",
-          meta: "Observed / ~6 Energy / +3 Burn while Exposed / Range unconfirmed" }
+        { n: "Thermal Lance", mount: "Heavy Cannon",
+          line: "Range 8 | 8 Energy | +2 attack | +1 accuracy",
+          meta: "Heat 4 (self)" }
       ],
       systems: [
+        { n: "Cooling Module", txt: "At the start of their turn, the Scourer clears all heat if they haven't moved - including involuntary movement - since the end of their previous turn." },
+        { n: "Ablative Shielding", txt: "The Scourer has Resistance to Energy damage." },
+        { n: "Melt", txt: "The Scourer makes a ranged attack against an object, deployable or Drone within Range 10, dealing 20 AP Energy damage on a success.",
+          meta: "Recharge 5+ / Quick action" },
         { n: "???", ghost: true,
-          txt: "The Scourer makes itself Exposed. While Exposed, hits from its arm gun also inflict 3 Burn. Whether this takes an action is not established.",
+          txt: "The Scourer makes itself Exposed. While Exposed, hits from the Thermal Lance also inflict 3 Burn. Whether this takes an action is not established.",
           meta: "Observed / Self-Exposed / Enables 3 Burn / Action cost unconfirmed" }
       ],
       traits: [
         { n: "Abominable", line: "T1",
           txt: "Scan doesn't reveal any information about the Horror except that they are a Horror.",
-          meta: "Verbatim from the scan - the only line it returns" }
+          meta: "Verbatim from the scan - the only line it returns" },
+        { n: "Focus Down", txt: "When the Scourer hits with the Thermal Lance, targets take 7 Burn if they were also successfully hit with the Thermal Lance in the previous round." }
       ],
       reactions: [],
-      note: "A Horror; scan returns nothing. It moves about 4 spaces a round and shoots for 6 Energy, and when it makes itself Exposed its hits also inflict 3 Burn. Exposed doubles the kinetic, energy and explosive damage it takes, so once it opens up, hit it hard and spend any held reactions or Overwatch. At 4 spaces a round it is slow; keep your distance."
+      note: "A Horror: a reanimated Gongsi Scourer with the same kit, so everything known about the Gongsi Scourer applies. When it makes itself Exposed its Thermal Lance hits also inflict 3 Burn, but it takes double kinetic, energy and explosive damage, so hit it hard then. Push it to stop Cooling Module, and break line of sight for a round to reset Focus Down."
     },
     {
       slide: 54, name: "Horrors Reanimated Hornet", faction: "horror",
