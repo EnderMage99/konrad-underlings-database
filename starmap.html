@@ -587,6 +587,12 @@
       // Planet ids carry the system so LOOKS and saved files stay apart
       // from Invideis's own "ii", "iv" and so on.
       id: "guerra", name: "Guerra", star: { color: "#FFF4D6", glow: "#F5B33C", size: 20 },
+      // Two suns: a yellow one and a smaller orange one, going round their
+      // shared centre on opposite sides. The heavier sun keeps the tighter orbit.
+      stars: [
+        { size: 15, orbit: 8,  period: 0.5, phase: 0,       tone: "gold" },
+        { size: 10, orbit: 13, period: 0.5, phase: Math.PI, tone: "orange" }
+      ],
       // An asteroid belt past the last world (Guerra-V, orbit 480) and inside
       // the gate (600), so the gate stands alone at the edge of the system.
       // Radii in chart units; `thick` is how far rocks stray above and below
@@ -608,11 +614,20 @@
           lore: ["The far end of the Invideis gate, standing at the edge of the Guerra system. One route is charted: back to Invideis."] }
       ],
       planets: [
-        { id: "cattivo",    name: "Cattivo",    orbit: 70,  period: 1.0,  size: 7,   visited: false, phase: 2.2, control: { cattivo: 100, bene: 0 } },
-        { id: "guerra-ii",  name: "Guerra-II",  orbit: 150, period: 3.1,  size: 6,   visited: false, phase: 5.0, control: { cattivo: 75,  bene: 25 } },
-        { id: "guerra-iii", name: "Guerra-III", orbit: 240, period: 6.4,  size: 8.5, visited: false, phase: 0.9, control: { cattivo: 50,  bene: 50 } },
-        { id: "guerra-iv",  name: "Guerra-IV",  orbit: 350, period: 11.2, size: 6.5, visited: false, phase: 3.4, control: { cattivo: 25,  bene: 75 } },
-        { id: "guerra-v",   name: "Guerra-V",   orbit: 480, period: 18.0, size: 8,   visited: false, phase: 1.3, control: { cattivo: 0,   bene: 100 } }
+        // Nearest the suns, a double world: Bene and Cattivo, the capitals of
+        // the two sides, each wholly its own side's, circling each other as
+        // they go round together. `bin` pairs them (see binOffset).
+        { id: "bene",       name: "Bene",       orbit: 85,  period: 1.0,  size: 6.5, visited: false, phase: 2.2,
+          bin: { sep: 26, period: 0.25, phase: 0, side: 0 }, control: { cattivo: 0,   bene: 100 } },
+        { id: "cattivo",    name: "Cattivo",    orbit: 85,  period: 1.0,  size: 6.5, visited: false, phase: 2.2,
+          bin: { sep: 26, period: 0.25, phase: 0, side: 1 }, control: { cattivo: 100, bene: 0 } },
+        // Further out every world is fought over, the Empire's hold growing
+        // with distance from the suns. With the capitals cancelling out, these
+        // set the overall split: they average 65, which makes it 60 / 40.
+        { id: "guerra-ii",  name: "Guerra-II",  orbit: 150, period: 2.3,  size: 6,   visited: false, phase: 5.0, control: { cattivo: 55,  bene: 45 } },
+        { id: "guerra-iii", name: "Guerra-III", orbit: 240, period: 4.7,  size: 8.5, visited: false, phase: 0.9, control: { cattivo: 60,  bene: 40 } },
+        { id: "guerra-iv",  name: "Guerra-IV",  orbit: 350, period: 8.4,  size: 6.5, visited: false, phase: 3.4, control: { cattivo: 70,  bene: 30 } },
+        { id: "guerra-v",   name: "Guerra-V",   orbit: 480, period: 13.4, size: 8,   visited: false, phase: 1.3, control: { cattivo: 75,  bene: 25 } }
       ]
     }
   ];
@@ -1149,7 +1164,17 @@
     return { x: e.x + x1 * s, y: e.y + y2 * s, s: s, depth: depth };
   }
 
-  function planetPos(p) {
+  function planetPos(p) { return planetPosAt(p, simT); }
+  // A world in a pair (`bin`) circles the pair's shared centre, which keeps
+  // the orbit, period and phase; the two partners sit on opposite sides
+  // (side 0 and 1), `sep` apart, and go round each other every bin.period.
+  function binOffset(p, t) {
+    var b = p.bin;
+    var a = b.phase + (b.side ? Math.PI : 0) + (drifting ? t * (2 * Math.PI) / (b.period * 40) : 0);
+    return { x: Math.cos(a) * b.sep / 2, z: Math.sin(a) * b.sep / 2 };
+  }
+  // the pair's shared centre, for any world (for a lone world, the world)
+  function baryPos(p) {
     var a = p.phase + (drifting ? simT * (2 * Math.PI) / (p.period * 40) : 0);
     return { x: Math.cos(a) * p.orbit, z: Math.sin(a) * p.orbit, a: a };
   }
@@ -1591,7 +1616,23 @@
   // where a world will be at a chart time other than now
   function planetPosAt(p, t) {
     var a = p.phase + (drifting ? t * (2 * Math.PI) / (p.period * 40) : 0);
-    return { x: Math.cos(a) * p.orbit, z: Math.sin(a) * p.orbit, a: a };
+    var x = Math.cos(a) * p.orbit, z = Math.sin(a) * p.orbit;
+    if (p.bin) { var o = binOffset(p, t); x += o.x; z += o.z; }
+    return { x: x, z: z, a: a };
+  }
+
+  // The system's suns. One by default, at the centre; a system with `stars`
+  // has several, each circling the centre on its own small orbit.
+  var STAR_TONES = {
+    gold:   { core: "255,244,214", mid: "255,236,190", glow: "245,179,60" },
+    orange: { core: "255,232,214", mid: "255,196,150", glow: "240,110,60" }
+  };
+  function starsNow() {
+    var list = system.stars || [{ size: system.star.size, orbit: 0, period: 1, phase: 0, tone: "gold" }];
+    return list.map(function (s) {
+      var a = s.phase + (drifting && s.orbit ? simT * (2 * Math.PI) / (s.period * 40) : 0);
+      return { x: Math.cos(a) * s.orbit, z: Math.sin(a) * s.orbit, size: s.size, tone: STAR_TONES[s.tone] || STAR_TONES.gold };
+    });
   }
 
   // a frame - heading, right and up - from a heading vector, upright to the plane
@@ -2041,8 +2082,18 @@
       cx.lineWidth = on ? 2 : 1.2;
       cx.strokeStyle = col;
       cx.globalAlpha = p.visited ? (on ? 1 : .8) : .55;
-      ringPath(160, function (a) { return project(Math.cos(a) * p.orbit, 0, Math.sin(a) * p.orbit); });
-      cx.stroke();
+      // a pair shares one orbit; the second partner does not draw it again
+      if (!(p.bin && p.bin.side)) {
+        ringPath(160, function (a) { return project(Math.cos(a) * p.orbit, 0, Math.sin(a) * p.orbit); });
+        cx.stroke();
+      }
+      // and the small loop the pair draws round each other, about their centre
+      if (p.bin && !p.bin.side) {
+        var c = baryPos(p), lr = p.bin.sep / 2;
+        cx.setLineDash([3, 5]); cx.globalAlpha = .7;
+        ringPath(48, function (a) { return project(c.x + Math.cos(a) * lr, 0, c.z + Math.sin(a) * lr); });
+        cx.stroke();
+      }
       cx.setLineDash([]); cx.globalAlpha = 1;
     });
 
@@ -2051,7 +2102,7 @@
       var pos = planetPos(p); var pr = project(pos.x, 0, pos.z);
       return { p: p, pr: pr, pos: pos };
     });
-    items.push({ star: true, pr: sp });
+    starsNow().forEach(function (s) { items.push({ star: s, pr: project(s.x, 0, s.z) }); });
     settleShips();
     (system.ships || []).forEach(function (s) {
       var st = shipState(s), pr = project(st.x, st.y, st.z);
@@ -2079,10 +2130,10 @@
       // disc would be thousands of pixels across and cost seconds to paint
       if (it.pr.depth < 14) return;
       if (it.star) {
-        var r = system.star.size * it.pr.s;
+        var r = it.star.size * it.pr.s, tn = it.star.tone;
         var gg = cx.createRadialGradient(it.pr.x, it.pr.y, 0, it.pr.x, it.pr.y, r * 3.2);
-        gg.addColorStop(0, "rgba(255,244,214,1)"); gg.addColorStop(.18, "rgba(255,236,190,.95)");
-        gg.addColorStop(.32, "rgba(245,179,60,.45)"); gg.addColorStop(1, "rgba(245,179,60,0)");
+        gg.addColorStop(0, "rgba(" + tn.core + ",1)"); gg.addColorStop(.18, "rgba(" + tn.mid + ",.95)");
+        gg.addColorStop(.32, "rgba(" + tn.glow + ",.45)"); gg.addColorStop(1, "rgba(" + tn.glow + ",0)");
         cx.fillStyle = gg; cx.beginPath(); cx.arc(it.pr.x, it.pr.y, r * 3.2, 0, Math.PI * 2); cx.fill();
         return;
       }
@@ -2093,14 +2144,25 @@
       else drawSphere(cx, it.pr.x, it.pr.y, r, p, light);
       if (p === focus) focusScreen = { x: it.pr.x, y: it.pr.y, r: r };
       var share = system.war ? sideShare(p, 0) : null;
+      // The label sits under the world - or, for one of a pair, on the side
+      // away from its partner, so the two names never land on each other.
+      var lab = { x: it.pr.x, y: it.pr.y + r + 14 };
+      if (p.bin) {
+        var bc = baryPos(p), bp = project(bc.x, 0, bc.z);
+        var ux = it.pr.x - bp.x, uy = it.pr.y - bp.y, ul = Math.hypot(ux, uy);
+        if (ul > 1) {
+          ux /= ul; uy /= ul;
+          lab = { x: it.pr.x + ux * (r + 30), y: it.pr.y + uy * (r + 14) + 4 };
+        }
+      }
       if ((p.visited || hover === p || share !== null) && p !== focus) {
         cx.font = MONO_FONT;
         cx.fillStyle = p.visited ? "rgba(210,236,246,.9)" : (share !== null ? "rgba(144,182,200,.9)" : "rgba(91,127,146,.9)");
         cx.textAlign = "center";
-        cx.fillText(p.name.toUpperCase().replace(/ /g, " "), it.pr.x, it.pr.y + r + 14);
+        cx.fillText(p.name.toUpperCase().replace(/ /g, " "), lab.x, lab.y);
         // a contested world wears a small split bar under its name
         if (share !== null) {
-          var bw = 40, bx = it.pr.x - bw / 2, by = it.pr.y + r + 20, cutX = bx + bw * share / 100;
+          var bw = 40, bx = lab.x - bw / 2, by = lab.y + 6, cutX = bx + bw * share / 100;
           cx.fillStyle = "rgba(4,8,12,.85)"; cx.fillRect(bx - 1, by - 1, bw + 2, 6);
           cx.fillStyle = system.war.sides[0].color; cx.fillRect(bx, by, cutX - bx, 4);
           cx.fillStyle = system.war.sides[1].color; cx.fillRect(cutX, by, bx + bw - cutX, 4);
@@ -2945,8 +3007,10 @@
       j.addEventListener("click", function () { jumpShip(s, at); });
       orders.appendChild(j);
     }
-    // Sandbox only: debug controls for testing without waiting on flights.
-    if (SANDBOX) {
+    // Debug controls, for moving the ship without waiting on flights: in the
+    // sandbox, and for the archivist on the live chart, where a teleport is
+    // saved like any order and every viewer sees the ship arrive.
+    if (SANDBOX || archivist) {
       var dl = document.createElement("span"); dl.className = "lbl dbg"; dl.textContent = "Debug"; orders.appendChild(dl);
       var tg = document.createElement("button"); tg.type = "button"; tg.className = "chip dbg";
       tg.setAttribute("aria-pressed", instantMoves() ? "true" : "false");
@@ -2961,7 +3025,7 @@
     }
     document.getElementById("sp-err").textContent = "";
   }
-  // Debug (sandbox only): whether "Send to" skips the flight, kept for the tab.
+  // Debug: whether "Send to" skips the flight, kept for the tab.
   function instantMoves() { try { return sessionStorage.getItem("starmap.debug.instant") === "1"; } catch (e) { return false; } }
   function setInstantMoves(on) { try { sessionStorage.setItem("starmap.debug.instant", on ? "1" : "0"); } catch (e) {} }
   // A row with a host and no from/to puts the ship there without a flight.
@@ -2970,12 +3034,13 @@
     await saveOverride("ship", shipRowId(s), { sys: system.id, host: hostId, at: at });
   }
   // finish a flight under way: the next frame settles it at its destination
+  // Saved first, so a refused write leaves the ship where everyone sees it.
   async function arriveNow(s) {
-    if (!SANDBOX || !s.transit) return;
-    var to = s.transit.to;
-    s.transit.t0 = simT - s.transit.dur;
-    settleShips();
-    await placeShipNow(s, to);
+    var err = document.getElementById("sp-err"); err.textContent = "";
+    if (!archivist || !s.transit) return;
+    var tr = s.transit;
+    try { await placeShipNow(s, tr.to); } catch (e) { err.textContent = e.message; return; }
+    if (s.transit === tr) { tr.t0 = simT - tr.dur; settleShips(); }
     openShipPanel(s);
   }
   document.getElementById("home").addEventListener("click", function (e) {
@@ -2989,9 +3054,9 @@
   async function orderShip(s, to) {
     var err = document.getElementById("sp-err"); err.textContent = "";
     if (!archivist) { err.textContent = "Only the archivist can give orders."; return; }
-    if (SANDBOX && instantMoves()) {
+    if (instantMoves()) {
+      try { await placeShipNow(s, to.id); } catch (e) { err.textContent = e.message; return; }
       s.host = to.id; s.transit = null;
-      await placeShipNow(s, to.id);
       openShipPanel(s);
       return;
     }
