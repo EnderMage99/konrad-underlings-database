@@ -625,7 +625,15 @@
         // with distance from the suns. With the capitals cancelling out, these
         // set the overall split: they average 65, which makes it 60 / 40.
         { id: "guerra-ii",  name: "Guerra-II",  orbit: 150, period: 2.3,  size: 6,   visited: false, phase: 5.0, control: { cattivo: 55,  bene: 45 } },
-        { id: "guerra-iii", name: "Guerra-III", orbit: 240, period: 4.7,  size: 8.5, visited: false, phase: 0.9, control: { cattivo: 60,  bene: 40 } },
+        { id: "guerra-iii", name: "Guerra-III", orbit: 240, period: 4.7,  size: 8.5, visited: true,  phase: 0.9, control: { cattivo: 60,  bene: 40 },
+          ring: "#45E0A0",
+          palette: { sea: "#14406E", land: ["#3E7D3A", "#5C8F45", "#B49A6A", "#8A7E6E", "#E8ECEF"], cloud: "rgba(255,255,255,.22)" },
+          stats: [["Climate", "Earth-like"], ["Principal city", "Fausse-Bannière"], ["Contested by", "Cattivo Empire, Bene Allied States"]],
+          lore: [],
+          regions: [
+            { id: "fausse-banniere", name: "Fausse-Bannière", kind: "City", lat: 18, lon: -20, want: "green",
+              lore: [] }
+          ] },
         { id: "guerra-iv",  name: "Guerra-IV",  orbit: 350, period: 8.4,  size: 6.5, visited: false, phase: 3.4, control: { cattivo: 70,  bene: 30 } },
         { id: "guerra-v",   name: "Guerra-V",   orbit: 480, period: 13.4, size: 8,   visited: false, phase: 1.3, control: { cattivo: 75,  bene: 25 } }
       ]
@@ -1224,7 +1232,12 @@
     ii: { seed: 21, sea: 0.50, scale: 3.3, deep: "#0B2A4E", shallow: "#1E6C8E", low: "#C9A96B", mid: "#B8925A",
           high: "#B9AB94", peak: "#E4E6E8", ice: 0.84, clouds: 0.34, atmo: "#6FD3FF", detail: 7, dry: true, oasis: true },
     iv: { seed: 47, sea: 0.40, scale: 2.8, deep: "#0A262B", shallow: "#155A4A", low: "#175E2E", mid: "#2A8452",
-          high: "#3F6E33", peak: "#5E7356", ice: 0.9, clouds: 0.3, atmo: "#7CF2C4", detail: 7 }
+          high: "#3F6E33", peak: "#5E7356", ice: 0.9, clouds: 0.3, atmo: "#7CF2C4", detail: 7 },
+    // Guerra-III: Earth's mixture - mostly deep blue ocean, green lowlands
+    // with tan deserts scattered through them (arid), brown and grey high
+    // ground, snowy peaks, white polar caps and a good deal of cloud.
+    "guerra-iii": { seed: 83, sea: 0.56, scale: 2.6, deep: "#0B2552", shallow: "#1D5E8E", low: "#35692F", mid: "#4F7A3C",
+          high: "#7E6F58", peak: "#E3E6E8", ice: 0.8, clouds: 0.42, atmo: "#8CC8FF", detail: 7, arid: true }
   };
   function lookFor(p) {
     if (LOOKS[p.id]) return LOOKS[p.id];
@@ -1272,6 +1285,14 @@
         var g = Math.max(0, Math.min(1, (moist - .56) * 7));
         if (g > 0) col = mix(col, [58, 132, 70], g * .9);
         if (g > .5) SURF_CLASS = "green";
+      }
+      // and a green world keeps its deserts to the dry patches, the
+      // other way about
+      if (look.arid && t < .42) {
+        var dryness = fbm(x * 1.9 - 13, y * 1.9 + 29, z * 1.9 - 7, look.seed + 61, 4, .5);
+        var dd = Math.max(0, Math.min(1, (dryness - .52) * 6));
+        if (dd > 0) col = mix(col, [196, 170, 116], dd * .9);
+        if (dd > .5) SURF_CLASS = "desert";
       }
     }
     var iceEdge = look.ice + (fbm(x * 4, y * 4, z * 4, look.seed + 7, 3, .5) - .5) * .12;
